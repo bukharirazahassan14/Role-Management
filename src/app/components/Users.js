@@ -12,8 +12,8 @@ export default function Users() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false); // view user drawer
   const [selectedUser, setSelectedUser] = useState(null);
-
   const [fileFrameUser, setFileFrameUser] = useState(null);
+  const [currentUserRole, setCurrentUserRole] = useState(null);
 
   // Form state for uploading
   const [newTitle, setNewTitle] = useState("");
@@ -22,52 +22,51 @@ export default function Users() {
   const [fileCounts, setFileCounts] = useState({});
 
   const handleOpenFrame = (user) => {
-     
     setFileFrameUser(user);
     setNewTitle("");
     setNewDescription("");
     setNewFile(null);
   };
 
-const handleUpload = async () => {
-  if (!newFile) return alert("Please select a file!");
+  const handleUpload = async () => {
+    if (!newFile) return alert("Please select a file!");
 
-   // 🔹 fetch logged-in userId from localStorage
-  const loginID = localStorage.getItem("loginID");
-  if (!loginID) return alert("User not logged in!");
+    // 🔹 fetch logged-in userId from localStorage
+    const loginID = localStorage.getItem("loginID");
+    if (!loginID) return alert("User not logged in!");
 
-  const formData = new FormData();
-  formData.append(
-    "title",
-    newTitle || `File ${fileFrameUser.files?.length + 1 || 1}`
-  );
-  formData.append("description", newDescription);
-  formData.append("file", newFile);
-  formData.append("createdBy", loginID);
-  formData.append("userId", fileFrameUser.id);  
+    const formData = new FormData();
+    formData.append(
+      "title",
+      newTitle || `File ${fileFrameUser.files?.length + 1 || 1}`
+    );
+    formData.append("description", newDescription);
+    formData.append("file", newFile);
+    formData.append("createdBy", loginID);
+    formData.append("userId", fileFrameUser.id);
 
-  const res = await fetch("/api/files", {
-    method: "POST",
-    body: formData,
-  });
+    const res = await fetch("/api/files", {
+      method: "POST",
+      body: formData,
+    });
 
-  if (res.ok) {
-    const savedFile = await res.json();
+    if (res.ok) {
+      const savedFile = await res.json();
 
-    setFileFrameUser((prev) => ({
-      ...prev,
-      files: [savedFile, ...(prev.files || [])],
-    }));
+      setFileFrameUser((prev) => ({
+        ...prev,
+        files: [savedFile, ...(prev.files || [])],
+      }));
 
-    setNewTitle("");
-    setNewDescription("");
-    setNewFile(null);
-    // 🔹 refresh count
+      setNewTitle("");
+      setNewDescription("");
+      setNewFile(null);
+      // 🔹 refresh count
       fetchFileCount(fileFrameUser.id);
-  } else {
-    alert("Upload failed");
-  }
-};
+    } else {
+      alert("Upload failed");
+    }
+  };
 
   // 🔹 fetch file count for one user
   const fetchFileCount = async (userId) => {
@@ -96,7 +95,7 @@ const handleUpload = async () => {
         ...prev,
         files: prev.files.filter((f) => f._id !== fileToDelete._id),
       }));
-       // 🔹 refresh count
+      // 🔹 refresh count
       fetchFileCount(fileFrameUser.id);
     } else {
       alert("Delete failed");
@@ -106,11 +105,14 @@ const handleUpload = async () => {
   useEffect(() => {
     async function fetchUsers() {
       try {
+        // ✅ get logged-in role from localStorage
+        const role = localStorage.getItem("userRole");
+        setCurrentUserRole(role);
         const res = await fetch("/api/users");
         const data = await res.json();
         if (Array.isArray(data)) setUsers(data);
-         // fetch counts for all users
-          data.forEach((u) => fetchFileCount(u.id));
+        // fetch counts for all users
+        data.forEach((u) => fetchFileCount(u.id));
       } catch (err) {
         console.error(err);
       } finally {
@@ -620,14 +622,53 @@ const handleUpload = async () => {
                 <td className="px-6 py-4">
                   <select
                     value={user.role?._id || ""}
+                    disabled={
+                      currentUserRole === "Staff" ||
+                      currentUserRole === "Temp Staff" ||
+                      ((currentUserRole === "Super Admin" ||
+                        currentUserRole === "Management" ||
+                        currentUserRole === "HR") &&
+                        user.role?.name === "Super Admin")
+                    }
                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
                     className="w-52 px-3 py-2 border border-white rounded-lg bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                   >
-                    {roles.map((role) => (
-                      <option key={role._id} value={role._id}>
-                        {role.name}
-                      </option>
-                    ))}
+                    {roles
+                      .filter((role) => {
+                        // ✅ Staff / Temp Staff → show all options (but disabled anyway)
+                        if (
+                          currentUserRole === "Staff" ||
+                          currentUserRole === "Temp Staff"
+                        ) {
+                          return true;
+                        }
+
+                        // ✅ Management / HR → hide "Super Admin" unless the row itself is Super Admin
+                        if (
+                          (currentUserRole === "Management" ||
+                            currentUserRole === "HR") &&
+                          role.name === "Super Admin" &&
+                          user.role?.name !== "Super Admin"
+                        ) {
+                          return false;
+                        }
+
+                        // ✅ Super Admin → hide "Super Admin" option from all other rows
+                        if (
+                          currentUserRole === "Super Admin" &&
+                          role.name === "Super Admin" &&
+                          user.role?.name !== "Super Admin"
+                        ) {
+                          return false;
+                        }
+
+                        return true;
+                      })
+                      .map((role) => (
+                        <option key={role._id} value={role._id}>
+                          {role.name}
+                        </option>
+                      ))}
                   </select>
                 </td>
                 <td className="px-6 py-4">
@@ -641,7 +682,7 @@ const handleUpload = async () => {
                     className="relative inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 transition"
                   >
                     <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                       {fileCounts[user.id] ?? 0}
+                      {fileCounts[user.id] ?? 0}
                     </span>
                     <FileText className="w-6 h-6" />
                   </button>

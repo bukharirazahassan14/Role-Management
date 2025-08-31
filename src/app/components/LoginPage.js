@@ -30,7 +30,7 @@ export default function LoginPage() {
         // 🔹 Store user name in localStorage (can be used in MainLayout)
         localStorage.setItem("loginID", data.user.id);
         localStorage.setItem("userName", fullName);
-        
+        localStorage.setItem("userRole", data.user.role);
 
         // ✅ redirect to MainLayout page
         router.push("/main");
