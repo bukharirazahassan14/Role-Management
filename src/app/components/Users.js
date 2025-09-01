@@ -21,8 +21,16 @@ export default function Users() {
   const [newFile, setNewFile] = useState(null);
   const [fileCounts, setFileCounts] = useState({});
 
-  const handleOpenFrame = (user) => {
-    setFileFrameUser(user);
+  // 🔹 Open file frame & fetch attached files
+  const handleOpenFrame = async (user) => {
+    try {
+      const res = await fetch(`/api/files?userId=${user.id}`);
+      const files = await res.json();
+      setFileFrameUser({ ...user, files: files || [] });
+    } catch (err) {
+      console.error("Error fetching files:", err);
+      setFileFrameUser({ ...user, files: [] });
+    }
     setNewTitle("");
     setNewDescription("");
     setNewFile(null);
@@ -588,12 +596,16 @@ export default function Users() {
           <thead className="bg-indigo-900 text-white">
             <tr>
               <th className="px-4 py-3 w-12 text-center">
-                <button
-                  onClick={() => setDrawerOpen(true)}
-                  className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
+                {(currentUserRole === "Super Admin" ||
+                  currentUserRole === "HR" ||
+                  currentUserRole === "Management") && (
+                  <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                )}
               </th>
               <th className="px-6 py-3">Name</th>
               <th className="px-6 py-3">Email</th>
@@ -709,7 +721,6 @@ export default function Users() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             {/* File List */}
             <div className="flex-1 overflow-y-auto mt-3 space-y-3 pr-1">
               {fileFrameUser.files && fileFrameUser.files.length > 0 ? (
@@ -723,10 +734,11 @@ export default function Users() {
                       <h3 className="font-medium text-gray-800">
                         {file.title}
                       </h3>
+
                       <div className="flex space-x-3">
-                        {/* View File */}
+                        {/* ✅ View File (Visible to all users) */}
                         <a
-                          href={file.url || file.fileUrl} // ✅ check both
+                          href={file.url || file.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-indigo-600 hover:text-indigo-900"
@@ -734,14 +746,19 @@ export default function Users() {
                         >
                           <FileText className="w-5 h-5" />
                         </a>
-                        {/* Delete File */}
-                        <button
-                          onClick={() => handleDeleteFile(file)}
-                          className="text-red-500 hover:text-red-700"
-                          title="Delete File"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+
+                        {/* ✅ Delete File (Restricted to Super Admin, HR, Management) */}
+                        {["Super Admin", "HR", "Management"].includes(
+                          currentUserRole
+                        ) && (
+                          <button
+                            onClick={() => handleDeleteFile(file)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Delete File"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -766,36 +783,44 @@ export default function Users() {
             </div>
 
             {/* Upload New File */}
-            <div className="border-t border-gray-200 pt-4 space-y-2">
-              <input
-                type="text"
-                placeholder="Title"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-              />
-              <textarea
-                placeholder="Description"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                rows={2}
-              />
-              <div className="flex items-center space-x-2">
-                <input
-                  type="file"
-                  onChange={(e) => setNewFile(e.target.files[0])}
-                  className="flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
-                />
-                <button
-                  onClick={handleUpload}
-                  className="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 flex items-center space-x-1"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload</span>
-                </button>
-              </div>
-            </div>
+<div className="border-t border-gray-200 pt-4 space-y-2">
+  <input
+    type="text"
+    placeholder="Title"
+    value={newTitle}
+    onChange={(e) => setNewTitle(e.target.value)}
+    className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+  />
+  <textarea
+    placeholder="Description"
+    value={newDescription}
+    onChange={(e) => setNewDescription(e.target.value)}
+    className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+    rows={2}
+  />
+  <div className="flex items-center space-x-2">
+    <input
+      type="file"
+      onChange={(e) => setNewFile(e.target.files[0])}
+      className="flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
+    />
+
+    {/* ✅ Upload button restricted */}
+    <button
+      onClick={handleUpload}
+      disabled={!["Super Admin", "HR", "Management"].includes(currentUserRole)}
+      className={`px-3 py-2 rounded-lg flex items-center space-x-1 ${
+        ["Super Admin", "HR", "Management"].includes(currentUserRole)
+          ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+      }`}
+    >
+      <Upload className="w-4 h-4" />
+      <span>Upload</span>
+    </button>
+  </div>
+</div>
+
           </div>
         </div>
       )}

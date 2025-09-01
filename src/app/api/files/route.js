@@ -4,6 +4,7 @@ import { writeFile } from "fs/promises";
 import connectToDB from "@/lib/mongodb";
 import UserAttachedFile from "@/models/UserAttachedFile";
 
+
 export async function POST(req) {
   try {
     await connectToDB();
@@ -42,5 +43,27 @@ export async function POST(req) {
   } catch (err) {
     console.error("❌ Upload error:", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  }
+}
+
+// 🔹 GET → Fetch files (optionally by userId)
+export async function GET(req) {
+  try {
+    await connectToDB();
+
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    let files;
+    if (userId) {
+      files = await UserAttachedFile.find({ userId }).sort({ createdAt: -1 });
+    } else {
+      files = await UserAttachedFile.find().sort({ createdAt: -1 });
+    }
+
+    return NextResponse.json(files, { status: 200 });
+  } catch (err) {
+    console.error("❌ GET files error:", err);
+    return NextResponse.json({ error: "Failed to fetch files" }, { status: 500 });
   }
 }
