@@ -15,6 +15,7 @@ const UserSchema = new mongoose.Schema({
   jd: { type: String },                                        // 12: JD (Job Description)
   exp: { type: String },                                       // 13: Exp (Experience)
   password: { type: String, required: true },
+  isActive: { type: Boolean, default: true },
   created_at: { type: Date, default: Date.now },
 });
 

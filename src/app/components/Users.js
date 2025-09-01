@@ -13,6 +13,7 @@ export default function Users() {
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false); // view user drawer
   const [selectedUser, setSelectedUser] = useState(null);
   const [fileFrameUser, setFileFrameUser] = useState(null);
+  const [resetPassword, setResetPassword] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState(null);
 
   // Form state for uploading
@@ -37,7 +38,11 @@ export default function Users() {
   };
 
   const handleUpload = async () => {
-    if (!newFile) return alert("Please select a file!");
+    if (!newFile) return alert("⚠️ Please select a file!");
+    if (!newTitle || newTitle.trim() === "")
+      return alert("⚠️ Please enter a valid Title!");
+    if (!newDescription || newDescription.trim() === "")
+      return alert("⚠️ Please enter a valid Description!");
 
     // 🔹 fetch logged-in userId from localStorage
     const loginID = localStorage.getItem("loginID");
@@ -208,6 +213,7 @@ export default function Users() {
       medicalCondition: formData.get("medicalCondition"),
       jd: formData.get("jd"),
       exp: formData.get("exp"),
+      isActive: formData.get("isActive") === "true",
     };
 
     console.log("📌 New User:", newUser);
@@ -244,6 +250,24 @@ export default function Users() {
     }
   };
 
+  const handleToggleActive = async (userId, newStatus) => {
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, isActive: newStatus }),
+      });
+
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, isActive: newStatus } : u))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update active status", err);
+    }
+  };
+
   return (
     <div className="p-8 w-full">
       {/* ✅ Toast Message */}
@@ -259,211 +283,269 @@ export default function Users() {
         </div>
       )}
 
-      {/* ✅ Right Drawer */}
+      {/* ✅ Right Drawer (Modern + Complete) */}
       <div
-        className={`fixed top-0 right-0 h-full w-96 bg-white shadow-xl transform transition-transform duration-300 z-50 ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[28rem] md:w-[34rem] bg-white/90 backdrop-blur-xl shadow-2xl transform transition-transform duration-500 ease-in-out z-50 rounded-l-2xl ${
           drawerOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Drawer Header */}
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-lg font-semibold">➕ Add New User</h2>
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <span className="text-xl">➕</span> Add New User
+          </h2>
           <button
             onClick={() => setDrawerOpen(false)}
-            className="text-gray-600 hover:text-gray-900"
+            className="hover:bg-white/20 p-2 rounded-full transition"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Drawer Content (Form) */}
-        <div className="p-4 overflow-y-auto h-[calc(100%-60px)]">
-          <form className="space-y-4" onSubmit={handleSubmit}>
+        {/* Content */}
+        <div className="p-6 overflow-y-auto h-[calc(100%-70px)]">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {/* First & Last Name */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-600">
                   First Name
                 </label>
                 <input
                   id="firstName"
                   name="firstName"
                   type="text"
-                  className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                  required
+                  className="form-input"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-600">
                   Last Name
                 </label>
                 <input
                   id="lastName"
                   name="lastName"
                   type="text"
-                  className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                  required
+                  className="form-input"
                 />
               </div>
             </div>
 
             {/* Emails */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-600">
                 Primary Email
               </label>
               <input
                 id="primaryEmail"
                 name="primaryEmail"
                 type="email"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                required
+                className="form-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-600">
                 Secondary Email
               </label>
               <input
                 id="secondaryEmail"
                 name="secondaryEmail"
                 type="email"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                className="form-input"
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
-              />
+            {/* Password with Reset Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-600">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="form-input"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {/* Small Reset Password Toggle */}
+              <div className="ml-4 flex items-center space-x-2">
+                <span className="text-xs text-gray-600">Reset</span>
+                <button
+                  type="button"
+                  onClick={() => setResetPassword(!resetPassword)}
+                  className={`relative inline-flex h-4 w-8 items-center rounded-full transition ${
+                    resetPassword ? "bg-indigo-500" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition ${
+                      resetPassword ? "translate-x-4" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Father Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-600">
                 Father Name
               </label>
               <input
                 id="fatherName"
                 name="fatherName"
                 type="text"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                className="form-input"
               />
             </div>
 
             {/* Phone & CNIC */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-600">
                   Phone
                 </label>
                 <input
                   id="phone"
                   name="phone"
                   type="text"
-                  className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                  className="form-input"
+                  placeholder="03XXXXXXXXX"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-600">
                   CNIC
                 </label>
                 <input
                   id="cnic"
                   name="cnic"
                   type="text"
-                  className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                  className="form-input"
+                  placeholder="XXXXX-XXXXXXX-X"
                 />
               </div>
             </div>
 
             {/* Emergency Contact */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Emergency Contact
-              </label>
-              <input
-                id="emergencyContact"
-                name="emergencyContact"
-                type="text"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Emergency Relation
-              </label>
-              <input
-                id="emergencyRelation"
-                name="emergencyRelation"
-                type="text"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600">
+                  Emergency Contact
+                </label>
+                <input
+                  id="emergencyContact"
+                  name="emergencyContact"
+                  type="text"
+                  className="form-input"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600">
+                  Emergency Relation
+                </label>
+                <input
+                  id="emergencyRelation"
+                  name="emergencyRelation"
+                  type="text"
+                  className="form-input"
+                  placeholder="Brother, Sister, etc."
+                />
+              </div>
             </div>
 
-            {/* Role Select */}
+            {/* Role */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
-              <select
-                id="role"
-                name="role"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
-              >
+              <label className="form-label">Role</label>
+              <select id="role" name="role" required className="form-input">
                 <option value="">Select Role</option>
-                {roles.map((role) => (
-                  <option key={role._id} value={role._id}>
-                    {role.name}
-                  </option>
-                ))}
+                {roles
+                  .filter((role) => role.name !== "Super Admin") // 🚫 Remove Super Admin
+                  .map((role) => (
+                    <option key={role._id} value={role._id}>
+                      {role.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
-            {/* Medical, JD, Exp */}
+            {/* Medical Condition */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-600">
                 Medical Condition
               </label>
               <input
                 id="medicalCondition"
                 name="medicalCondition"
                 type="text"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                className="form-input"
               />
             </div>
+
+            {/* Job Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-600">
                 Job Description
               </label>
               <textarea
                 id="jd"
                 name="jd"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                className="form-input min-h-24"
+                placeholder="Responsibilities, duties, etc."
               ></textarea>
             </div>
+
+            {/* Experience */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-600">
                 Experience
               </label>
               <input
                 id="exp"
                 name="exp"
                 type="text"
-                className="mt-1 w-full rounded-xl px-3 py-2 bg-gray-50 border border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
+                className="form-input"
+                placeholder="e.g., 3 years"
               />
+            </div>
+
+            {/* ✅ Active Toggle */}
+            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-700">
+                  Active
+                </span>
+                <span className="text-xs text-gray-500">
+                  User can log in when active.
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  name="isActive"
+                  defaultChecked
+                  value="true"
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 rounded-full bg-gray-300 peer-checked:bg-indigo-600 transition-all duration-300 peer-focus:ring-2 peer-focus:ring-indigo-400"></div>
+                <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:translate-x-5"></span>
+              </label>
             </div>
 
             {/* Submit */}
             <button
               type="submit"
-              className="w-full bg-indigo-900 hover:bg-indigo-700 text-white py-2 rounded-xl font-semibold shadow-md transition mt-6"
+              className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition mt-2"
             >
-              Save User
+              💾 Save User
             </button>
           </form>
         </div>
@@ -590,7 +672,6 @@ export default function Users() {
       </div>
 
       {/* ✅ Main Table */}
-
       <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
         <table className="w-full text-left">
           <thead className="bg-indigo-900 text-white">
@@ -611,6 +692,7 @@ export default function Users() {
               <th className="px-6 py-3">Email</th>
               <th className="px-6 py-3">Role</th>
               <th className="px-6 py-3">Created At</th>
+              <th className="px-6 py-3 text-center">Active</th>
               <th className="px-6 py-3 text-center">Attached File</th>
             </tr>
           </thead>
@@ -629,9 +711,9 @@ export default function Users() {
                     <Glasses className="w-6 h-6" />
                   </button>
                 </td>
-                <td className="px-6 py-4">{user.fullName || ""}</td>
+                <td className="px-8 py-4">{user.fullName || ""}</td>
                 <td className="px-6 py-4">{user.email || "-"}</td>
-                <td className="px-6 py-4">
+                <td className="px-3 py-4">
                   <select
                     value={user.role?._id || ""}
                     disabled={
@@ -688,6 +770,57 @@ export default function Users() {
                     ? new Date(user.createdAt).toLocaleDateString()
                     : "-"}
                 </td>
+
+                {/* ✅ Active Toggle Switch (Only for Super Admin) */}
+                <td className="px-6 py-4 text-center">
+                  {currentUserRole === "Super Admin" ? (
+                    user.role === "Super Admin" ||
+                    user.role?.name === "Super Admin" ? (
+                      // 🔒 Disable toggle for Super Admin rows
+                      <span
+                        className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
+                          user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                            user.isActive ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </span>
+                    ) : (
+                      // ✅ Allow toggle for other users
+                      <button
+                        onClick={() =>
+                          handleToggleActive(user.id, !user.isActive)
+                        }
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                          user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                            user.isActive ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    )
+                  ) : (
+                    // 🔹 Non-Super Admins → always read-only
+                    <span
+                      className={`inline-flex h-6 w-11 items-center rounded-full ${
+                        user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                          user.isActive ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </span>
+                  )}
+                </td>
+
                 <td className="px-6 py-4 text-center">
                   <button
                     onClick={() => handleOpenFrame(user)}
@@ -707,11 +840,11 @@ export default function Users() {
 
       {/* ✅ Floating Center Frame */}
       {fileFrameUser && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="w-[500px] h-[500px] bg-white shadow-2xl rounded-2xl border border-gray-200 p-6 flex flex-col">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 p-3">
+          <div className="w-full max-w-lg md:max-w-2xl lg:max-w-3xl max-h-[90vh] bg-white shadow-2xl rounded-2xl border border-gray-200 p-4 sm:p-6 flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center border-b border-gray-200 pb-3">
-              <h2 className="text-lg font-semibold text-indigo-900">
+              <h2 className="text-base sm:text-lg font-semibold text-indigo-900">
                 {fileFrameUser.fullName} – Files
               </h2>
               <button
@@ -721,6 +854,7 @@ export default function Users() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
             {/* File List */}
             <div className="flex-1 overflow-y-auto mt-3 space-y-3 pr-1">
               {fileFrameUser.files && fileFrameUser.files.length > 0 ? (
@@ -731,12 +865,11 @@ export default function Users() {
                   >
                     {/* Top Row: Title + Actions */}
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-gray-800">
+                      <h3 className="font-medium text-gray-800 text-sm sm:text-base">
                         {file.title}
                       </h3>
-
                       <div className="flex space-x-3">
-                        {/* ✅ View File (Visible to all users) */}
+                        {/* ✅ View File */}
                         <a
                           href={file.url || file.fileUrl}
                           target="_blank"
@@ -747,7 +880,7 @@ export default function Users() {
                           <FileText className="w-5 h-5" />
                         </a>
 
-                        {/* ✅ Delete File (Restricted to Super Admin, HR, Management) */}
+                        {/* ✅ Delete File */}
                         {["Super Admin", "HR", "Management"].includes(
                           currentUserRole
                         ) && (
@@ -763,14 +896,14 @@ export default function Users() {
                     </div>
 
                     {/* File Name */}
-                    <p className="text-xs text-gray-500 mt-1 italic">
+                    <p className="text-xs text-gray-500 mt-1 italic truncate">
                       {file.fileName ||
                         file.url?.split("/").pop() ||
                         file.fileUrl?.split("/").pop()}
                     </p>
 
                     {/* Description */}
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
                       {file.description || "No description"}
                     </p>
                   </div>
@@ -783,44 +916,47 @@ export default function Users() {
             </div>
 
             {/* Upload New File */}
-<div className="border-t border-gray-200 pt-4 space-y-2">
-  <input
-    type="text"
-    placeholder="Title"
-    value={newTitle}
-    onChange={(e) => setNewTitle(e.target.value)}
-    className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-  />
-  <textarea
-    placeholder="Description"
-    value={newDescription}
-    onChange={(e) => setNewDescription(e.target.value)}
-    className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-    rows={2}
-  />
-  <div className="flex items-center space-x-2">
-    <input
-      type="file"
-      onChange={(e) => setNewFile(e.target.files[0])}
-      className="flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
-    />
-
-    {/* ✅ Upload button restricted */}
-    <button
-      onClick={handleUpload}
-      disabled={!["Super Admin", "HR", "Management"].includes(currentUserRole)}
-      className={`px-3 py-2 rounded-lg flex items-center space-x-1 ${
-        ["Super Admin", "HR", "Management"].includes(currentUserRole)
-          ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-          : "bg-gray-300 text-gray-500 cursor-not-allowed"
-      }`}
-    >
-      <Upload className="w-4 h-4" />
-      <span>Upload</span>
-    </button>
-  </div>
-</div>
-
+            <div className="border-t border-gray-200 pt-4 space-y-2">
+              <input
+                type="text"
+                placeholder="Title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+              />
+              <textarea
+                placeholder="Description"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                rows={2}
+              />
+              <div className="flex flex-col sm:flex-row items-center sm:space-x-2 space-y-2 sm:space-y-0">
+                <input
+                  type="file"
+                  onChange={(e) => setNewFile(e.target.files[0])}
+                  className="w-full sm:flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
+                />
+                <button
+                  onClick={handleUpload}
+                  disabled={
+                    !["Super Admin", "HR", "Management"].includes(
+                      currentUserRole
+                    )
+                  }
+                  className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 ${
+                    ["Super Admin", "HR", "Management"].includes(
+                      currentUserRole
+                    )
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Upload</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

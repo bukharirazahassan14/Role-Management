@@ -43,9 +43,9 @@ async function seed() {
       jd: "Oversee all operations",
       exp: "10 years",
       password: await bcrypt.hash("123456", 10),
+      active: true, // ✅ set active
       created_at: new Date(),
     },
-   
   ]);
 
   // 👇 pick first user (Super Admin) to attach files

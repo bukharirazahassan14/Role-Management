@@ -18,6 +18,14 @@ export async function POST(req) {
       });
     }
 
+    // 🚫 check if user is inactive
+    if (!user.isActive) {
+      return new Response(
+        JSON.stringify({ error: "Your account is inactive. Please contact admin." }),
+        { status: 403 }
+      );
+    }
+
     // 🔑 check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
