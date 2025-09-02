@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Glasses, Plus, X, FileText, Upload, Trash2 } from "lucide-react"; // icons
+import { Glasses, Plus, X, FileText, Upload, Trash2, Edit } from "lucide-react"; // icons
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -21,6 +21,48 @@ export default function Users() {
   const [newDescription, setNewDescription] = useState("");
   const [newFile, setNewFile] = useState(null);
   const [fileCounts, setFileCounts] = useState({});
+
+  const [userFormData, setUserFormData] = useState({
+    firstName: "",
+    lastName: "",
+    primaryEmail: "",
+    secondaryEmail: "",
+    fatherName: "",
+    phone: "",
+    emergencyContact: "",
+    emergencyRelation: "",
+    cnic: "",
+    role: "",
+    medicalCondition: "",
+    jd: "",
+    exp: "",
+    password: "",
+    isActive: true,
+    resetPassword: false,
+  });
+
+  useEffect(() => {
+    if (selectedUser) {
+      setUserFormData({
+        firstName: selectedUser.firstName || "",
+        lastName: selectedUser.lastName || "",
+        primaryEmail: selectedUser.primaryEmail || "",
+        secondaryEmail: selectedUser.secondaryEmail || "",
+        fatherName: selectedUser.fatherName || "",
+        phone: selectedUser.phone || "",
+        emergencyContact: selectedUser.emergencyContact || "",
+        emergencyRelation: selectedUser.emergencyRelation || "",
+        cnic: selectedUser.cnic || "",
+        role: selectedUser.role?._id || "", // ✅ only store _id, not whole object
+        medicalCondition: selectedUser.medicalCondition || "",
+        jd: selectedUser.jd || "",
+        exp: selectedUser.exp || "",
+        password: "", // never prefill passwords
+        isActive: selectedUser.isActive ?? true,
+        resetPassword: selectedUser.resetPassword ?? false,
+      });
+    }
+  }, [selectedUser]);
 
   // 🔹 Open file frame & fetch attached files
   const handleOpenFrame = async (user) => {
@@ -213,6 +255,7 @@ export default function Users() {
       medicalCondition: formData.get("medicalCondition"),
       jd: formData.get("jd"),
       exp: formData.get("exp"),
+      resetPassword: resetPassword,
       isActive: formData.get("isActive") === "true",
     };
 
@@ -268,6 +311,30 @@ export default function Users() {
     }
   };
 
+  const handleAddUser = () => {
+    setSelectedUser(null); // 👉 reset for new user
+    setDrawerOpen(true);
+  };
+
+  // Edit Existing User
+  const handleEditUser = async (user) => {
+    try {
+      // 👇 call your API to get full user details
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "GET",
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch user");
+
+      const fullUser = await res.json();
+      
+      setSelectedUser(fullUser); // for drawer form
+      setDrawerOpen(true); // open drawer
+    } catch (err) {
+      console.error("❌ Error fetching full user:", err);
+    }
+  };
+
   return (
     <div className="p-8 w-full">
       {/* ✅ Toast Message */}
@@ -292,10 +359,14 @@ export default function Users() {
         {/* Header */}
         <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="text-xl">➕</span> Add New User
+            <span className="text-xl">{selectedUser ? "✏️" : "➕"}</span>
+            {selectedUser ? "Edit User" : "Add New User"}
           </h2>
           <button
-            onClick={() => setDrawerOpen(false)}
+            onClick={() => {
+              setDrawerOpen(false);
+              setSelectedUser(null); // reset when closing
+            }}
             className="hover:bg-white/20 p-2 rounded-full transition"
           >
             <X className="w-6 h-6" />
@@ -316,6 +387,7 @@ export default function Users() {
                   name="firstName"
                   type="text"
                   required
+                  defaultValue={selectedUser?.firstName || ""}
                   className="form-input"
                 />
               </div>
@@ -328,6 +400,7 @@ export default function Users() {
                   name="lastName"
                   type="text"
                   required
+                  defaultValue={selectedUser?.lastName || ""}
                   className="form-input"
                 />
               </div>
@@ -343,6 +416,7 @@ export default function Users() {
                 name="primaryEmail"
                 type="email"
                 required
+                defaultValue={selectedUser?.primaryEmail || ""}
                 className="form-input"
               />
             </div>
@@ -354,6 +428,7 @@ export default function Users() {
                 id="secondaryEmail"
                 name="secondaryEmail"
                 type="email"
+                defaultValue={selectedUser?.secondaryEmail || ""}
                 className="form-input"
               />
             </div>
@@ -368,28 +443,26 @@ export default function Users() {
                   id="password"
                   name="password"
                   type="password"
-                  required
                   className="form-input"
                   placeholder="••••••••"
                 />
               </div>
 
-              {/* Small Reset Password Toggle */}
+              {/* Reset toggle */}
               <div className="ml-4 flex items-center space-x-2">
                 <span className="text-xs text-gray-600">Reset</span>
-                <button
-                  type="button"
-                  onClick={() => setResetPassword(!resetPassword)}
-                  className={`relative inline-flex h-4 w-8 items-center rounded-full transition ${
-                    resetPassword ? "bg-indigo-500" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition ${
-                      resetPassword ? "translate-x-4" : "translate-x-1"
-                    }`}
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="resetPassword"
+                    name="resetPassword"
+                    checked={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.checked)}
+                    className="sr-only peer"
                   />
-                </button>
+                  <div className="w-8 h-4 rounded-full bg-gray-300 peer-checked:bg-indigo-500 transition-colors duration-200" />
+                  <span className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full shadow transform transition peer-checked:translate-x-3.5" />
+                </label>
               </div>
             </div>
 
@@ -402,6 +475,7 @@ export default function Users() {
                 id="fatherName"
                 name="fatherName"
                 type="text"
+                defaultValue={selectedUser?.fatherName || ""}
                 className="form-input"
               />
             </div>
@@ -416,6 +490,7 @@ export default function Users() {
                   id="phone"
                   name="phone"
                   type="text"
+                  defaultValue={selectedUser?.phone || ""}
                   className="form-input"
                   placeholder="03XXXXXXXXX"
                 />
@@ -428,6 +503,7 @@ export default function Users() {
                   id="cnic"
                   name="cnic"
                   type="text"
+                  defaultValue={selectedUser?.cnic || ""}
                   className="form-input"
                   placeholder="XXXXX-XXXXXXX-X"
                 />
@@ -444,6 +520,7 @@ export default function Users() {
                   id="emergencyContact"
                   name="emergencyContact"
                   type="text"
+                  defaultValue={selectedUser?.emergencyContact || ""}
                   className="form-input"
                 />
               </div>
@@ -455,6 +532,7 @@ export default function Users() {
                   id="emergencyRelation"
                   name="emergencyRelation"
                   type="text"
+                  defaultValue={selectedUser?.emergencyRelation || ""}
                   className="form-input"
                   placeholder="Brother, Sister, etc."
                 />
@@ -464,10 +542,35 @@ export default function Users() {
             {/* Role */}
             <div>
               <label className="form-label">Role</label>
-              <select id="role" name="role" required className="form-input">
-                <option value="">Select Role</option>
+              <select
+                id="role"
+                name="role"
+                value={userFormData.role?._id || userFormData.role || ""}
+                onChange={(e) =>
+                  setUserFormData((prev) => ({ ...prev, role: e.target.value }))
+                }
+                className="form-input"
+                disabled={
+                  roles.find(
+                    (r) =>
+                      r._id === (userFormData.role?._id || userFormData.role)
+                  )?.name === "Super Admin"
+                }
+              >
                 {roles
-                  .filter((role) => role.name !== "Super Admin") // 🚫 Remove Super Admin
+                  .filter((role) => {
+                    // ✅ Only include "Super Admin" if it's already the user's role
+                    if (role.name === "Super Admin") {
+                      return (
+                        roles.find(
+                          (r) =>
+                            r._id ===
+                            (userFormData.role?._id || userFormData.role)
+                        )?.name === "Super Admin"
+                      );
+                    }
+                    return true;
+                  })
                   .map((role) => (
                     <option key={role._id} value={role._id}>
                       {role.name}
@@ -485,6 +588,7 @@ export default function Users() {
                 id="medicalCondition"
                 name="medicalCondition"
                 type="text"
+                defaultValue={selectedUser?.medicalCondition || ""}
                 className="form-input"
               />
             </div>
@@ -499,7 +603,8 @@ export default function Users() {
                 name="jd"
                 className="form-input min-h-24"
                 placeholder="Responsibilities, duties, etc."
-              ></textarea>
+                defaultValue={selectedUser?.jd || ""}
+              />
             </div>
 
             {/* Experience */}
@@ -511,6 +616,7 @@ export default function Users() {
                 id="exp"
                 name="exp"
                 type="text"
+                defaultValue={selectedUser?.exp || ""}
                 className="form-input"
                 placeholder="e.g., 3 years"
               />
@@ -531,8 +637,7 @@ export default function Users() {
                   type="checkbox"
                   id="isActive"
                   name="isActive"
-                  defaultChecked
-                  value="true"
+                  defaultChecked={selectedUser?.isActive ?? true}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 rounded-full bg-gray-300 peer-checked:bg-indigo-600 transition-all duration-300 peer-focus:ring-2 peer-focus:ring-indigo-400"></div>
@@ -545,7 +650,7 @@ export default function Users() {
               type="submit"
               className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition mt-2"
             >
-              💾 Save User
+              💾 {selectedUser ? "Update User" : "Save User"}
             </button>
           </form>
         </div>
@@ -553,7 +658,7 @@ export default function Users() {
 
       {/* 👁️ View Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-[30rem] bg-gray-50 shadow-2xl transform transition-transform duration-300 z-50 ${
+        className={`fixed top-0 right-0 h-full w-[34rem] bg-gray-50 shadow-2xl transform transition-transform duration-300 z-50 ${
           viewDrawerOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -676,12 +781,12 @@ export default function Users() {
         <table className="w-full text-left">
           <thead className="bg-indigo-900 text-white">
             <tr>
-              <th className="px-4 py-3 w-12 text-center">
+              <th className="px-6 py-3 w-28 text-center">
                 {(currentUserRole === "Super Admin" ||
                   currentUserRole === "HR" ||
                   currentUserRole === "Management") && (
                   <button
-                    onClick={() => setDrawerOpen(true)}
+                    onClick={handleAddUser}
                     className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
                   >
                     <Plus className="w-5 h-5" />
@@ -702,15 +807,32 @@ export default function Users() {
                 key={user.id}
                 className="hover:bg-indigo-50 transition border-b last:border-none"
               >
-                <td className="px-4 py-4 text-center">
-                  <button
-                    onClick={() => handleViewUser(user)}
-                    className="text-indigo-600 hover:text-indigo-900 transition"
-                    title="View User"
-                  >
-                    <Glasses className="w-6 h-6" />
-                  </button>
+                <td className="px-4 py-4 text-center align-middle">
+                  <div className="flex justify-center items-center gap-6">
+                    {/* 👓 View Button */}
+                    <button
+                      onClick={() => handleViewUser(user)}
+                      className="text-indigo-600 hover:text-indigo-900 transition"
+                      title="View User"
+                    >
+                      <Glasses className="w-6 h-6" />
+                    </button>
+
+                    {/* ✏️ Edit Button */}
+                    {(currentUserRole === "Super Admin" ||
+                      currentUserRole === "HR" ||
+                      currentUserRole === "Management") && (
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="text-indigo-600 hover:text-indigo-900 transition"
+                        title="Edit User"
+                      >
+                        <Edit className="w-6 h-6" />
+                      </button>
+                    )}
+                  </div>
                 </td>
+
                 <td className="px-8 py-4">{user.fullName || ""}</td>
                 <td className="px-6 py-4">{user.email || "-"}</td>
                 <td className="px-3 py-4">

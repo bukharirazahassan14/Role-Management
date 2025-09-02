@@ -1,5 +1,5 @@
 "use client";
-import MainLayout from "../components/MainLayout";
+import MainLayout from "@/app/components/Dashboard";
 
 export default function MainPage() {
   return <MainLayout />;

@@ -43,7 +43,8 @@ async function seed() {
       jd: "Oversee all operations",
       exp: "10 years",
       password: await bcrypt.hash("123456", 10),
-      active: true, // ✅ set active
+      isActive: true,         // ✅ fixed field name to match schema
+      resetPassword: false,   // ✅ added resetPassword field
       created_at: new Date(),
     },
   ]);

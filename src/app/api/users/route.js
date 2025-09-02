@@ -58,6 +58,7 @@ export async function POST(req) {
       medicalCondition: body.medicalCondition,
       jd: body.jd,
       exp: body.exp,
+      resetPassword: body.resetPassword,
       isActive: body.isActive,
     });
 

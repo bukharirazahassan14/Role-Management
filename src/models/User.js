@@ -14,8 +14,9 @@ const UserSchema = new mongoose.Schema({
   medicalCondition: { type: String },                          // 11: Medical Condition
   jd: { type: String },                                        // 12: JD (Job Description)
   exp: { type: String },                                       // 13: Exp (Experience)
-  password: { type: String, required: true },
+  password: { type: String },
   isActive: { type: Boolean, default: true },
+  resetPassword: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
 });
 
