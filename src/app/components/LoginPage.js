@@ -7,81 +7,39 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  // 👇 check DB for resetPassword after email blur
-  const handleEmailBlur = async () => {
-    if (!email) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     try {
-      const res = await fetch(`/api/login/check-reset?email=${email}`);
-      const data = await res.json();
-
-      if (res.ok && data.resetPassword) {
-        setShowConfirmPassword(true);
-      } else {
-        setShowConfirmPassword(false);
-      }
-    } catch (err) {
-      console.error("Error checking resetPassword:", err);
-      setShowConfirmPassword(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (showConfirmPassword && password !== confirmPassword) {
-    setMessage("❌ Passwords do not match.");
-    return;
-  }
-
-  try {
-    // step 1: reset password if required
-    if (showConfirmPassword) {
-      const resetRes = await fetch("/api/login/reset-password", {
+      const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      const resetData = await resetRes.json();
-      if (!resetRes.ok) {
-        setMessage("❌ " + resetData.error);
-        return;
+      const data = await res.json();
+
+      if (res.ok) {
+        const fullName = `${data.user.firstName || ""} ${data.user.lastName || ""}`.trim();
+        setMessage("✅ Login successful! Welcome " + fullName);
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("loginID", data.user.id);
+        localStorage.setItem("userName", fullName);
+        localStorage.setItem("userRole", data.user.role);
+
+        router.replace("/main/dashboard");
+      } else {
+        setMessage("❌ " + data.error);
       }
+    } catch (err) {
+      console.error(err);
+      setMessage("⚠️ Something went wrong.");
     }
-
-    // step 2: now login
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      const fullName = `${data.user.firstName || ""} ${data.user.lastName || ""}`.trim();
-      setMessage("✅ Login successful! Welcome " + fullName);
-
-      localStorage.setItem("loginID", data.user.id);
-      localStorage.setItem("userName", fullName);
-      localStorage.setItem("userRole", data.user.role);
-
-      router.push("/main/dashboard");
-    } else {
-      setMessage("❌ " + data.error);
-    }
-  } catch (err) {
-    console.error(err);
-    setMessage("⚠️ Something went wrong.");
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-50">
@@ -105,6 +63,7 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">
               Email Address
@@ -113,13 +72,13 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onBlur={handleEmailBlur} // 👈 check resetPassword on blur
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
               placeholder="you@example.com"
             />
           </div>
 
+          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">
               Password
@@ -134,29 +93,24 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* ✅ show only if resetPassword=true */}
-          {showConfirmPassword && (
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
-          )}
-
+          {/* Submit Button */}
           <button
             type="submit"
             className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
           >
             Login
           </button>
+
+          {/* Forgot Password */}
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={() => router.push("/forgot-password")}
+              className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+            >
+              Forgot your password?
+            </button>
+          </div>
         </form>
       </div>
     </div>

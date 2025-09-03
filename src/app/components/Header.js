@@ -29,7 +29,8 @@ export default function Header({ title = "Dashboard Overview", userName = "Super
 
   const handleSignOut = () => {
     localStorage.removeItem("loginID"); 
-    localStorage.removeItem("userName"); 
+    localStorage.removeItem("userName");
+    localStorage.removeItem("token"); 
     window.location.href = "/login";
   };
 

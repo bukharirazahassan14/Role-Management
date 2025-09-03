@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Glasses, Plus, X, FileText, Upload, Trash2, Edit } from "lucide-react"; // icons
 
 export default function Users() {
+  const router = useRouter();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState([]);
@@ -13,7 +15,6 @@ export default function Users() {
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false); // view user drawer
   const [selectedUser, setSelectedUser] = useState(null);
   const [fileFrameUser, setFileFrameUser] = useState(null);
-  const [resetPassword, setResetPassword] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState(null);
 
   // Form state for uploading
@@ -38,12 +39,45 @@ export default function Users() {
     exp: "",
     password: "",
     isActive: true,
-    resetPassword: false,
   });
+
+  function parseJwt(token) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // ✅ Token validation on component mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    const payload = parseJwt(token);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (!payload || payload.exp < now) {
+      localStorage.removeItem("token");
+      router.replace("/login");
+    }
+  }, [router]);
 
   useEffect(() => {
     if (selectedUser) {
       setUserFormData({
+        id: selectedUser.id || selectedUser._id || "",
         firstName: selectedUser.firstName || "",
         lastName: selectedUser.lastName || "",
         primaryEmail: selectedUser.primaryEmail || "",
@@ -59,7 +93,6 @@ export default function Users() {
         exp: selectedUser.exp || "",
         password: "", // never prefill passwords
         isActive: selectedUser.isActive ?? true,
-        resetPassword: selectedUser.resetPassword ?? false,
       });
     }
   }, [selectedUser]);
@@ -238,9 +271,10 @@ export default function Users() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    console.log("📌 Submitting User Data:", userFormData);
     const formData = new FormData(e.target);
 
-    const newUser = {
+    const userData = {
       firstName: formData.get("firstName"),
       lastName: formData.get("lastName"),
       primaryEmail: formData.get("primaryEmail"),
@@ -255,37 +289,48 @@ export default function Users() {
       medicalCondition: formData.get("medicalCondition"),
       jd: formData.get("jd"),
       exp: formData.get("exp"),
-      resetPassword: resetPassword,
-      isActive: formData.get("isActive") === "true",
+      isActive: formData.get("isActive") !== null,
     };
 
-    console.log("📌 New User:", newUser);
+    console.log("📌 Submitting User Data:", userData);
 
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        body: JSON.stringify(newUser),
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch(
+        userFormData.id ? `/api/users/${userFormData.id}` : "/api/users",
+        {
+          method: selectedUser ? "PUT" : "POST", // ✅ PUT if updating, POST if creating
+          body: JSON.stringify(userData),
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       if (!res.ok) {
-        throw new Error("Failed to create user");
+        throw new Error(
+          selectedUser ? "Failed to update user" : "Failed to create user"
+        );
       }
 
-      // ✅ success message
+      // ✅ Success message
       setDrawerOpen(false);
-      setMessage("✅ User created successfully!");
+      setMessage(
+        selectedUser
+          ? "✅ User updated successfully!"
+          : "✅ User created successfully!"
+      );
       setSuccess(true);
 
-      // ✅ refresh user list
+      // ✅ Refresh user list
       const updatedRes = await fetch("/api/users");
       setUsers(await updatedRes.json());
 
-      // ✅ reset form fields
+      // ✅ Reset form fields
       e.target.reset();
+      setSelectedUser(null);
     } catch (err) {
-      console.error("Error creating user:", err);
-      setMessage("❌ Failed to create user");
+      console.error("❌ Error saving user:", err);
+      setMessage(
+        selectedUser ? "❌ Failed to update user" : "❌ Failed to create user"
+      );
       setSuccess(false);
     } finally {
       // remove toast after 3s
@@ -327,7 +372,7 @@ export default function Users() {
       if (!res.ok) throw new Error("Failed to fetch user");
 
       const fullUser = await res.json();
-      
+
       setSelectedUser(fullUser); // for drawer form
       setDrawerOpen(true); // open drawer
     } catch (err) {
@@ -446,23 +491,6 @@ export default function Users() {
                   className="form-input"
                   placeholder="••••••••"
                 />
-              </div>
-
-              {/* Reset toggle */}
-              <div className="ml-4 flex items-center space-x-2">
-                <span className="text-xs text-gray-600">Reset</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    id="resetPassword"
-                    name="resetPassword"
-                    checked={resetPassword}
-                    onChange={(e) => setResetPassword(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-8 h-4 rounded-full bg-gray-300 peer-checked:bg-indigo-500 transition-colors duration-200" />
-                  <span className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full shadow transform transition peer-checked:translate-x-3.5" />
-                </label>
               </div>
             </div>
 
@@ -637,7 +665,13 @@ export default function Users() {
                   type="checkbox"
                   id="isActive"
                   name="isActive"
-                  defaultChecked={selectedUser?.isActive ?? true}
+                  checked={!!userFormData.isActive} // always boolean
+                  onChange={(e) =>
+                    setUserFormData({
+                      ...userFormData,
+                      isActive: e.target.checked, // toggle on/off
+                    })
+                  }
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 rounded-full bg-gray-300 peer-checked:bg-indigo-600 transition-all duration-300 peer-focus:ring-2 peer-focus:ring-indigo-400"></div>

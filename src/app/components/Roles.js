@@ -1,6 +1,8 @@
 "use client";
 
-import { Users, UserCheck, UserPlus, UserMinus, User } from "lucide-react"; // icons for roles
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Users, UserCheck, UserPlus, UserMinus, User } from "lucide-react";
 
 const roles = [
   { name: "Super Admin", description: "Has full access to the system", icon: Users },
@@ -10,11 +12,45 @@ const roles = [
   { name: "Temp Staff", description: "Temporary staff with limited access", icon: UserMinus },
 ];
 
+// ✅ helper function to safely parse JWT
+function parseJwt(token) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (err) {
+    return null;
+  }
+}
+
 export default function Roles() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const payload = parseJwt(token);
+
+    if (!payload || payload.exp < Math.floor(Date.now() / 1000)) {
+      // token missing or expired
+      localStorage.removeItem("token");
+      alert("Session expired. Please login again.");
+      router.push("/login");
+    }
+  }, [router]);
+
   return (
     <div className="p-8">
-
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {roles.map((role) => {
           const Icon = role.icon;

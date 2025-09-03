@@ -2,6 +2,7 @@ import connectToDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Role from "@/models/Role"; 
 import bcrypt from "bcryptjs";
+import { generateToken } from "@/lib/jwt";
 
 export async function POST(req) {
   try {
@@ -34,10 +35,14 @@ export async function POST(req) {
       });
     }
 
+    // ✅ generate JWT token
+    const token = generateToken(user);
+
     // ✅ success
     return new Response(
       JSON.stringify({
         message: "Login successful",
+        token, // 👈 return JWT here
         user: {
           id: user._id,
           firstName: user.firstName,

@@ -44,7 +44,6 @@ async function seed() {
       exp: "10 years",
       password: await bcrypt.hash("123456", 10),
       isActive: true,         // ✅ fixed field name to match schema
-      resetPassword: false,   // ✅ added resetPassword field
       created_at: new Date(),
     },
   ]);
