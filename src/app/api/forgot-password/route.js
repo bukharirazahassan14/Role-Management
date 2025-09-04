@@ -51,9 +51,9 @@ export async function POST(req) {
       html: `
         <div style="font-family: Arial, sans-serif; line-height:1.6;">
           <h2>Password Reset</h2>
-          <p>Hello ${user.username || "User"},</p>
+          <p>Hello ${user.firstName || "User"},</p>
           <p>You requested to reset your password. Click the link below:</p>
-          <a href="${resetUrl}" 
+          <a href="${resetLink}" 
              style="display:inline-block;padding:10px 20px;background:#4F46E5;color:#fff;text-decoration:none;border-radius:5px;">
              Reset Password
           </a>
