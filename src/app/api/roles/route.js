@@ -10,7 +10,7 @@ export async function GET(req) {
     const formatted = roles.map((r) => ({
       _id: r._id.toString(),
       name: r.name,
-      description: r.description,
+      
     }));
 
     return new Response(JSON.stringify(formatted), {

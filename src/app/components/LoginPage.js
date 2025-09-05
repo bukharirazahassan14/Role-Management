@@ -23,13 +23,22 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        const fullName = `${data.user.firstName || ""} ${data.user.lastName || ""}`.trim();
+        const fullName = `${data.user.firstName || ""} ${
+          data.user.lastName || ""
+        }`.trim();
         setMessage("✅ Login successful! Welcome " + fullName);
 
         localStorage.setItem("token", data.token);
         localStorage.setItem("loginID", data.user.id);
         localStorage.setItem("userName", fullName);
         localStorage.setItem("userRole", data.user.role);
+
+        // 🔥 Update notified after login
+        fetch("/api/login/update-notified", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: data.user.id }),
+        }).catch((err) => console.error("Failed to update notified:", err));
 
         router.replace("/main/dashboard");
       } else {
@@ -58,7 +67,9 @@ export default function LoginPage() {
 
         {/* Message */}
         {message && (
-          <div className="mb-4 text-center text-sm text-gray-700">{message}</div>
+          <div className="mb-4 text-center text-sm text-gray-700">
+            {message}
+          </div>
         )}
 
         {/* Login Form */}

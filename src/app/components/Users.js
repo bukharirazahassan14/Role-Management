@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Glasses, Plus, X, FileText, Upload, Trash2, Edit } from "lucide-react"; // icons
 
@@ -16,12 +16,17 @@ export default function Users() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [fileFrameUser, setFileFrameUser] = useState(null);
   const [currentUserRole, setCurrentUserRole] = useState(null);
+  const didFetch = useRef(false); // ✅ prevents duplicate API calls
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Form state for uploading
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newFile, setNewFile] = useState(null);
   const [fileCounts, setFileCounts] = useState({});
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10; // change number of rows per page
 
   const [userFormData, setUserFormData] = useState({
     firstName: "",
@@ -191,6 +196,9 @@ export default function Users() {
   };
 
   useEffect(() => {
+    if (didFetch.current) return; // ✅ stop duplicate calls
+    didFetch.current = true;
+
     async function fetchUsers() {
       try {
         // ✅ get logged-in role from localStorage
@@ -377,6 +385,27 @@ export default function Users() {
       setDrawerOpen(true); // open drawer
     } catch (err) {
       console.error("❌ Error fetching full user:", err);
+    }
+  };
+
+  // 🔍 Filter users
+  const filteredUsers = users.filter((user) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      user.fullName?.toLowerCase().includes(query) ||
+      user.email?.toLowerCase().includes(query) || // 👈 FIX: use email
+      user.role?.name?.toLowerCase().includes(query)
+    );
+  });
+
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+  const handlePageChange = (page) => {
+    if (page > 0 && page <= totalPages) {
+      setCurrentPage(page);
     }
   };
 
@@ -810,6 +839,24 @@ export default function Users() {
         </div>
       </div>
 
+      {/* 🔍 Modern Minimal Search Box */}
+      <div className="flex items-center justify-end p-4">
+        <div className="relative w-full max-w-sm">
+          <input
+            type="text"
+            placeholder="Search by name, email, or role..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg 
+                 bg-white shadow-sm
+                 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+                 text-base placeholder-gray-400 transition"
+          />
+          {/* Bigger blue icon aligned vertically */}
+          <Glasses className="absolute left-3 top-2.5 w-7 h-7 text-blue-500" />
+        </div>
+      </div>
+
       {/* ✅ Main Table */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
         <table className="w-full text-left">
@@ -836,7 +883,7 @@ export default function Users() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {currentUsers.map((user) => (
               <tr
                 key={user.id}
                 className="hover:bg-indigo-50 transition border-b last:border-none"
@@ -992,6 +1039,47 @@ export default function Users() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* ✅ Pagination + Info (all on right side) */}
+      <div className="flex justify-end items-center mt-4 space-x-4">
+        <p className="text-sm text-gray-500">
+          Showing {indexOfFirstUser + 1} -{" "}
+          {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
+          {filteredUsers.length}
+        </p>
+
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+          >
+            Prev
+          </button>
+
+          {[...Array(totalPages)].map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => handlePageChange(idx + 1)}
+              className={`px-3 py-1 border rounded-md text-sm transition ${
+                currentPage === idx + 1
+                  ? "bg-indigo-500 text-white border-indigo-500"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {idx + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {/* ✅ Floating Center Frame */}

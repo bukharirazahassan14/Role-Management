@@ -9,12 +9,18 @@ export async function GET(req, context) {
   try {
     await connectToDB();
 
-    // 🔹 Must await params
     const { id } = await context.params;
 
-    const user = await User.findById(id).populate("role").lean();
+    // 🔹 Populate only _id and name (exclude description & __v)
+    const user = await User.findById(id)
+      .populate("role", "name") // only keep "name" and _id
+      .lean();
+
     if (!user) {
-      return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
+      return new Response(
+        JSON.stringify({ error: "User not found" }),
+        { status: 404 }
+      );
     }
 
     return new Response(JSON.stringify(user), {
@@ -23,7 +29,10 @@ export async function GET(req, context) {
     });
   } catch (error) {
     console.error("Error fetching user:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500 }
+    );
   }
 }
 

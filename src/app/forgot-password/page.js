@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, KeyRound } from "lucide-react"; // icons
+import { Mail, BellRing } from "lucide-react"; // replaced icon
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -26,7 +26,7 @@ export default function ForgotPassword() {
         {/* Icon */}
         <div className="flex justify-center mb-6">
           <div className="bg-indigo-100 p-4 rounded-full shadow-md">
-            <KeyRound className="h-10 w-10 text-indigo-600" />
+            <BellRing className="h-10 w-10 text-indigo-600" />
           </div>
         </div>
 
@@ -35,12 +35,19 @@ export default function ForgotPassword() {
           Forgot Password?
         </h2>
         <p className="text-center text-gray-500 mb-6 text-sm">
-          Enter your email below and we’ll send you a reset link.
+          Enter your email, and we’ll notify the administrator to help you reset
+          your password.
         </p>
 
         {/* Message */}
         {message && (
-          <div className="mb-4 text-center text-sm font-medium text-green-600">
+          <div
+            className={`mb-4 text-center text-sm font-medium ${
+              message.startsWith("✅")
+                ? "text-green-600"
+                : "text-red-500"
+            }`}
+          >
             {message}
           </div>
         )}
@@ -52,7 +59,8 @@ export default function ForgotPassword() {
             <input
               type="email"
               placeholder="you@example.com"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm 
+                         focus:ring-2 focus:ring-indigo-400 focus:outline-none bg-white"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -61,9 +69,10 @@ export default function ForgotPassword() {
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold 
+                       hover:bg-indigo-700 transition shadow-md"
           >
-            Send Reset Link
+            Notify Admin
           </button>
         </form>
       </div>
