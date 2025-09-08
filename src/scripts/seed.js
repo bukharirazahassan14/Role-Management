@@ -48,21 +48,7 @@ async function seed() {
     },
   ]);
 
-  // 👇 pick first user (Super Admin) to attach files
-  const superAdmin = users[0];
-
-  // Add some default attached files
-  await UserAttachedFile.insertMany([
-    {
-      title: "Login Page Design",
-      description: "Initial version of login screen",
-      fileUrl: "/uploads/login.png",
-      createdAt: new Date(),
-      createdBy: superAdmin._id.toString(), // store as string
-      userId: superAdmin._id.toString(),    // store as string
-    },
-  ]);
-
+  
   console.log("✅ Seeding completed! Created roles, users, and attached files.");
   process.exit(0);
 }

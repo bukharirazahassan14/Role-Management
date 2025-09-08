@@ -62,12 +62,23 @@ export default function Header({ title = "Dashboard Overview", userName = "Super
           {open && (
             <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border">
               <button
+                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Export User
+              </button>
+              <button
+                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Import User
+              </button>
+              <button
                 onClick={handleSignOut}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 Sign Out
               </button>
             </div>
+            
           )}
         </div>
       </div>

@@ -2,7 +2,20 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Glasses, Plus, X, FileText, Upload, Trash2, Edit } from "lucide-react"; // icons
+import {
+  Glasses,
+  Plus,
+  X,
+  FileText,
+  Upload,
+  Trash2,
+  Edit,
+  List,
+  LayoutGrid,
+  UserCircle2,
+} from "lucide-react"; // icons
+
+import useIsMobile from "../hooks/useIsMobile"; // adjust path if needed
 
 export default function Users() {
   const router = useRouter();
@@ -45,6 +58,9 @@ export default function Users() {
     password: "",
     isActive: true,
   });
+
+  const [viewMode, setViewMode] = useState("list"); // "list" | "card"
+  const isMobile = useIsMobile();
 
   function parseJwt(token) {
     try {
@@ -839,149 +855,208 @@ export default function Users() {
         </div>
       </div>
 
-      {/* 🔍 Modern Minimal Search Box */}
-      <div className="flex items-center justify-end p-4">
-        <div className="relative w-full max-w-sm">
-          <input
-            type="text"
-            placeholder="Search by name, email, or role..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg 
-                 bg-white shadow-sm
-                 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
-                 text-base placeholder-gray-400 transition"
-          />
-          {/* Bigger blue icon aligned vertically */}
-          <Glasses className="absolute left-3 top-2.5 w-7 h-7 text-blue-500" />
+      <div className="flex items-center justify-between p-4">
+        {/* 🔍 Search Box */}
+        <div className="flex items-center justify-end flex-1 ml-4">
+          <div className="relative w-full max-w-sm">
+            <input
+              type="text"
+              placeholder="Search by name, email, or role..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg 
+             bg-white shadow-sm
+             focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+             text-base placeholder-gray-400 transition"
+            />
+            {/* Bigger blue icon aligned vertically */}
+            <Glasses className="absolute left-3 top-2.5 w-7 h-7 text-blue-500" />
+          </div>
+
+          {/* Toggle Buttons (hidden on mobile) */}
+          {!isMobile && (
+            <div className="flex gap-2 ml-4">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg border transition ${
+                  viewMode === "list"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+                title="List View"
+              >
+                <List className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={() => setViewMode("card")}
+                className={`p-2 rounded-lg border transition ${
+                  viewMode === "card"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+                title="Card View"
+              >
+                <LayoutGrid className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ✅ Main Table */}
-      <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
-        <table className="w-full text-left">
-          <thead className="bg-indigo-900 text-white">
-            <tr>
-              <th className="px-6 py-3 w-28 text-center">
-                {(currentUserRole === "Super Admin" ||
-                  currentUserRole === "HR" ||
-                  currentUserRole === "Management") && (
-                  <button
-                    onClick={handleAddUser}
-                    className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
-                )}
-              </th>
-              <th className="px-6 py-3">Name</th>
-              <th className="px-6 py-3">Email</th>
-              <th className="px-6 py-3">Role</th>
-              <th className="px-6 py-3">Created At</th>
-              <th className="px-6 py-3 text-center">Active</th>
-              <th className="px-6 py-3 text-center">Attached File</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentUsers.map((user) => (
-              <tr
-                key={user.id}
-                className="hover:bg-indigo-50 transition border-b last:border-none"
-              >
-                <td className="px-4 py-4 text-center align-middle">
-                  <div className="flex justify-center items-center gap-6">
-                    {/* 👓 View Button */}
+      {viewMode === "list" && !isMobile ? (
+        // ✅ Main Table View
+        <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
+          <table className="w-full text-left">
+            <thead className="bg-indigo-900 text-white">
+              <tr>
+                <th className="px-6 py-3 w-28 text-center">
+                  {(currentUserRole === "Super Admin" ||
+                    currentUserRole === "HR" ||
+                    currentUserRole === "Management") && (
                     <button
-                      onClick={() => handleViewUser(user)}
-                      className="text-indigo-600 hover:text-indigo-900 transition"
-                      title="View User"
+                      onClick={handleAddUser}
+                      className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
                     >
-                      <Glasses className="w-6 h-6" />
+                      <Plus className="w-5 h-5" />
                     </button>
-
-                    {/* ✏️ Edit Button */}
-                    {(currentUserRole === "Super Admin" ||
-                      currentUserRole === "HR" ||
-                      currentUserRole === "Management") && (
+                  )}
+                </th>
+                <th className="px-6 py-3">Name</th>
+                <th className="px-6 py-3">Email</th>
+                <th className="px-6 py-3">Role</th>
+                <th className="px-6 py-3">Created At</th>
+                <th className="px-6 py-3 text-center">Active</th>
+                <th className="px-6 py-3 text-center">Attached File</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentUsers.map((user) => (
+                <tr
+                  key={user.id}
+                  className="hover:bg-indigo-50 transition border-b last:border-none"
+                >
+                  <td className="px-4 py-4 text-center align-middle">
+                    <div className="flex justify-center items-center gap-6">
+                      {/* View Button */}
                       <button
-                        onClick={() => handleEditUser(user)}
+                        onClick={() => handleViewUser(user)}
                         className="text-indigo-600 hover:text-indigo-900 transition"
-                        title="Edit User"
+                        title="View User"
                       >
-                        <Edit className="w-6 h-6" />
+                        <Glasses className="w-6 h-6" />
                       </button>
-                    )}
-                  </div>
-                </td>
 
-                <td className="px-8 py-4">{user.fullName || ""}</td>
-                <td className="px-6 py-4">{user.email || "-"}</td>
-                <td className="px-3 py-4">
-                  <select
-                    value={user.role?._id || ""}
-                    disabled={
-                      currentUserRole === "Staff" ||
-                      currentUserRole === "Temp Staff" ||
-                      ((currentUserRole === "Super Admin" ||
-                        currentUserRole === "Management" ||
-                        currentUserRole === "HR") &&
-                        user.role?.name === "Super Admin")
-                    }
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    className="w-52 px-3 py-2 border border-white rounded-lg bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-                  >
-                    {roles
-                      .filter((role) => {
-                        // ✅ Staff / Temp Staff → show all options (but disabled anyway)
-                        if (
-                          currentUserRole === "Staff" ||
-                          currentUserRole === "Temp Staff"
-                        ) {
+                      {/* Edit Button */}
+                      {(currentUserRole === "Super Admin" ||
+                        currentUserRole === "HR" ||
+                        currentUserRole === "Management") && (
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="text-indigo-600 hover:text-indigo-900 transition"
+                          title="Edit User"
+                        >
+                          <Edit className="w-6 h-6" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="px-8 py-4">{user.fullName || ""}</td>
+                  <td className="px-6 py-4">{user.email || "-"}</td>
+                  <td className="px-3 py-4">
+                    <select
+                      value={user.role?._id || ""}
+                      disabled={
+                        currentUserRole === "Staff" ||
+                        currentUserRole === "Temp Staff" ||
+                        ((currentUserRole === "Super Admin" ||
+                          currentUserRole === "Management" ||
+                          currentUserRole === "HR") &&
+                          user.role?.name === "Super Admin")
+                      }
+                      onChange={(e) =>
+                        handleRoleChange(user.id, e.target.value)
+                      }
+                      className="w-52 px-3 py-2 border border-white rounded-lg bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                    >
+                      {roles
+                        .filter((role) => {
+                          if (
+                            currentUserRole === "Staff" ||
+                            currentUserRole === "Temp Staff"
+                          ) {
+                            return true;
+                          }
+
+                          if (
+                            (currentUserRole === "Management" ||
+                              currentUserRole === "HR") &&
+                            role.name === "Super Admin" &&
+                            user.role?.name !== "Super Admin"
+                          ) {
+                            return false;
+                          }
+
+                          if (
+                            currentUserRole === "Super Admin" &&
+                            role.name === "Super Admin" &&
+                            user.role?.name !== "Super Admin"
+                          ) {
+                            return false;
+                          }
+
                           return true;
-                        }
+                        })
+                        .map((role) => (
+                          <option key={role._id} value={role._id}>
+                            {role.name}
+                          </option>
+                        ))}
+                    </select>
+                  </td>
 
-                        // ✅ Management / HR → hide "Super Admin" unless the row itself is Super Admin
-                        if (
-                          (currentUserRole === "Management" ||
-                            currentUserRole === "HR") &&
-                          role.name === "Super Admin" &&
-                          user.role?.name !== "Super Admin"
-                        ) {
-                          return false;
-                        }
+                  <td className="px-6 py-4">
+                    {user.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString()
+                      : "-"}
+                  </td>
 
-                        // ✅ Super Admin → hide "Super Admin" option from all other rows
-                        if (
-                          currentUserRole === "Super Admin" &&
-                          role.name === "Super Admin" &&
-                          user.role?.name !== "Super Admin"
-                        ) {
-                          return false;
-                        }
-
-                        return true;
-                      })
-                      .map((role) => (
-                        <option key={role._id} value={role._id}>
-                          {role.name}
-                        </option>
-                      ))}
-                  </select>
-                </td>
-                <td className="px-6 py-4">
-                  {user.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString()
-                    : "-"}
-                </td>
-
-                {/* ✅ Active Toggle Switch (Only for Super Admin) */}
-                <td className="px-6 py-4 text-center">
-                  {currentUserRole === "Super Admin" ? (
-                    user.role === "Super Admin" ||
-                    user.role?.name === "Super Admin" ? (
-                      // 🔒 Disable toggle for Super Admin rows
+                  {/* Active Toggle Switch */}
+                  <td className="px-6 py-4 text-center">
+                    {currentUserRole === "Super Admin" ? (
+                      user.role === "Super Admin" ||
+                      user.role?.name === "Super Admin" ? (
+                        <span
+                          className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
+                            user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                              user.isActive ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() =>
+                            handleToggleActive(user.id, !user.isActive)
+                          }
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                            user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                              user.isActive ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      )
+                    ) : (
                       <span
-                        className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
+                        className={`inline-flex h-6 w-11 items-center rounded-full ${
                           user.isActive ? "bg-indigo-500" : "bg-gray-300"
                         }`}
                       >
@@ -991,55 +1066,97 @@ export default function Users() {
                           }`}
                         />
                       </span>
-                    ) : (
-                      // ✅ Allow toggle for other users
-                      <button
-                        onClick={() =>
-                          handleToggleActive(user.id, !user.isActive)
-                        }
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                          user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                            user.isActive ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    )
-                  ) : (
-                    // 🔹 Non-Super Admins → always read-only
-                    <span
-                      className={`inline-flex h-6 w-11 items-center rounded-full ${
-                        user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                          user.isActive ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </span>
-                  )}
-                </td>
+                    )}
+                  </td>
 
-                <td className="px-6 py-4 text-center">
-                  <button
-                    onClick={() => handleOpenFrame(user)}
-                    className="relative inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 transition"
-                  >
-                    <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                      {fileCounts[user.id] ?? 0}
-                    </span>
-                    <FileText className="w-6 h-6" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => handleOpenFrame(user)}
+                      className="relative inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 transition"
+                    >
+                      <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                        {fileCounts[user.id] ?? 0}
+                      </span>
+                      <FileText className="w-6 h-6" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        // ✅ Card View
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {currentUsers.map((user) => (
+            <div
+              key={user.id}
+              className="relative bg-white border border-gray-100 shadow-sm hover:shadow-lg transition rounded-2xl p-6 group"
+            >
+              {/* Profile Avatar */}
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                  {user.firstName?.[0]}
+                  {user.lastName?.[0]}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-lg group-hover:text-indigo-600 transition">
+                    {user.fullName || `${user.firstName} ${user.lastName}`}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {user.role?.name || "No Role"}
+                  </p>
+                </div>
+              </div>
+
+              {/* User Info */}
+              <div className="mt-5 space-y-3 text-sm text-gray-600">
+                <p className="flex justify-between">
+                  <span className="font-medium">📧 Email:</span>
+                  <span>{user.email || "-"}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span className="font-medium">📅 Created:</span>
+                  <span>{new Date(user.createdAt).toLocaleDateString()}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span className="font-medium">✅ Active:</span>
+                  <span>{user.isActive ? "Yes" : "No"}</span>
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="absolute top-4 right-4 flex gap-3 opacity-0 group-hover:opacity-100 transition">
+                <button
+                  onClick={() => handleViewUser(user)}
+                  className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                  title="View"
+                >
+                  <Glasses className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleEditUser(user)}
+                  className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                  title="Edit"
+                >
+                  <Edit className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* ➕ Add New User Card */}
+          <div
+            onClick={handleAddUser}
+            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition"
+          >
+            <Plus className="w-12 h-12 text-indigo-600" />
+            <span className="mt-3 text-indigo-600 font-medium text-lg">
+              Add New User
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ✅ Pagination + Info (all on right side) */}
       <div className="flex justify-end items-center mt-4 space-x-4">
