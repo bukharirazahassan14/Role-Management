@@ -12,3 +12,8 @@ Before starting the app, run the seed script to create a default Super Admin:
 
 ```bash
 npm run seed
+
+## Default Super Admin Credentials
+
+Email: superadmin@greyloops.com
+Password: 123456
