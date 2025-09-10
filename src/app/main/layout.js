@@ -12,7 +12,11 @@ export default function MainLayout({ children }) {
       ? "Dashboard Overview"
       : pathname.includes("/users")
       ? "Users"
-      : "Roles";
+      : pathname.includes("/roles")
+      ? "Roles"
+      : pathname.includes("/weeklyevaluation")
+      ? "Weekly Evaluation"
+      : "Page";
 
   return (
     <div className="flex min-h-screen bg-gray-100">
