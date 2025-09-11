@@ -15,8 +15,11 @@ import {
   Trophy,
   Award,
   Eye,
+  Trash2,
   TrendingUp,
   ArrowRight,
+  X,
+  UserCircle,
 } from "lucide-react";
 
 import useIsMobile from "../hooks/useIsMobile";
@@ -34,6 +37,17 @@ export default function EmployeeWeeklyEvaluation() {
   const rowsPerPage = 10;
   const [viewMode, setViewMode] = useState("list");
   const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const [weekStart, setWeekStart] = useState("");
+  const [weekEnd, setWeekEnd] = useState("");
+  const [evaluationPrograms, setEvaluationPrograms] = useState([]);
+  const [evaluationScores, setEvaluationScores] = useState([]);
+  const [comments, setComments] = useState("");
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   // 🔑 decode JWT
   function parseJwt(token) {
@@ -56,6 +70,21 @@ export default function EmployeeWeeklyEvaluation() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  // 🔄 Fetch users when drawer opens
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch("/api/users"); // replace with your API
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        console.error("❌ Failed to fetch users:", err);
+      }
+    };
+    fetchUsers();
+  }, [drawerOpen]);
+
   // ✅ Auto set current month start and end when enabling date filter
   useEffect(() => {
     if (showDateFilter) {
@@ -63,11 +92,17 @@ export default function EmployeeWeeklyEvaluation() {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      setStartDate(firstDay.toISOString().split("T")[0]);
-      setEndDate(lastDay.toISOString().split("T")[0]);
+      // format as yyyy-mm-dd safely
+      const format = (d) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+
+      setStartDate(format(firstDay));
+      setEndDate(format(lastDay));
     }
   }, [showDateFilter]);
-
 
   // ✅ Token validation
   useEffect(() => {
@@ -85,66 +120,158 @@ export default function EmployeeWeeklyEvaluation() {
     }
   }, [router]);
 
+  const fetchEvaluations = async () => {
+  try {
+    const role = localStorage.getItem("userRole");
+    setCurrentUserRole(role);
+
+    const res = await fetch("/api/weeklyevaluation");
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      setEvaluations(data);
+    }
+  } catch (err) {
+    console.error("Failed to fetch evaluations:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
   // ✅ Fetch weekly evaluations
   useEffect(() => {
-    if (didFetch.current) return;
-    didFetch.current = true;
+  if (didFetch.current) return;
+  didFetch.current = true;
+  fetchEvaluations();
+}, []);
 
-    async function fetchEvaluations() {
+  // Fetch programs once
+  useEffect(() => {
+    async function fetchEvaluationPrograms() {
       try {
-        const role = localStorage.getItem("userRole");
-        setCurrentUserRole(role);
-
-        const res = await fetch("/api/weeklyevaluation");
+        const res = await fetch("/api/weeklyevaluation/evaluationprograms");
         const data = await res.json();
         if (Array.isArray(data)) {
-          setEvaluations(data);
+          setEvaluationPrograms(data);
+
+          // Initialize scores state with empty values
+          setEvaluationScores(
+            data.map(() => ({ score: "", weightedRating: "" }))
+          );
         }
       } catch (err) {
-        console.error("Failed to fetch evaluations:", err);
-      } finally {
-        setLoading(false);
+        console.error("Failed to fetch evaluation programs:", err);
       }
     }
 
-    fetchEvaluations();
+    fetchEvaluationPrograms();
   }, []);
 
+  // Handle score input + calculate weighted rating
+  const handleScoreChange = (index, score, weightage, progId) => {
+    const newScores = [...evaluationScores];
+    const numericScore = parseFloat(score) || 0;
+    const weightedRating = ((numericScore * weightage) / 100).toFixed(1);
+
+    newScores[index] = {
+      _id: progId,
+      score: numericScore,
+      weightage,
+      weightedRating,
+    };
+    setEvaluationScores(newScores);
+  };
+
   if (loading) return <div className="p-8">Loading evaluations...</div>;
-  if (!evaluations.length)
-    return <div className="p-8">No evaluations found.</div>;
+  
+
+  const formatDatePKT = (date) => {
+    return date.toLocaleDateString("en-CA", {
+      timeZone: "Asia/Karachi", // Force PKT
+    }); // gives yyyy-mm-dd
+  };
+
+  // Always parse yyyy-mm-dd as local PKT date (ignores timezone shift)
+  const parseDatePKT = (dateStr) => {
+    if (!dateStr) return null;
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year, month - 1, day); // 👈 no UTC conversion
+  };
 
   // 🔍 Search + Date Filter
-const filtered = evaluations.filter((ev) => {
-  const query = searchQuery.toLowerCase();
+  const filtered = evaluations.filter((ev) => {
+    const query = searchQuery.toLowerCase();
 
-  // 🔎 Text-based search
-  const matchesText =
-    ev.userId?.fullName?.toLowerCase().includes(query) ||
-    ev.userId?.primaryEmail?.toLowerCase().includes(query) ||
-    ev.weekNumber?.toString().includes(query);
+    // 🔎 Text-based search
+    const matchesText =
+      ev.userId?.fullName?.toLowerCase().includes(query) ||
+      ev.userId?.primaryEmail?.toLowerCase().includes(query) ||
+      ev.weekNumber?.toString().includes(query);
 
-  // 📅 Date filtering
-  const evStart = ev.weekStart ? new Date(ev.weekStart) : null;
-  const evEnd = ev.weekEnd ? new Date(ev.weekEnd) : null;
+    // 📅 Date filtering (PKT-safe)
+    const evStart = ev.weekStart
+      ? parseDatePKT(ev.weekStart.split("T")[0])
+      : null;
+    const evEnd = ev.weekEnd ? parseDatePKT(ev.weekEnd.split("T")[0]) : null;
 
-  const filterStart = startDate ? new Date(startDate) : null;
-  const filterEnd = endDate ? new Date(endDate) : null;
+    const filterStart = startDate ? parseDatePKT(startDate) : null;
+    const filterEnd = endDate ? parseDatePKT(endDate) : null;
 
-  // Include by default
-  let matchesDate = true;
+    let matchesDate = true;
 
-  if (filterStart && evEnd) {
-    matchesDate = matchesDate && evEnd >= filterStart;
-  }
+    if (filterStart && evEnd) {
+      matchesDate = matchesDate && evEnd >= filterStart;
+    }
 
-  if (filterEnd && evStart) {
-    matchesDate = matchesDate && evStart <= filterEnd;
-  }
+    if (filterEnd && evStart) {
+      matchesDate = matchesDate && evStart <= filterEnd;
+    }
 
-  return matchesText && matchesDate;
-});
+    return matchesText && matchesDate;
+  });
 
+  const handleAddUser = () => {
+    setSelectedUser(null);
+    setDrawerOpen(true);
+
+    const defaultWeek = 1;
+    setSelectedWeek(defaultWeek);
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const totalDays = lastDay.getDate();
+    const daysPerWeek = Math.ceil(totalDays / 4);
+
+    const start = new Date(year, month, (defaultWeek - 1) * daysPerWeek + 1);
+    let end = new Date(year, month, defaultWeek * daysPerWeek);
+    if (end > lastDay) end = lastDay;
+
+    // ✅ Force PKT format
+    setWeekStart(formatDatePKT(start));
+    setWeekEnd(formatDatePKT(end));
+  };
+
+  const handleWeekSelect = (week) => {
+    setSelectedWeek(week);
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const totalDays = lastDay.getDate();
+    const daysPerWeek = Math.ceil(totalDays / 4);
+
+    const start = new Date(year, month, (week - 1) * daysPerWeek + 1);
+    let end = new Date(year, month, week * daysPerWeek);
+    if (end > lastDay) end = lastDay;
+
+    // ✅ Format with Pakistan Standard Time
+    setWeekStart(formatDatePKT(start));
+    setWeekEnd(formatDatePKT(end));
+  };
 
   const indexOfLast = currentPage * rowsPerPage;
   const indexOfFirst = indexOfLast - rowsPerPage;
@@ -153,6 +280,55 @@ const filtered = evaluations.filter((ev) => {
 
   const handlePageChange = (page) => {
     if (page > 0 && page <= totalPages) setCurrentPage(page);
+  };
+
+  const totalScore = evaluationScores.reduce(
+    (sum, s) => sum + Number(s?.score || 0),
+    0
+  );
+
+  const totalRating = evaluationScores
+    .reduce((sum, s) => sum + Number(s?.weightedRating || 0), 0)
+    .toFixed(2);
+
+  const handleSubmit = async (payload) => {
+    try {
+      console.log("📤 Submitting Evaluation Payload:", payload);
+
+      // 🚀 Send payload to backend
+      const res = await fetch("/api/weeklyevaluation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("❌ Failed to create evaluation");
+      }
+
+      const data = await res.json();
+      console.log("✅ Saved Evaluation:", data);
+      await fetchEvaluations(); // refresh list
+
+      // 🎉 Success feedback
+      setDrawerOpen(false);
+      setMessage("✅ Evaluation submitted successfully!");
+      setSuccess(true);
+
+      // reset form state
+      setSelectedUserId("");
+      setComments("");
+      setEvaluationScores([]);
+      setSelectedWeek(null);
+      setWeekStart("");
+      setWeekEnd("");
+    } catch (err) {
+      console.error("❌ Error submitting evaluation:", err);
+      setMessage("❌ Failed to submit evaluation");
+      setSuccess(false);
+    } finally {
+      setTimeout(() => setMessage(""), 3000);
+    }
   };
 
   return (
@@ -169,6 +345,242 @@ const filtered = evaluations.filter((ev) => {
           </div>
         </div>
       )}
+
+      {/* ✅ Right Drawer (Modern + Complete with Evaluation Programs Table) */}
+      <div
+        className={`fixed top-0 right-0 h-full w-full sm:w-[28rem] md:w-[34rem] bg-white/90 backdrop-blur-xl shadow-2xl transform transition-transform duration-500 ease-in-out z-50 rounded-l-2xl ${
+          drawerOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <span className="text-xl">{selectedUser ? "✏️" : "➕"}</span>
+            {selectedUser ? "Edit User" : "Add New User"}
+          </h2>
+          <button
+            onClick={() => {
+              setDrawerOpen(false);
+              setSelectedUser(null);
+            }}
+            className="hover:bg-white/20 p-2 rounded-full transition"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <form
+          className="flex flex-col h-[calc(100%-70px)]"
+          onSubmit={(e) => {
+            e.preventDefault();
+
+            const loginId = localStorage.getItem("loginID"); // 👈 fetch from localStorage
+
+            handleSubmit({
+              weekNumber: selectedWeek, // ✅ rename here
+              weekStart,
+              weekEnd,
+              evaluationScores,
+              comments,
+              userId: selectedUserId,
+              evaluatedBy: loginId, // ✅ better name than loginId
+              totalScore,
+              totalWeightedRating: totalRating, // ✅ match schema name
+            });
+          }}
+        >
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="space-y-3 w-full">
+              <h3 className="text-md font-semibold text-gray-800 border-b pb-2">
+                📅 Select Week & Dates
+              </h3>
+
+              {/* Row 1: Week Selector (Full Width) */}
+              <div className="grid grid-cols-4 gap-3 w-full">
+                {[1, 2, 3, 4].map((week) => (
+                  <button
+                    key={week}
+                    type="button"
+                    onClick={() => handleWeekSelect(week)}
+                    className={`w-full px-3 py-2 rounded-lg text-sm font-medium shadow transition
+        ${
+          selectedWeek === week
+            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+        }`}
+                  >
+                    Week {week}
+                  </button>
+                ))}
+              </div>
+
+              {/* Row 2: Dates (Full Width, bigger inputs, arrow inline) */}
+              <div className="flex items-center justify-between gap-2 w-full">
+                {/* Start Date */}
+                <input
+                  type="date"
+                  value={weekStart}
+                  onChange={(e) => setWeekStart(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
+                />
+
+                {/* Arrow (inline, no extra column) */}
+                <ArrowRight className="w-6 h-6 text-gray-500 mx-2" />
+
+                {/* End Date */}
+                <input
+                  type="date"
+                  value={weekEnd}
+                  onChange={(e) => setWeekEnd(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* 👤 User Dropdown */}
+            {/* Row 3: User Selector (Inline under dates) */}
+            <div className="w-full mt-3">
+              <label className="flex items-center text-sm font-semibold text-gray-800 mb-1">
+                <UserCircle className="w-4 h-4 text-indigo-600 mr-2" />
+                Select User
+              </label>
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="" disabled hidden></option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName} ({u.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ✅ Evaluation Programs Table */}
+            <div className="space-y-3">
+              <h3 className="text-md font-semibold text-gray-800 border-b pb-2">
+                📊 Evaluation Programs
+              </h3>
+
+              {evaluationPrograms.length > 0 ? (
+                <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 text-xs uppercase tracking-wide">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-semibold w-[50%]">
+                          KPIs
+                        </th>
+                        <th className="px-4 py-2 text-center font-semibold w-[20%]">
+                          Wt %
+                        </th>
+                        <th className="px-4 py-2 text-center font-semibold w-[15%]">
+                          Score
+                        </th>
+                        <th className="px-4 py-2 text-center font-semibold w-[15%]">
+                          Rating
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {evaluationPrograms.map((prog, index) => (
+                        <tr
+                          key={prog._id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-4 py-2 font-medium text-gray-800">
+                            {prog.Name}
+                          </td>
+                          <td className="px-4 py-2 text-center text-gray-600">
+                            {prog.Weightage}
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max="5"
+                              value={evaluationScores[index]?.score || ""}
+                              onChange={(e) => {
+                                const val = Math.min(5, Number(e.target.value));
+                                handleScoreChange(
+                                  index,
+                                  val,
+                                  prog.Weightage,
+                                  prog._id
+                                );
+                              }}
+                              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-center font-semibold text-indigo-700">
+                            {evaluationScores[index]?.weightedRating || "--"}
+                          </td>
+                        </tr>
+                      ))}
+
+                      {/* ✅ Totals Row */}
+                      <tr className="bg-gradient-to-r from-indigo-50 to-purple-50 font-semibold">
+                        <td
+                          className="px-4 py-2 text-right text-gray-700"
+                          colSpan={2}
+                        >
+                          ⬇ Total
+                        </td>
+                        <td className="px-4 py-2 text-center text-gray-800">
+                          {evaluationScores.reduce(
+                            (sum, s) => sum + Number(s?.score || 0),
+                            0
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-center text-indigo-900">
+                          {evaluationScores
+                            .reduce(
+                              (sum, s) => sum + Number(s?.weightedRating || 0),
+                              0
+                            )
+                            .toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* ✅ Comments Section */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      💬 Comments
+                    </label>
+                    <textarea
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      rows={3}
+                      placeholder="Write your evaluation comments here..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm italic">
+                  No evaluation programs found.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Sticky footer */}
+          <div className="p-4 border-t bg-white sticky bottom-0">
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
+            >
+              💾 {selectedUser ? "Update Record" : "Save Record"}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* 🔍 Search & Toggle */}
       <div className="flex items-center justify-between p-4">
@@ -271,7 +683,10 @@ const filtered = evaluations.filter((ev) => {
                   {(currentUserRole === "Super Admin" ||
                     currentUserRole === "HR" ||
                     currentUserRole === "Management") && (
-                    <button className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition">
+                    <button
+                      onClick={handleAddUser}
+                      className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
+                    >
                       <Plus className="w-5 h-5" />
                     </button>
                   )}
@@ -283,7 +698,8 @@ const filtered = evaluations.filter((ev) => {
                 <th className="px-4 py-3 w-1/8">Total Score</th>
                 <th className="px-4 py-3 w-1/8">Weighted Rating</th>
                 <th className="px-4 py-3 w-1/8">Performance</th>
-                {/* New column */}
+                {/* 🔽 New Delete Column */}
+                <th className="px-4 py-3 w-1/12 text-center">Action</th>
               </tr>
             </thead>
 
@@ -367,6 +783,21 @@ const filtered = evaluations.filter((ev) => {
                     </td>
                     <td className={`px-4 py-4 truncate ${colorClass}`}>
                       {performance}
+                    </td>
+
+                    {/* 🗑️ Delete Column */}
+                    <td className="px-4 py-4 text-center">
+                      {(currentUserRole === "Super Admin" ||
+                        currentUserRole === "HR" ||
+                        currentUserRole === "Management") && (
+                        <button
+                          onClick={() => handleDeleteEvaluation(ev._id)}
+                          className="text-red-600 hover:text-red-800 transition"
+                          title="Delete Evaluation"
+                        >
+                          <Trash2 className="w-6 h-6" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -499,6 +930,13 @@ const filtered = evaluations.filter((ev) => {
                     title="Edit"
                   >
                     <Edit className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteEvaluation(ev)}
+                    className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>

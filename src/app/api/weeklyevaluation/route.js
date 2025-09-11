@@ -34,53 +34,40 @@ export async function GET() {
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
-// ✅ POST - create a new weekly evaluation
+// ✅ POST - add new weekly evaluation
 export async function POST(req) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    // fetch all evaluation programs (to get weightages)
-    const programs = await EvaluationProgram.find().lean();
-    const weightageMap = Object.fromEntries(programs.map(p => [p._id.toString(), p.Weightage]));
-
-    // calculate weighted ratings
-    let totalScore = 0;
-    let totalWeightedRating = 0;
-    const scores = body.scores.map(s => {
-      const weightage = weightageMap[s.kpiId] || 0;
-      const weightedRating = (s.score * weightage) / 100;
-      totalScore += s.score;
-      totalWeightedRating += weightedRating;
-
-      return {
-        kpiId: s.kpiId,
-        score: s.score,
-        weightage,
-        weightedRating,
-      };
-    });
-
     const newEvaluation = new WeeklyEvaluation({
       userId: body.userId,
-      weekNumber: body.weekNumber,
-      weekStart: body.weekStart,
-      weekEnd: body.weekEnd,
-      scores,
+      evaluatedBy: body.evaluatedBy, // 👈 from localStorage loginID
+      weekNumber: body.weekNumber,   // 👈 required field
+      weekStart: new Date(body.weekStart),
+      weekEnd: new Date(body.weekEnd),
+      scores: body.evaluationScores.map(s => ({
+        kpiId: s._id,                // 👈 map _id to kpiId
+        score: s.score,
+        weightage: s.weightage,
+        weightedRating: s.weightedRating,
+      })),
       comments: body.comments,
-      totalScore,
-      totalWeightedRating,
-      evaluatedBy: body.evaluatedBy,
+      totalScore: body.totalScore,
+      totalWeightedRating: body.totalWeightedRating,
     });
 
     const saved = await newEvaluation.save();
 
     return new Response(
-      JSON.stringify({ message: "Weekly evaluation created", id: saved._id.toString() }),
-      { status: 201 }
+      JSON.stringify({ message: "Evaluation saved", evaluation: saved }),
+      { status: 201, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Error creating evaluation:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    console.error("Error saving evaluation:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
