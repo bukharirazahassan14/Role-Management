@@ -38,8 +38,6 @@ export default function EmployeeWeeklyEvaluation() {
   const [viewMode, setViewMode] = useState("list");
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
@@ -48,6 +46,8 @@ export default function EmployeeWeeklyEvaluation() {
   const [comments, setComments] = useState("");
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [editingEvaluation, setEditingEvaluation] = useState(null);
+  const [viewingEvaluation, setViewingEvaluation] = useState(null);
 
   // 🔑 decode JWT
   function parseJwt(token) {
@@ -87,22 +87,28 @@ export default function EmployeeWeeklyEvaluation() {
 
   // ✅ Auto set current month start and end when enabling date filter
   useEffect(() => {
-    if (showDateFilter) {
-      const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    if (didFetch.current) return;
+    didFetch.current = true;
 
-      // format as yyyy-mm-dd safely
-      const format = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${String(d.getDate()).padStart(2, "0")}`;
+    // 🔹 Fetch evaluations
+    fetchEvaluations();
 
-      setStartDate(format(firstDay));
-      setEndDate(format(lastDay));
-    }
-  }, [showDateFilter]);
+    // 🔹 Auto set current month start and end
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const format = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+
+    setStartDate(format(firstDay));
+    setEndDate(format(lastDay));
+
+    // ✅ Auto-enable date filter on first load
+    setShowDateFilter(true);
+  }, []);
 
   // ✅ Token validation
   useEffect(() => {
@@ -121,47 +127,50 @@ export default function EmployeeWeeklyEvaluation() {
   }, [router]);
 
   const fetchEvaluations = async () => {
-  try {
-    const role = localStorage.getItem("userRole");
-    setCurrentUserRole(role);
+    try {
+      const role = localStorage.getItem("userRole");
+      setCurrentUserRole(role);
 
-    const res = await fetch("/api/weeklyevaluation");
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      setEvaluations(data);
+      const res = await fetch("/api/weeklyevaluation");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setEvaluations(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch evaluations:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Failed to fetch evaluations:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // ✅ Fetch weekly evaluations
   useEffect(() => {
-  if (didFetch.current) return;
-  didFetch.current = true;
-  fetchEvaluations();
-}, []);
+    if (didFetch.current) return;
+    didFetch.current = true;
+    fetchEvaluations();
+  }, []);
+
+  const fetchEvaluationPrograms = async () => {
+    try {
+      const res = await fetch("/api/weeklyevaluation/evaluationprograms");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setEvaluationPrograms(data);
+
+        // Initialize scores state with empty values
+        setEvaluationScores(
+          data.map(() => ({ score: "", weightedRating: "" }))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to fetch evaluation programs:", err);
+    }
+  };
 
   // Fetch programs once
   useEffect(() => {
-    async function fetchEvaluationPrograms() {
-      try {
-        const res = await fetch("/api/weeklyevaluation/evaluationprograms");
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setEvaluationPrograms(data);
-
-          // Initialize scores state with empty values
-          setEvaluationScores(
-            data.map(() => ({ score: "", weightedRating: "" }))
-          );
-        }
-      } catch (err) {
-        console.error("Failed to fetch evaluation programs:", err);
-      }
-    }
+    if (didFetch.current) return;
+    didFetch.current = true;
 
     fetchEvaluationPrograms();
   }, []);
@@ -182,7 +191,6 @@ export default function EmployeeWeeklyEvaluation() {
   };
 
   if (loading) return <div className="p-8">Loading evaluations...</div>;
-  
 
   const formatDatePKT = (date) => {
     return date.toLocaleDateString("en-CA", {
@@ -207,32 +215,29 @@ export default function EmployeeWeeklyEvaluation() {
       ev.userId?.primaryEmail?.toLowerCase().includes(query) ||
       ev.weekNumber?.toString().includes(query);
 
-    // 📅 Date filtering (PKT-safe)
-    const evStart = ev.weekStart
-      ? parseDatePKT(ev.weekStart.split("T")[0])
-      : null;
-    const evEnd = ev.weekEnd ? parseDatePKT(ev.weekEnd.split("T")[0]) : null;
-
-    const filterStart = startDate ? parseDatePKT(startDate) : null;
-    const filterEnd = endDate ? parseDatePKT(endDate) : null;
-
+    // 📅 Date filtering (PKT-safe) → always active if start/end set
     let matchesDate = true;
+    if (startDate || endDate) {
+      const evStart = ev.weekStart
+        ? parseDatePKT(ev.weekStart.split("T")[0])
+        : null;
+      const evEnd = ev.weekEnd ? parseDatePKT(ev.weekEnd.split("T")[0]) : null;
 
-    if (filterStart && evEnd) {
-      matchesDate = matchesDate && evEnd >= filterStart;
-    }
+      const filterStart = startDate ? parseDatePKT(startDate) : null;
+      const filterEnd = endDate ? parseDatePKT(endDate) : null;
 
-    if (filterEnd && evStart) {
-      matchesDate = matchesDate && evStart <= filterEnd;
+      if (filterStart && evEnd)
+        matchesDate = matchesDate && evEnd >= filterStart;
+      if (filterEnd && evStart)
+        matchesDate = matchesDate && evStart <= filterEnd;
     }
 
     return matchesText && matchesDate;
   });
 
   const handleAddUser = () => {
-    setSelectedUser(null);
     setDrawerOpen(true);
-
+    fetchEvaluationPrograms();
     const defaultWeek = 1;
     setSelectedWeek(defaultWeek);
 
@@ -293,35 +298,59 @@ export default function EmployeeWeeklyEvaluation() {
 
   const handleSubmit = async (payload) => {
     try {
+      // ✅ Validate before sending
+      if (!payload.userId) {
+        setMessage("❌ Please select a user");
+        setSuccess(false);
+        return;
+      }
+      if (!payload.weekNumber || !payload.weekStart || !payload.weekEnd) {
+        setMessage("❌ Please select week & dates");
+        setSuccess(false);
+        return;
+      }
+      if (
+        payload.evaluationScores.some((s) => s.score === "" || s.score == null)
+      ) {
+        setMessage("❌ Please fill all scores before submitting");
+        setSuccess(false);
+        return;
+      }
+
       console.log("📤 Submitting Evaluation Payload:", payload);
 
-      // 🚀 Send payload to backend
-      const res = await fetch("/api/weeklyevaluation", {
-        method: "POST",
+      // ✅ Switch POST or PUT based on editing state
+      const url = editingEvaluation
+        ? `/api/weeklyevaluation/${editingEvaluation._id}`
+        : `/api/weeklyevaluation`;
+
+      const method = editingEvaluation ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        throw new Error("❌ Failed to create evaluation");
+        throw new Error(
+          `❌ Failed to ${editingEvaluation ? "update" : "create"} evaluation`
+        );
       }
 
       const data = await res.json();
       console.log("✅ Saved Evaluation:", data);
+
       await fetchEvaluations(); // refresh list
 
       // 🎉 Success feedback
-      setDrawerOpen(false);
-      setMessage("✅ Evaluation submitted successfully!");
+      handleCloseDrawer();
+      setMessage(
+        `✅ Evaluation ${
+          editingEvaluation ? "updated" : "submitted"
+        } successfully!`
+      );
       setSuccess(true);
-
-      // reset form state
-      setSelectedUserId("");
-      setComments("");
-      setEvaluationScores([]);
-      setSelectedWeek(null);
-      setWeekStart("");
-      setWeekEnd("");
     } catch (err) {
       console.error("❌ Error submitting evaluation:", err);
       setMessage("❌ Failed to submit evaluation");
@@ -329,6 +358,108 @@ export default function EmployeeWeeklyEvaluation() {
     } finally {
       setTimeout(() => setMessage(""), 3000);
     }
+  };
+
+  // ✅ Function to handle editing an evaluation
+  const handleEditEvaluation = async (evaluationId) => {
+    try {
+      await fetchEvaluationPrograms();
+      const res = await fetch(`/api/weeklyevaluation/${evaluationId}`);
+      if (!res.ok) throw new Error("Failed to fetch evaluation");
+
+      const data = await res.json();
+
+      // Pre-fill form fields
+      setSelectedUserId(data.userId?._id || "");
+      setSelectedWeek(data.weekNumber);
+      setWeekStart(data.weekStart.split("T")[0]);
+      setWeekEnd(data.weekEnd.split("T")[0]);
+      setSelectedUserId(data.userId?._id || "");
+      setComments(data.comments || "");
+      setEvaluationScores(
+        data.scores.map((s) => ({
+          kpiId: s.kpiId,
+          score: s.score,
+          weightage: s.weightage,
+          weightedRating: s.weightedRating,
+        }))
+      );
+
+      setEditingEvaluation(data);
+      setDrawerOpen(true);
+    } catch (error) {
+      console.error("Error in handleEditEvaluation:", error);
+    }
+  };
+
+  // ✅ Function to handle viewing an evaluation (read-only mode)
+  const handleViewEvaluation = async (evaluationId) => {
+    try {
+      await fetchEvaluationPrograms();
+      const res = await fetch(`/api/weeklyevaluation/${evaluationId}`);
+      if (!res.ok) throw new Error("Failed to fetch evaluation");
+
+      const data = await res.json();
+
+      // Pre-fill form fields
+      setSelectedUserId(data.userId?._id || "");
+      setSelectedWeek(data.weekNumber);
+      setWeekStart(data.weekStart.split("T")[0]);
+      setWeekEnd(data.weekEnd.split("T")[0]);
+      setComments(data.comments || "");
+      setEvaluationScores(
+        data.scores.map((s) => ({
+          kpiId: s.kpiId,
+          score: s.score,
+          weightage: s.weightage,
+          weightedRating: s.weightedRating,
+        }))
+      );
+
+      // Mark as viewing
+      setViewingEvaluation(data);
+      setEditingEvaluation(null); // make sure edit mode is off
+      setDrawerOpen(true);
+    } catch (error) {
+      console.error("Error in handleViewEvaluation:", error);
+    }
+  };
+
+  // ✅ Function to handle deleting an evaluation
+  const handleDeleteEvaluation = async (evaluationId) => {
+    if (!confirm("Are you sure you want to delete this evaluation?")) return;
+
+    try {
+      const res = await fetch(`/api/weeklyevaluation/${evaluationId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete evaluation");
+
+      // ✅ Show success message
+      setMessage("✅ Evaluation deleted successfully");
+      setSuccess(true);
+
+      // ✅ Refresh the list from backend
+      await fetchEvaluations();
+    } catch (error) {
+      console.error("Error deleting evaluation:", error);
+      setMessage("❌ Failed to delete evaluation. Please try again.");
+      setSuccess(false);
+    }
+  };
+
+  // ✅ When closing the drawer, reset editingEvaluation & viewingEvaluation
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setEditingEvaluation(null);
+    setViewingEvaluation(null);
+    setSelectedUserId("");
+    setSelectedWeek(null);
+    setWeekStart("");
+    setWeekEnd("");
+    setEvaluationScores([]);
+    setComments("");
   };
 
   return (
@@ -355,14 +486,17 @@ export default function EmployeeWeeklyEvaluation() {
         {/* Header */}
         <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="text-xl">{selectedUser ? "✏️" : "➕"}</span>
-            {selectedUser ? "Edit User" : "Add New User"}
+            <span className="text-xl">
+              {viewingEvaluation ? "👀" : editingEvaluation ? "✏️" : "➕"}
+            </span>
+            {viewingEvaluation
+              ? "View Evaluation"
+              : editingEvaluation
+              ? "Edit Evaluation"
+              : "Add New Evaluation"}
           </h2>
           <button
-            onClick={() => {
-              setDrawerOpen(false);
-              setSelectedUser(null);
-            }}
+            onClick={handleCloseDrawer} // ✅ call reset + close function
             className="hover:bg-white/20 p-2 rounded-full transition"
           >
             <X className="w-6 h-6" />
@@ -404,6 +538,7 @@ export default function EmployeeWeeklyEvaluation() {
                     key={week}
                     type="button"
                     onClick={() => handleWeekSelect(week)}
+                    disabled={!!viewingEvaluation}
                     className={`w-full px-3 py-2 rounded-lg text-sm font-medium shadow transition
         ${
           selectedWeek === week
@@ -423,6 +558,7 @@ export default function EmployeeWeeklyEvaluation() {
                   type="date"
                   value={weekStart}
                   onChange={(e) => setWeekStart(e.target.value)}
+                  disabled={!!viewingEvaluation}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
                 />
 
@@ -434,6 +570,7 @@ export default function EmployeeWeeklyEvaluation() {
                   type="date"
                   value={weekEnd}
                   onChange={(e) => setWeekEnd(e.target.value)}
+                  disabled={!!viewingEvaluation}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -450,6 +587,7 @@ export default function EmployeeWeeklyEvaluation() {
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 required
+                disabled={!!viewingEvaluation}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="" disabled hidden></option>
@@ -513,6 +651,8 @@ export default function EmployeeWeeklyEvaluation() {
                                   prog._id
                                 );
                               }}
+                              required
+                              disabled={!!viewingEvaluation}
                               className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </td>
@@ -556,6 +696,7 @@ export default function EmployeeWeeklyEvaluation() {
                     <textarea
                       value={comments}
                       onChange={(e) => setComments(e.target.value)}
+                      disabled={!!viewingEvaluation}
                       rows={3}
                       placeholder="Write your evaluation comments here..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
@@ -571,14 +712,16 @@ export default function EmployeeWeeklyEvaluation() {
           </div>
 
           {/* Sticky footer */}
-          <div className="p-4 border-t bg-white sticky bottom-0">
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
-            >
-              💾 {selectedUser ? "Update Record" : "Save Record"}
-            </button>
-          </div>
+          {!viewingEvaluation && (
+            <div className="p-4 border-t bg-white sticky bottom-0">
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
+              >
+                💾 {editingEvaluation ? "Update Record" : "Save Record"}
+              </button>
+            </div>
+          )}
         </form>
       </div>
 
@@ -732,7 +875,7 @@ export default function EmployeeWeeklyEvaluation() {
                       <div className="flex justify-center items-center gap-6">
                         {/* View Button */}
                         <button
-                          onClick={() => handleViewEvaluation(ev)}
+                          onClick={() => handleViewEvaluation(ev._id)}
                           className="text-indigo-600 hover:text-indigo-900 transition"
                           title="View Evaluation"
                         >
@@ -744,7 +887,7 @@ export default function EmployeeWeeklyEvaluation() {
                           currentUserRole === "HR" ||
                           currentUserRole === "Management") && (
                           <button
-                            onClick={() => handleEditEvaluation(ev)}
+                            onClick={() => handleEditEvaluation(ev._id)}
                             className="text-indigo-600 hover:text-indigo-900 transition"
                             title="Edit Evaluation"
                           >
@@ -918,33 +1061,46 @@ export default function EmployeeWeeklyEvaluation() {
                 {/* Actions */}
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
                   <button
-                    onClick={() => handleViewEvaluation(ev)}
+                    onClick={() => handleViewEvaluation(ev._id)}
                     className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
                     title="View"
                   >
                     <Glasses className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleEditEvaluation(ev)}
+                  {(currentUserRole === "Super Admin" ||
+                    currentUserRole === "HR" ||
+                    currentUserRole === "Management") && (
+                    <button
+                    onClick={() => handleEditEvaluation(ev._id)}
                     className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
                     title="Edit"
                   >
                     <Edit className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleDeleteEvaluation(ev)}
+                  )}
+                  
+                  {(currentUserRole === "Super Admin" ||
+                    currentUserRole === "HR" ||
+                    currentUserRole === "Management") && (
+                    <button
+                    onClick={() => handleDeleteEvaluation(ev._id)}
                     className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
                     title="Delete"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
+                  )}
+                  
                 </div>
               </div>
             );
           })}
 
           {/* Add New */}
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-8 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800/50 transition group">
+          <div
+            onClick={handleAddUser} // ✅ call your function on click
+            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-8 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800/50 transition group"
+          >
             <Plus className="w-14 h-14 text-indigo-600 group-hover:scale-110 transition-transform" />
             <span className="mt-4 text-indigo-600 font-medium text-lg">
               Add New Evaluation

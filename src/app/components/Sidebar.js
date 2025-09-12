@@ -43,7 +43,7 @@ export default function Sidebar() {
       <button
         onClick={() => router.replace("/main/weeklyevaluation")}
         className={`p-3 rounded-xl transition ${
-          pathname === "/main/employee-weekly-evaluation"
+          pathname === "/main/weeklyevaluation"
             ? "bg-indigo-500"
             : "hover:bg-indigo-400"
         }`}
