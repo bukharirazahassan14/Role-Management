@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 
 import useIsMobile from "../hooks/useIsMobile";
+import { useReactToPrint } from "react-to-print";
+import Report from "../components/WeeklyEvaluationReport";
 
 export default function EmployeeWeeklyEvaluation() {
   const router = useRouter();
@@ -48,6 +50,12 @@ export default function EmployeeWeeklyEvaluation() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [editingEvaluation, setEditingEvaluation] = useState(null);
   const [viewingEvaluation, setViewingEvaluation] = useState(null);
+
+  const reportRef = useRef(null);
+  const handlePrint = useReactToPrint({
+    contentRef: reportRef, // 👈 new API
+    documentTitle: "Weekly Evaluation Report",
+  });
 
   // 🔑 decode JWT
   function parseJwt(token) {
@@ -75,7 +83,7 @@ export default function EmployeeWeeklyEvaluation() {
     if (!drawerOpen) return;
     const fetchUsers = async () => {
       try {
-        const res = await fetch("/api/users"); // replace with your API
+        const res = await fetch("/api/users/basic"); // replace with your API
         const data = await res.json();
         setUsers(data);
       } catch (err) {
@@ -374,7 +382,6 @@ export default function EmployeeWeeklyEvaluation() {
       setSelectedWeek(data.weekNumber);
       setWeekStart(data.weekStart.split("T")[0]);
       setWeekEnd(data.weekEnd.split("T")[0]);
-      setSelectedUserId(data.userId?._id || "");
       setComments(data.comments || "");
       setEvaluationScores(
         data.scores.map((s) => ({
@@ -464,6 +471,16 @@ export default function EmployeeWeeklyEvaluation() {
 
   return (
     <div className="p-8 w-full">
+      {/* Hidden Report */}
+      <div className="hidden print:block">
+        <Report
+          ref={reportRef}
+          evaluation={viewingEvaluation}
+          user={users.find((u) => u.id === selectedUserId)}
+          evaluationPrograms={evaluationPrograms}
+        />
+      </div>
+
       {/* ✅ Toast */}
       {message && (
         <div className="fixed top-5 right-5 z-50">
@@ -479,9 +496,12 @@ export default function EmployeeWeeklyEvaluation() {
 
       {/* ✅ Right Drawer (Modern + Complete with Evaluation Programs Table) */}
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:w-[28rem] md:w-[34rem] bg-white/90 backdrop-blur-xl shadow-2xl transform transition-transform duration-500 ease-in-out z-50 rounded-l-2xl ${
-          drawerOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full 
+    w-full sm:w-[32rem] md:w-[40rem] lg:w-[48rem] 
+    bg-white/90 backdrop-blur-xl shadow-2xl 
+    transform transition-transform duration-500 ease-in-out 
+    z-50 rounded-l-2xl 
+    ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         {/* Header */}
         <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
@@ -558,7 +578,7 @@ export default function EmployeeWeeklyEvaluation() {
                   type="date"
                   value={weekStart}
                   onChange={(e) => setWeekStart(e.target.value)}
-                  disabled={!!viewingEvaluation}
+                  disabled
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
                 />
 
@@ -570,7 +590,7 @@ export default function EmployeeWeeklyEvaluation() {
                   type="date"
                   value={weekEnd}
                   onChange={(e) => setWeekEnd(e.target.value)}
-                  disabled={!!viewingEvaluation}
+                  disabled
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -607,102 +627,96 @@ export default function EmployeeWeeklyEvaluation() {
 
               {evaluationPrograms.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 text-xs uppercase tracking-wide">
-                      <tr>
-                        <th className="px-4 py-2 text-left font-semibold w-[50%]">
-                          KPIs
-                        </th>
-                        <th className="px-4 py-2 text-center font-semibold w-[20%]">
-                          Wt %
-                        </th>
-                        <th className="px-4 py-2 text-center font-semibold w-[15%]">
-                          Score
-                        </th>
-                        <th className="px-4 py-2 text-center font-semibold w-[15%]">
-                          Rating
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {evaluationPrograms.map((prog, index) => (
-                        <tr
-                          key={prog._id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-4 py-2 font-medium text-gray-800">
-                            {prog.Name}
-                          </td>
-                          <td className="px-4 py-2 text-center text-gray-600">
-                            {prog.Weightage}
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              max="5"
-                              value={evaluationScores[index]?.score || ""}
-                              onChange={(e) => {
-                                const val = Math.min(5, Number(e.target.value));
-                                handleScoreChange(
-                                  index,
-                                  val,
-                                  prog.Weightage,
-                                  prog._id
-                                );
-                              }}
-                              required
-                              disabled={!!viewingEvaluation}
-                              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </td>
-                          <td className="px-4 py-2 text-center font-semibold text-indigo-700">
-                            {evaluationScores[index]?.weightedRating || "--"}
-                          </td>
-                        </tr>
-                      ))}
+  <table className="w-full text-sm">
+    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 text-xs uppercase tracking-wide">
+      <tr>
+        <th className="px-4 py-2 text-left font-semibold w-[50%]">KPIs</th>
+        <th className="px-4 py-2 text-center font-semibold w-[20%]">Wt %</th>
+        <th className="px-4 py-2 text-center font-semibold w-[15%]">Score</th>
+        <th className="px-4 py-2 text-center font-semibold w-[15%]">Rating</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-100">
+      {evaluationPrograms.map((prog, index) => (
+        // Return an array of rows instead of Fragment
+        [
+          <tr
+            key={`${prog._id}-main`}
+            className="hover:bg-gray-50 transition-colors align-top"
+          >
+            <td className="px-4 py-2 font-medium text-gray-800">{prog.Name}</td>
+            <td className="px-4 py-2 text-center text-gray-600">
+              {prog.Weightage}
+            </td>
+            <td className="px-4 py-2 text-center">
+              <select
+                value={evaluationScores[index]?.score || ""}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  handleScoreChange(index, val, prog.Weightage, prog._id);
+                }}
+                required
+                disabled={!!viewingEvaluation}
+                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Select</option>
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <option key={num} value={num}>
+                    {num}
+                  </option>
+                ))}
+              </select>
+            </td>
+            <td className="px-4 py-2 text-center font-semibold text-indigo-700">
+              {evaluationScores[index]?.weightedRating || "--"}
+            </td>
+          </tr>,
 
-                      {/* ✅ Totals Row */}
-                      <tr className="bg-gradient-to-r from-indigo-50 to-purple-50 font-semibold">
-                        <td
-                          className="px-4 py-2 text-right text-gray-700"
-                          colSpan={2}
-                        >
-                          ⬇ Total
-                        </td>
-                        <td className="px-4 py-2 text-center text-gray-800">
-                          {evaluationScores.reduce(
-                            (sum, s) => sum + Number(s?.score || 0),
-                            0
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-center text-indigo-900">
-                          {evaluationScores
-                            .reduce(
-                              (sum, s) => sum + Number(s?.weightedRating || 0),
-                              0
-                            )
-                            .toFixed(2)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+          // ✅ Second row → Description full width
+          <tr key={`${prog._id}-desc`}>
+            <td
+              colSpan={4}
+              className="px-4 pb-3 text-gray-600 text-sm italic whitespace-pre-wrap"
+            >
+              {prog.Description || "—"}
+            </td>
+          </tr>,
+        ]
+      ))}
 
-                  {/* ✅ Comments Section */}
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      💬 Comments
-                    </label>
-                    <textarea
-                      value={comments}
-                      onChange={(e) => setComments(e.target.value)}
-                      disabled={!!viewingEvaluation}
-                      rows={3}
-                      placeholder="Write your evaluation comments here..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                    />
-                  </div>
-                </div>
+      {/* ✅ Totals Row */}
+      <tr className="bg-gradient-to-r from-indigo-50 to-purple-50 font-semibold">
+        <td className="px-4 py-2 text-right text-gray-700" colSpan={2}>
+          ⬇ Total
+        </td>
+        <td className="px-4 py-2 text-center text-gray-800">
+          {evaluationScores.reduce((sum, s) => sum + Number(s?.score || 0), 0)}
+        </td>
+        <td className="px-4 py-2 text-center text-indigo-900">
+          {evaluationScores
+            .reduce((sum, s) => sum + Number(s?.weightedRating || 0), 0)
+            .toFixed(2)}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  {/* ✅ Comments Section */}
+  <div className="mt-4">
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      💬 Comments
+    </label>
+    <textarea
+      value={comments}
+      onChange={(e) => setComments(e.target.value)}
+      disabled={!!viewingEvaluation}
+      rows={3}
+      placeholder="Write your evaluation comments here..."
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+    />
+  </div>
+</div>
+
               ) : (
                 <p className="text-gray-500 text-sm italic">
                   No evaluation programs found.
@@ -712,16 +726,24 @@ export default function EmployeeWeeklyEvaluation() {
           </div>
 
           {/* Sticky footer */}
-          {!viewingEvaluation && (
-            <div className="p-4 border-t bg-white sticky bottom-0">
+          <div className="p-4 border-t bg-white sticky bottom-0">
+            {viewingEvaluation ? (
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="w-full bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
+              >
+                🖨️ Print Report
+              </button>
+            ) : (
               <button
                 type="submit"
                 className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
               >
                 💾 {editingEvaluation ? "Update Record" : "Save Record"}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </form>
       </div>
 
@@ -1071,26 +1093,25 @@ export default function EmployeeWeeklyEvaluation() {
                     currentUserRole === "HR" ||
                     currentUserRole === "Management") && (
                     <button
-                    onClick={() => handleEditEvaluation(ev._id)}
-                    className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                    title="Edit"
-                  >
-                    <Edit className="w-5 h-5" />
-                  </button>
+                      onClick={() => handleEditEvaluation(ev._id)}
+                      className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                      title="Edit"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
                   )}
-                  
+
                   {(currentUserRole === "Super Admin" ||
                     currentUserRole === "HR" ||
                     currentUserRole === "Management") && (
                     <button
-                    onClick={() => handleDeleteEvaluation(ev._id)}
-                    className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                      onClick={() => handleDeleteEvaluation(ev._id)}
+                      className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   )}
-                  
                 </div>
               </div>
             );

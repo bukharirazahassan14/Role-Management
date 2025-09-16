@@ -36,3 +36,23 @@ body {
     @apply block text-sm font-medium text-gray-600;
   }
 }
+
+/* ✅ Print styles for A4 report */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact; /* Ensures colors are preserved */
+    print-color-adjust: exact;
+    background: #ffffff; /* Force white background for reports */
+    color: #000000;
+  }
+
+  @page {
+    size: A4;         /* Force A4 paper */
+    margin: 20mm;     /* Standard margins */
+  }
+
+  /* Hide UI elements (like buttons/headers) during print */
+  .no-print {
+    display: none !important;
+  }
+}

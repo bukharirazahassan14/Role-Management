@@ -72,9 +72,6 @@ export default function Header({ title = "Dashboard Overview", userName = "Super
               <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
                 📤 Export User
               </button>
-              <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
-                📥 Import User
-              </button>
               <button
                 onClick={handleSignOut}
                 className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
