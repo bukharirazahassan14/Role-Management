@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Glasses,
@@ -8,18 +8,15 @@ import {
   Edit,
   List,
   LayoutGrid,
-  FileText,
-  User,
   Calendar,
   Star,
-  Trophy,
   Award,
-  Eye,
   Trash2,
   TrendingUp,
   ArrowRight,
   X,
   UserCircle,
+  FilePlus,
 } from "lucide-react";
 
 import useIsMobile from "../hooks/useIsMobile";
@@ -50,6 +47,7 @@ export default function EmployeeWeeklyEvaluation() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [editingEvaluation, setEditingEvaluation] = useState(null);
   const [viewingEvaluation, setViewingEvaluation] = useState(null);
+  const [takenWeeks, setTakenWeeks] = useState([]);
 
   const reportRef = useRef(null);
   const handlePrint = useReactToPrint({
@@ -93,31 +91,6 @@ export default function EmployeeWeeklyEvaluation() {
     fetchUsers();
   }, [drawerOpen]);
 
-  // ✅ Auto set current month start and end when enabling date filter
-  useEffect(() => {
-    if (didFetch.current) return;
-    didFetch.current = true;
-
-    // 🔹 Fetch evaluations
-    fetchEvaluations();
-
-    // 🔹 Auto set current month start and end
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const format = (d) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-        d.getDate()
-      ).padStart(2, "0")}`;
-
-    setStartDate(format(firstDay));
-    setEndDate(format(lastDay));
-
-    // ✅ Auto-enable date filter on first load
-    setShowDateFilter(true);
-  }, []);
-
   // ✅ Token validation
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -134,12 +107,17 @@ export default function EmployeeWeeklyEvaluation() {
     }
   }, [router]);
 
-  const fetchEvaluations = async () => {
+  const fetchEvaluations = useCallback(async () => {
     try {
       const role = localStorage.getItem("userRole");
       setCurrentUserRole(role);
 
-      const res = await fetch("/api/weeklyevaluation");
+      const query = new URLSearchParams({
+        startDate,
+        endDate,
+      }).toString();
+
+      const res = await fetch(`/api/weeklyevaluation/performance?${query}`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setEvaluations(data);
@@ -149,14 +127,54 @@ export default function EmployeeWeeklyEvaluation() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]);
 
-  // ✅ Fetch weekly evaluations
+  // ✅ Initialize date range on first load
   useEffect(() => {
-    if (didFetch.current) return;
-    didFetch.current = true;
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const format = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+
+    setStartDate(format(firstDay));
+    setEndDate(format(lastDay));
+    setShowDateFilter(true);
+  }, []); // run only once
+
+  // ✅ Fetch evaluations when startDate and endDate are ready
+  useEffect(() => {
+    if (!startDate || !endDate) return; // wait until both dates are set
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // ✅ If months don't match, fix endDate to the last day of startDate's month
+    if (
+      start.getMonth() !== end.getMonth() ||
+      start.getFullYear() !== end.getFullYear()
+    ) {
+      const lastDayOfMonth = new Date(
+        start.getFullYear(),
+        start.getMonth() + 1,
+        0
+      );
+
+      const format = (d) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+
+      setEndDate(format(lastDayOfMonth));
+      return; // wait for state update before fetching
+    }
+
     fetchEvaluations();
-  }, []);
+  }, [startDate, endDate, fetchEvaluations]);
 
   const fetchEvaluationPrograms = async () => {
     try {
@@ -243,15 +261,34 @@ export default function EmployeeWeeklyEvaluation() {
     return matchesText && matchesDate;
   });
 
-  const handleAddUser = () => {
+  const handleAddUser = (userId, weekNumbers = []) => {
+    // ✅ If all 4 weeks are already evaluated
+    if (weekNumbers.length === 4) {
+      setMessage(
+        "🎉 This month's evaluation has been completed. Congratulations!"
+      );
+      setSuccess(true);
+      setTimeout(() => setMessage(""), 4000); // auto-hide after 4s
+      return;
+    }
+
     setDrawerOpen(true);
     fetchEvaluationPrograms();
-    const defaultWeek = 1;
+    setTakenWeeks(weekNumbers);
+
+    // Pick default week (if user has existing weeks, set next one)
+    const defaultWeek =
+      weekNumbers.length > 0 ? Math.max(...weekNumbers) + 1 : 1;
     setSelectedWeek(defaultWeek);
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    console.log("startDate>>>>>>>>>>>>>>>>", startDate);
+    console.log("endDate>>>>>>>>>>>>>>>>", endDate);
+
+    // ✅ Use provided startDate instead of "now"
+    const baseDate = new Date(startDate); // month comes from startDate filter
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const totalDays = lastDay.getDate();
@@ -264,6 +301,9 @@ export default function EmployeeWeeklyEvaluation() {
     // ✅ Force PKT format
     setWeekStart(formatDatePKT(start));
     setWeekEnd(formatDatePKT(end));
+
+    // Save selected user
+    setSelectedUserId(userId);
   };
 
   const handleWeekSelect = (week) => {
@@ -497,7 +537,7 @@ export default function EmployeeWeeklyEvaluation() {
       {/* ✅ Right Drawer (Modern + Complete with Evaluation Programs Table) */}
       <div
         className={`fixed top-0 right-0 h-full 
-    w-full sm:w-[32rem] md:w-[40rem] lg:w-[48rem] 
+    w-full sm:w-[32rem] md:w-[40rem] lg:w-[40rem] 
     bg-white/90 backdrop-blur-xl shadow-2xl 
     transform transition-transform duration-500 ease-in-out 
     z-50 rounded-l-2xl 
@@ -553,22 +593,35 @@ export default function EmployeeWeeklyEvaluation() {
 
               {/* Row 1: Week Selector (Full Width) */}
               <div className="grid grid-cols-4 gap-3 w-full">
-                {[1, 2, 3, 4].map((week) => (
-                  <button
-                    key={week}
-                    type="button"
-                    onClick={() => handleWeekSelect(week)}
-                    disabled={!!viewingEvaluation}
-                    className={`w-full px-3 py-2 rounded-lg text-sm font-medium shadow transition
-        ${
-          selectedWeek === week
-            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
-            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-        }`}
-                  >
-                    Week {week}
-                  </button>
-                ))}
+                {[1, 2, 3, 4].map((week) => {
+                  const isTaken = takenWeeks?.includes(week);
+                  const isSelected = selectedWeek === week;
+
+                  return (
+                    <button
+                      key={week}
+                      type="button"
+                      onClick={() => handleWeekSelect(week)}
+                      disabled={!!viewingEvaluation || isTaken}
+                      className={`relative w-full px-3 py-2 rounded-lg text-sm font-medium shadow transition
+          ${
+            isTaken
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : isSelected
+              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+                    >
+                      Week {week}
+                      {/* ✅ Checkmark for taken weeks */}
+                      {isTaken && (
+                        <span className="absolute top-1 right-1 text-green-600 text-xs font-bold">
+                          ✅
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Row 2: Dates (Full Width, bigger inputs, arrow inline) */}
@@ -577,8 +630,8 @@ export default function EmployeeWeeklyEvaluation() {
                 <input
                   type="date"
                   value={weekStart}
-                  onChange={(e) => setWeekStart(e.target.value)}
                   disabled
+                  onChange={(e) => setWeekStart(e.target.value)}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
                 />
 
@@ -589,8 +642,8 @@ export default function EmployeeWeeklyEvaluation() {
                 <input
                   type="date"
                   value={weekEnd}
-                  onChange={(e) => setWeekEnd(e.target.value)}
                   disabled
+                  onChange={(e) => setWeekEnd(e.target.value)}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -607,7 +660,7 @@ export default function EmployeeWeeklyEvaluation() {
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 required
-                disabled={!!viewingEvaluation}
+                disabled
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="" disabled hidden></option>
@@ -627,96 +680,109 @@ export default function EmployeeWeeklyEvaluation() {
 
               {evaluationPrograms.length > 0 ? (
                 <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200">
-  <table className="w-full text-sm">
-    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 text-xs uppercase tracking-wide">
-      <tr>
-        <th className="px-4 py-2 text-left font-semibold w-[50%]">KPIs</th>
-        <th className="px-4 py-2 text-center font-semibold w-[20%]">Wt %</th>
-        <th className="px-4 py-2 text-center font-semibold w-[15%]">Score</th>
-        <th className="px-4 py-2 text-center font-semibold w-[15%]">Rating</th>
-      </tr>
-    </thead>
-    <tbody className="divide-y divide-gray-100">
-      {evaluationPrograms.map((prog, index) => (
-        // Return an array of rows instead of Fragment
-        [
-          <tr
-            key={`${prog._id}-main`}
-            className="hover:bg-gray-50 transition-colors align-top"
-          >
-            <td className="px-4 py-2 font-medium text-gray-800">{prog.Name}</td>
-            <td className="px-4 py-2 text-center text-gray-600">
-              {prog.Weightage}
-            </td>
-            <td className="px-4 py-2 text-center">
-              <select
-                value={evaluationScores[index]?.score || ""}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  handleScoreChange(index, val, prog.Weightage, prog._id);
-                }}
-                required
-                disabled={!!viewingEvaluation}
-                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">Select</option>
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <option key={num} value={num}>
-                    {num}
-                  </option>
-                ))}
-              </select>
-            </td>
-            <td className="px-4 py-2 text-center font-semibold text-indigo-700">
-              {evaluationScores[index]?.weightedRating || "--"}
-            </td>
-          </tr>,
+                  <table className="w-full text-sm">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 text-xs uppercase tracking-wide">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-semibold w-[50%]">
+                          KPIs
+                        </th>
+                        <th className="px-4 py-2 text-center font-semibold w-[20%]">
+                          Wt %
+                        </th>
+                        <th className="px-4 py-2 text-center font-semibold w-[15%]">
+                          Score
+                        </th>
+                        <th className="px-4 py-2 text-center font-semibold w-[15%]">
+                          Rating
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {evaluationPrograms.map((prog, index) =>
+                        // Return an array of rows instead of Fragment
+                        [
+                          <tr
+                            key={`${prog._id}-main`}
+                            className="hover:bg-gray-50 transition-colors align-top"
+                          >
+                            <td className="px-4 py-2 font-medium text-gray-800">
+                              {prog.Name}
+                            </td>
+                            <td className="px-4 py-2 text-center text-gray-600">
+                              {prog.Weightage}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <select
+                                value={evaluationScores[index]?.score || ""}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  handleScoreChange(
+                                    index,
+                                    val,
+                                    prog.Weightage,
+                                    prog._id
+                                  );
+                                }}
+                                required
+                                disabled={!!viewingEvaluation}
+                                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                              >
+                                <option value="">Select</option>
+                                {[1, 2, 3, 4, 5].map((num) => (
+                                  <option key={num} value={num}>
+                                    {num}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-4 py-2 text-center font-semibold text-indigo-700">
+                              {evaluationScores[index]?.weightedRating || "--"}
+                            </td>
+                          </tr>,
+                        ]
+                      )}
 
-          // ✅ Second row → Description full width
-          <tr key={`${prog._id}-desc`}>
-            <td
-              colSpan={4}
-              className="px-4 pb-3 text-gray-600 text-sm italic whitespace-pre-wrap"
-            >
-              {prog.Description || "—"}
-            </td>
-          </tr>,
-        ]
-      ))}
+                      {/* ✅ Totals Row */}
+                      <tr className="bg-gradient-to-r from-indigo-50 to-purple-50 font-semibold">
+                        <td
+                          className="px-4 py-2 text-right text-gray-700"
+                          colSpan={2}
+                        >
+                          ⬇ Total
+                        </td>
+                        <td className="px-4 py-2 text-center text-gray-800">
+                          {evaluationScores.reduce(
+                            (sum, s) => sum + Number(s?.score || 0),
+                            0
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-center text-indigo-900">
+                          {evaluationScores
+                            .reduce(
+                              (sum, s) => sum + Number(s?.weightedRating || 0),
+                              0
+                            )
+                            .toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
-      {/* ✅ Totals Row */}
-      <tr className="bg-gradient-to-r from-indigo-50 to-purple-50 font-semibold">
-        <td className="px-4 py-2 text-right text-gray-700" colSpan={2}>
-          ⬇ Total
-        </td>
-        <td className="px-4 py-2 text-center text-gray-800">
-          {evaluationScores.reduce((sum, s) => sum + Number(s?.score || 0), 0)}
-        </td>
-        <td className="px-4 py-2 text-center text-indigo-900">
-          {evaluationScores
-            .reduce((sum, s) => sum + Number(s?.weightedRating || 0), 0)
-            .toFixed(2)}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  {/* ✅ Comments Section */}
-  <div className="mt-4">
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      💬 Comments
-    </label>
-    <textarea
-      value={comments}
-      onChange={(e) => setComments(e.target.value)}
-      disabled={!!viewingEvaluation}
-      rows={3}
-      placeholder="Write your evaluation comments here..."
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-    />
-  </div>
-</div>
-
+                  {/* ✅ Comments Section */}
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      💬 Comments
+                    </label>
+                    <textarea
+                      value={comments}
+                      onChange={(e) => setComments(e.target.value)}
+                      disabled={!!viewingEvaluation}
+                      rows={3}
+                      placeholder="Write your evaluation comments here..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    />
+                  </div>
+                </div>
               ) : (
                 <p className="text-gray-500 text-sm italic">
                   No evaluation programs found.
@@ -784,9 +850,19 @@ export default function EmployeeWeeklyEvaluation() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  min={`${new Date(startDate).getFullYear()}-${String(
+                    new Date(startDate).getMonth() + 1
+                  ).padStart(2, "0")}-01`}
+                  max={`${new Date(startDate).getFullYear()}-${String(
+                    new Date(startDate).getMonth() + 1
+                  ).padStart(2, "0")}-${new Date(
+                    new Date(startDate).getFullYear(),
+                    new Date(startDate).getMonth() + 1,
+                    0
+                  ).getDate()}`}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg 
-                  bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
-                  focus:border-indigo-500 text-sm transition"
+             bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
+             focus:border-indigo-500 text-sm transition"
                 />
               </div>
             ) : (
@@ -844,58 +920,39 @@ export default function EmployeeWeeklyEvaluation() {
             <thead className="bg-indigo-900 text-white">
               <tr>
                 {/* Add Button Column */}
-                <th className="px-4 py-3 w-1/8 text-center">
-                  {(currentUserRole === "Super Admin" ||
-                    currentUserRole === "HR" ||
-                    currentUserRole === "Management") && (
-                    <button
-                      onClick={handleAddUser}
-                      className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  )}
-                </th>
-                <th className="px-4 py-3 w-1/8">Name</th>
-                <th className="px-4 py-3 w-1/8">Week</th>
-                <th className="px-4 py-3 w-1/8">Start Date</th>
-                <th className="px-4 py-3 w-1/8">End Date</th>
-                <th className="px-4 py-3 w-1/8">Total Score</th>
-                <th className="px-4 py-3 w-1/8">Weighted Rating</th>
-                <th className="px-4 py-3 w-1/8">Performance</th>
-                {/* 🔽 New Delete Column */}
+                <th className="px-4 py-3 w-2/12 text-center"></th>
+                <th className="px-4 py-3 w-2/12">Name</th>
+                <th className="px-4 py-3 w-2/12">Weeks</th>
+                <th className="px-4 py-3 w-2/12">Start Date</th>
+                <th className="px-4 py-3 w-2/12">End Date</th>
+                <th className="px-4 py-3 w-1/12 text-right">Score</th>
+                <th className="px-4 py-3 w-1/12 text-right">Rating</th>
+                <th className="px-4 py-3 w-2/12 text-center">Performance</th>
                 <th className="px-4 py-3 w-1/12 text-center">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {current.map((ev) => {
-                let performance = "N/A";
+              {evaluations.map((ev) => {
+                let performance = ev.performance || "";
                 let colorClass = "text-gray-500 font-medium";
 
-                if (ev.totalWeightedRating <= 1) {
-                  performance = "Poor";
+                if (performance === "Poor")
                   colorClass = "text-red-600 font-semibold";
-                } else if (ev.totalWeightedRating <= 2) {
-                  performance = "Partial";
+                else if (performance === "Partial")
                   colorClass = "text-orange-500 font-semibold";
-                } else if (ev.totalWeightedRating <= 3) {
-                  performance = "Normal";
+                else if (performance === "Normal")
                   colorClass = "text-yellow-500 font-semibold";
-                } else if (ev.totalWeightedRating <= 4) {
-                  performance = "Good";
+                else if (performance === "Good")
                   colorClass = "text-green-600 font-semibold";
-                } else if (ev.totalWeightedRating <= 5) {
-                  performance = "Excellent";
+                else if (performance === "Excellent")
                   colorClass = "text-blue-600 font-semibold";
-                }
 
                 return (
                   <tr key={ev._id} className="hover:bg-indigo-50 border-b">
                     {/* View & Edit Buttons */}
                     <td className="px-4 py-4 text-center align-middle">
                       <div className="flex justify-center items-center gap-6">
-                        {/* View Button */}
                         <button
                           onClick={() => handleViewEvaluation(ev._id)}
                           className="text-indigo-600 hover:text-indigo-900 transition"
@@ -904,7 +961,6 @@ export default function EmployeeWeeklyEvaluation() {
                           <Glasses className="w-6 h-6" />
                         </button>
 
-                        {/* Edit Button */}
                         {(currentUserRole === "Super Admin" ||
                           currentUserRole === "HR" ||
                           currentUserRole === "Management") && (
@@ -916,14 +972,52 @@ export default function EmployeeWeeklyEvaluation() {
                             <Edit className="w-6 h-6" />
                           </button>
                         )}
+                        {/* Add New Record */}
+                        {(currentUserRole === "Super Admin" ||
+                          currentUserRole === "HR" ||
+                          currentUserRole === "Management") && (
+                          <button
+                            onClick={() =>
+                              handleAddUser(ev._id, ev.weekNumbers)
+                            }
+                            className="text-indigo-600 hover:text-indigo-900 transition"
+                            title="Add New Record"
+                          >
+                            <FilePlus className="w-6 h-6" />
+                          </button>
+                        )}
                       </div>
                     </td>
 
                     {/* Data Columns */}
+                    <td className="px-4 py-4 truncate">{ev.fullName || ""}</td>
+
+                    {/* Weeks Column */}
                     <td className="px-4 py-4 truncate">
-                      {ev.userId?.fullName || "N/A"}
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4].map((week) => {
+                          const isActive = ev.weekNumbers?.includes(week);
+
+                          return (
+                            <span
+                              key={week}
+                              className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition
+                        ${
+                          isActive
+                            ? "bg-indigo-600 text-white shadow-md"
+                            : "bg-gray-200 text-gray-400"
+                        }
+                      `}
+                              title={`Week ${week}`}
+                            >
+                              {week}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </td>
-                    <td className="px-4 py-4 truncate">Week {ev.weekNumber}</td>
+
+                    {/* Start Date */}
                     <td className="px-4 py-4 truncate">
                       {ev.weekStart
                         ? new Date(ev.weekStart).toLocaleDateString("en-US", {
@@ -931,8 +1025,10 @@ export default function EmployeeWeeklyEvaluation() {
                             month: "short",
                             year: "numeric",
                           })
-                        : "-"}
+                        : ""}
                     </td>
+
+                    {/* End Date (narrower column) */}
                     <td className="px-4 py-4 truncate">
                       {ev.weekEnd
                         ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
@@ -940,17 +1036,27 @@ export default function EmployeeWeeklyEvaluation() {
                             month: "short",
                             year: "numeric",
                           })
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-4 truncate">{ev.totalScore}</td>
-                    <td className="px-4 py-4 truncate">
-                      {ev.totalWeightedRating.toFixed(2)}
-                    </td>
-                    <td className={`px-4 py-4 truncate ${colorClass}`}>
-                      {performance}
+                        : ""}
                     </td>
 
-                    {/* 🗑️ Delete Column */}
+                    {/* Score + Rating (right aligned) */}
+                    <td className="px-4 py-4 truncate text-right">
+                      {ev.totalScoreSum > 0 ? ev.totalScoreSum : ""}
+                    </td>
+                    <td className="px-4 py-4 truncate text-right">
+                      {ev.totalWeightedRatingSum > 0
+                        ? ev.totalWeightedRatingSum.toFixed(2)
+                        : ""}
+                    </td>
+
+                    {/* Performance full word */}
+                    <td
+                      className={`px-4 py-4 truncate text-center ${colorClass}`}
+                    >
+                      {performance || ""}
+                    </td>
+
+                    {/* Delete Button */}
                     <td className="px-4 py-4 text-center">
                       {(currentUserRole === "Super Admin" ||
                         currentUserRole === "HR" ||
@@ -973,25 +1079,24 @@ export default function EmployeeWeeklyEvaluation() {
       ) : (
         // Modern Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {current.map((ev) => {
-            // Performance logic
-            let performance = "N/A";
+          {evaluations.map((ev) => {
+            // ✅ Use API fields
+            const score = ev.totalScoreSum || 0;
+            const weighted = ev.totalWeightedRatingSum || 0;
+
+            // ✅ Performance badge
+            let performance = ev.performance || "N/A";
             let badgeClass = "bg-gray-200 text-gray-600";
 
-            if (ev.totalWeightedRating <= 1) {
-              performance = "Poor";
+            if (performance === "Poor") {
               badgeClass = "bg-red-200/80 text-red-900";
-            } else if (ev.totalWeightedRating <= 2) {
-              performance = "Partial";
+            } else if (performance === "Partial") {
               badgeClass = "bg-orange-200/80 text-orange-900";
-            } else if (ev.totalWeightedRating <= 3) {
-              performance = "Normal";
+            } else if (performance === "Normal") {
               badgeClass = "bg-yellow-200/80 text-yellow-900";
-            } else if (ev.totalWeightedRating <= 4) {
-              performance = "Good";
+            } else if (performance === "Good") {
               badgeClass = "bg-green-200/80 text-green-900";
-            } else if (ev.totalWeightedRating <= 5) {
-              performance = "Excellent";
+            } else if (performance === "Excellent") {
               badgeClass = "bg-blue-200/80 text-blue-900";
             }
 
@@ -1006,21 +1111,42 @@ export default function EmployeeWeeklyEvaluation() {
                 {/* Header */}
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                    {ev.userId?.fullName?.charAt(0) || "U"}
+                    {ev.fullName?.charAt(0) || "U"}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white text-lg group-hover:text-indigo-600 transition">
-                      {ev.userId?.fullName || "N/A"}
+                      {ev.fullName || "N/A"}
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      Week {ev.weekNumber}
-                    </p>
+                    {/* Weeks Inline */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {/* Icon + label */}
+                      <div className="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        <Calendar className="w-3 h-3 text-indigo-500" />
+                        Weeks
+                      </div>
+
+                      {/* Equal-size smaller bars */}
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4].map((week) => {
+                          const isActive = ev.weekNumbers?.includes(week);
+                          return (
+                            <div
+                              key={week}
+                              className={`w-5 h-1.5 rounded-full transition
+            ${isActive ? "bg-indigo-500 shadow-md" : "bg-gray-200"}
+          `}
+                              title={`Week ${week}`}
+                            ></div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Details */}
                 <div className="mt-6 space-y-4 text-sm text-gray-700 dark:text-gray-300">
-                  {/* ✅ Dates in one row */}
+                  {/* Dates */}
                   <div className="flex justify-between items-center gap-4">
                     <p className="flex items-center gap-2 font-medium">
                       <Calendar className="w-4 h-4 text-indigo-500" />
@@ -1033,7 +1159,6 @@ export default function EmployeeWeeklyEvaluation() {
                         : "-"}
                     </p>
 
-                    {/* Arrow Separator */}
                     <span className="text-gray-500 dark:text-gray-400">→</span>
 
                     <p className="flex items-center gap-2 font-medium">
@@ -1047,13 +1172,14 @@ export default function EmployeeWeeklyEvaluation() {
                         : "-"}
                     </p>
                   </div>
+
                   {/* Score */}
                   <p className="flex justify-between items-center">
                     <span className="flex items-center gap-2 font-medium">
                       <Star className="w-4 h-4 text-yellow-500" /> Score
                     </span>
                     <span className="font-medium text-indigo-700 dark:text-indigo-400">
-                      {ev.totalScore}
+                      {score}
                     </span>
                   </p>
 
@@ -1063,7 +1189,7 @@ export default function EmployeeWeeklyEvaluation() {
                       <TrendingUp className="w-4 h-4 text-green-500" /> Weighted
                     </span>
                     <span className="font-medium text-green-700 dark:text-green-400">
-                      {ev.totalWeightedRating.toFixed(2)}
+                      {weighted.toFixed(2)}
                     </span>
                   </p>
 
@@ -1081,52 +1207,54 @@ export default function EmployeeWeeklyEvaluation() {
                 </div>
 
                 {/* Actions */}
-                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  {/* Add Record */}
                   <button
-                    onClick={() => handleViewEvaluation(ev._id)}
-                    className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                    title="View"
+                    onClick={() => handleAddEvaluation(ev._id)}
+                    className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
+                    title="Add Record"
                   >
-                    <Glasses className="w-5 h-5" />
+                    <Plus className="w-4 h-4" />
                   </button>
+
+                  {/* Edit (restricted roles) */}
                   {(currentUserRole === "Super Admin" ||
                     currentUserRole === "HR" ||
                     currentUserRole === "Management") && (
                     <button
                       onClick={() => handleEditEvaluation(ev._id)}
-                      className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                      className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
                       title="Edit"
                     >
-                      <Edit className="w-5 h-5" />
+                      <Edit className="w-4 h-4" />
                     </button>
                   )}
 
+                  {/* View */}
+                  <button
+                    onClick={() => handleViewEvaluation(ev._id)}
+                    className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                    title="View"
+                  >
+                    <Glasses className="w-4 h-4" />
+                  </button>
+
+                  {/* Delete (restricted roles) */}
                   {(currentUserRole === "Super Admin" ||
                     currentUserRole === "HR" ||
                     currentUserRole === "Management") && (
                     <button
                       onClick={() => handleDeleteEvaluation(ev._id)}
-                      className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
+                      className="p-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
                       title="Delete"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
               </div>
             );
           })}
-
-          {/* Add New */}
-          <div
-            onClick={handleAddUser} // ✅ call your function on click
-            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-8 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800/50 transition group"
-          >
-            <Plus className="w-14 h-14 text-indigo-600 group-hover:scale-110 transition-transform" />
-            <span className="mt-4 text-indigo-600 font-medium text-lg">
-              Add New Evaluation
-            </span>
-          </div>
         </div>
       )}
 

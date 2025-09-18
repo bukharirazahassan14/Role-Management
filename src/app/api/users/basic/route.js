@@ -1,3 +1,6 @@
+
+//src/app/api/users/basic/route.js
+
 import connectToDB from "@/lib/mongodb";
 import User from "@/models/User.js";
 
