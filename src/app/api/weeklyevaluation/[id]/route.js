@@ -2,22 +2,26 @@
 import { NextResponse } from "next/server";
 import connectToDB from "@/lib/mongodb";
 import WeeklyEvaluation from "@/models/WeeklyEvaluation";
+import mongoose from "mongoose";
 
 export async function GET(req, context) {
   try {
     await connectToDB();
 
-    // ✅ await context.params
-    const { id } = await context.params;
+    const { id } = await context.params; // ✅ userId comes from params
+    const { searchParams } = new URL(req.url);
+    const weekNumber = parseInt(searchParams.get("weekNumber") || "1", 10); // ✅ get weekNumber from query, default 1
 
-    const evaluation = await WeeklyEvaluation.findById(id).populate(
-      "userId",
-      "fullName email"
-    );
+    const evaluation = await WeeklyEvaluation.findOne({
+      userId: id,
+      weekNumber: weekNumber,
+    }).populate("userId", "fullName email");
 
     if (!evaluation) {
       return NextResponse.json(
-        { error: "Evaluation not found" },
+        {
+          error: `Evaluation not found for userId=${id} and weekNumber=${weekNumber}`,
+        },
         { status: 404 }
       );
     }
@@ -86,7 +90,6 @@ export async function PUT(req, context) {
   }
 }
 
-
 // ✅ DELETE handler (like GET & PUT)
 export async function DELETE(req, context) {
   try {
@@ -96,15 +99,24 @@ export async function DELETE(req, context) {
     const deletedEvaluation = await WeeklyEvaluation.findByIdAndDelete(id);
 
     if (!deletedEvaluation) {
-      return NextResponse.json({ message: "Evaluation not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Evaluation not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(
-      { message: "Evaluation deleted successfully", evaluation: deletedEvaluation },
+      {
+        message: "Evaluation deleted successfully",
+        evaluation: deletedEvaluation,
+      },
       { status: 200 }
     );
   } catch (error) {
     console.error("❌ Error deleting evaluation:", error);
-    return NextResponse.json({ error: "Server error", details: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server error", details: error.message },
+      { status: 500 }
+    );
   }
 }

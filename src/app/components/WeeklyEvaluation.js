@@ -261,54 +261,98 @@ export default function EmployeeWeeklyEvaluation() {
     return matchesText && matchesDate;
   });
 
-  const handleAddUser = (userId, weekNumbers = []) => {
-    // ✅ If all 4 weeks are already evaluated
-    if (weekNumbers.length === 4) {
-      setMessage(
-        "🎉 This month's evaluation has been completed. Congratulations!"
+  const handleAddUser = async (userId) => {
+    try {
+      const currentDate = new Date(startDate);
+      const currentyear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1; // JS months are 0-based
+
+      // ✅ Fetch user's evaluation data for this month
+      const res = await fetch(
+        `/api/weeklyevaluation/performance/${userId}?month=${currentMonth}&year=${currentyear}`
       );
-      setSuccess(true);
-      setTimeout(() => setMessage(""), 4000); // auto-hide after 4s
+      const data = await res.json();
+      const existingWeeks = data?.uniqueWeeks || [];
+      const weekCount = data?.weekCount || 0;
+
+      // ✅ If all 4 weeks are already evaluated
+      if (weekCount === 4) {
+        setMessage(
+          "🎉 This month's evaluation has been completed. Congratulations!"
+        );
+        setSuccess(true);
+        setTimeout(() => setMessage(""), 4000); // auto-hide after 4s
+        return;
+      }
+
+      // ✅ Open drawer and setup
+      setDrawerOpen(true);
+      fetchEvaluationPrograms();
+      setTakenWeeks(existingWeeks);
+
+      // Pick default week (next available)
+      const defaultWeek =
+        existingWeeks.length > 0 ? Math.max(...existingWeeks) + 1 : 1;
+      setSelectedWeek(defaultWeek);
+
+      // ✅ Calculate weekStart and weekEnd based on startDate
+      const baseDate = new Date(startDate);
+      const year = baseDate.getFullYear();
+      const month = baseDate.getMonth();
+      const lastDayOfMonth = new Date(year, month + 1, 0);
+      const totalDays = lastDayOfMonth.getDate();
+      const daysPerWeek = Math.ceil(totalDays / 4);
+
+      const start = new Date(year, month, (defaultWeek - 1) * daysPerWeek + 1);
+      let end = new Date(year, month, defaultWeek * daysPerWeek);
+      if (end > lastDayOfMonth) end = lastDayOfMonth;
+
+      setWeekStart(formatDatePKT(start));
+      setWeekEnd(formatDatePKT(end));
+
+      // Save selected user
+      setSelectedUserId(userId);
+      setEditingEvaluation(null);
+      setViewingEvaluation(null);
+    } catch (err) {
+      console.error("Error fetching user evaluations:", err);
+      setMessage("⚠️ Failed to fetch evaluations.");
+      setSuccess(false);
+      setTimeout(() => setMessage(""), 4000);
+    }
+  };
+
+  const handleWeekSelect = async (week) => {
+    if (editingEvaluation || viewingEvaluation) {
+      const res = await fetch(
+        `/api/weeklyevaluation/${selectedUserId}?weekNumber=${week}`
+      );
+      if (res.status === 404) {
+        console.warn("No evaluation found for this user.");
+
+        return;
+      }
+      if (!res.ok) throw new Error("Failed to fetch evaluation");
+      const data = await res.json();
+
+      // Pre-fill form fields
+      setWeekStart(data.weekStart.split("T")[0]);
+      setWeekEnd(data.weekEnd.split("T")[0]);
+      setComments(data.comments || "");
+      setEvaluationScores(
+        data.scores.map((s) => ({
+          kpiId: s.kpiId,
+          score: s.score,
+          weightage: s.weightage,
+          weightedRating: s.weightedRating,
+        }))
+      );
+      setSelectedWeek(week);
+
       return;
     }
 
-    setDrawerOpen(true);
-    fetchEvaluationPrograms();
-    setTakenWeeks(weekNumbers);
-
-    // Pick default week (if user has existing weeks, set next one)
-    const defaultWeek =
-      weekNumbers.length > 0 ? Math.max(...weekNumbers) + 1 : 1;
-    setSelectedWeek(defaultWeek);
-
-    console.log("startDate>>>>>>>>>>>>>>>>", startDate);
-    console.log("endDate>>>>>>>>>>>>>>>>", endDate);
-
-    // ✅ Use provided startDate instead of "now"
-    const baseDate = new Date(startDate); // month comes from startDate filter
-    const year = baseDate.getFullYear();
-    const month = baseDate.getMonth();
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const totalDays = lastDay.getDate();
-    const daysPerWeek = Math.ceil(totalDays / 4);
-
-    const start = new Date(year, month, (defaultWeek - 1) * daysPerWeek + 1);
-    let end = new Date(year, month, defaultWeek * daysPerWeek);
-    if (end > lastDay) end = lastDay;
-
-    // ✅ Force PKT format
-    setWeekStart(formatDatePKT(start));
-    setWeekEnd(formatDatePKT(end));
-
-    // Save selected user
-    setSelectedUserId(userId);
-  };
-
-  const handleWeekSelect = (week) => {
     setSelectedWeek(week);
-
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -409,10 +453,15 @@ export default function EmployeeWeeklyEvaluation() {
   };
 
   // ✅ Function to handle editing an evaluation
-  const handleEditEvaluation = async (evaluationId) => {
+  const handleEditEvaluation = async (userId) => {
     try {
       await fetchEvaluationPrograms();
-      const res = await fetch(`/api/weeklyevaluation/${evaluationId}`);
+      const res = await fetch(`/api/weeklyevaluation/${userId}?weekNumber=1`);
+      if (res.status === 404) {
+        console.warn("No evaluation found for this user.");
+        setDrawerOpen(false); // ✅ close drawer if not found
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch evaluation");
 
       const data = await res.json();
@@ -440,10 +489,15 @@ export default function EmployeeWeeklyEvaluation() {
   };
 
   // ✅ Function to handle viewing an evaluation (read-only mode)
-  const handleViewEvaluation = async (evaluationId) => {
+  const handleViewEvaluation = async (userId) => {
     try {
       await fetchEvaluationPrograms();
-      const res = await fetch(`/api/weeklyevaluation/${evaluationId}`);
+      const res = await fetch(`/api/weeklyevaluation/${userId}?weekNumber=1`);
+      if (res.status === 404) {
+        console.warn("No evaluation found for this user.");
+        setDrawerOpen(false); // ✅ close drawer if not found
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch evaluation");
 
       const data = await res.json();
@@ -602,19 +656,22 @@ export default function EmployeeWeeklyEvaluation() {
                       key={week}
                       type="button"
                       onClick={() => handleWeekSelect(week)}
-                      disabled={!!viewingEvaluation || isTaken}
+                      // ⛔ disable only when adding and week already taken
+                      disabled={
+                        !editingEvaluation && !viewingEvaluation && isTaken
+                      }
                       className={`relative w-full px-3 py-2 rounded-lg text-sm font-medium shadow transition
-          ${
-            isTaken
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : isSelected
-              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+    ${
+      !editingEvaluation && !viewingEvaluation && isTaken
+        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+        : isSelected
+        ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+    }`}
                     >
                       Week {week}
-                      {/* ✅ Checkmark for taken weeks */}
-                      {isTaken && (
+                      {/* ✅ show checkmark only in Add mode */}
+                      {!editingEvaluation && !viewingEvaluation && isTaken && (
                         <span className="absolute top-1 right-1 text-green-600 text-xs font-bold">
                           ✅
                         </span>
@@ -977,9 +1034,7 @@ export default function EmployeeWeeklyEvaluation() {
                           currentUserRole === "HR" ||
                           currentUserRole === "Management") && (
                           <button
-                            onClick={() =>
-                              handleAddUser(ev._id, ev.weekNumbers)
-                            }
+                            onClick={() => handleAddUser(ev._id)}
                             className="text-indigo-600 hover:text-indigo-900 transition"
                             title="Add New Record"
                           >
