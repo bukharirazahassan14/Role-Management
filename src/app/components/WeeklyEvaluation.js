@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Glasses,
@@ -17,6 +17,7 @@ import {
   X,
   UserCircle,
   FilePlus,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import useIsMobile from "../hooks/useIsMobile";
@@ -50,6 +51,85 @@ export default function EmployeeWeeklyEvaluation() {
   const [takenWeeks, setTakenWeeks] = useState([]);
 
   const reportRef = useRef(null);
+
+  //Search>>>>>>>>>>>>>>>>>>>>>>>>>
+  const [SerSelectedYear, setSerSelectedYear] = useState(
+    new Date().getFullYear()
+  );
+  const [SerSelectedMonth, setSerSelectedMonth] = useState(
+    new Date().getMonth() + 1
+  );
+  const [SerSelectedWeeks, setSerSelectedWeeks] = useState([]); // multiple selectable
+
+  // Years range: current ± 5
+  const SerYears = useMemo(() => {
+    const SerNow = new Date();
+    const SerStart = SerNow.getFullYear() - 5;
+    return Array.from({ length: 11 }, (_, SerIndex) => SerStart + SerIndex);
+  }, []);
+
+  const SerMonths = [
+    { SerValue: 1, SerLabel: "January" },
+    { SerValue: 2, SerLabel: "February" },
+    { SerValue: 3, SerLabel: "March" },
+    { SerValue: 4, SerLabel: "April" },
+    { SerValue: 5, SerLabel: "May" },
+    { SerValue: 6, SerLabel: "June" },
+    { SerValue: 7, SerLabel: "July" },
+    { SerValue: 8, SerLabel: "August" },
+    { SerValue: 9, SerLabel: "September" },
+    { SerValue: 10, SerLabel: "October" },
+    { SerValue: 11, SerLabel: "November" },
+    { SerValue: 12, SerLabel: "December" },
+  ];
+
+  const SerWeeks = [1, 2, 3, 4];
+
+const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
+  try {
+    let weekParam = undefined;
+
+    if (Array.isArray(SerWeeks)) {
+      // if all weeks selected (1,2,3,4) => skip sending week
+      const allWeeks = [1, 2, 3, 4];
+      const isAllWeeks =
+        SerWeeks.length === allWeeks.length &&
+        allWeeks.every((w) => SerWeeks.includes(w));
+
+      if (!isAllWeeks) {
+        weekParam = SerWeeks.join(","); // only send if not all weeks
+      }
+    } else if (SerWeeks) {
+      weekParam = String(SerWeeks); // single value
+    }
+
+    // build query params
+    const query = new URLSearchParams({
+      year: SerYear,
+      month: SerMonth,
+      ...(weekParam ? { week: weekParam } : {}), // only include week if needed
+    }).toString();
+
+    console.log("query>>>>>>>>>>>>>>>", query);
+
+    const res = await fetch(
+      `/api/weeklyevaluation/performance/monthly?${query}`
+    );
+    const data = await res.json();
+
+    if (Array.isArray(data)) {
+      setEvaluations(data);
+    } else {
+      console.error("Unexpected API response:", data);
+    }
+  } catch (error) {
+    console.error("Error fetching evaluations:", error);
+  }
+};
+
+
+  //search>>>>>>>>>>>>>>>>>>>>>>>>>
+
   const handlePrint = useReactToPrint({
     contentRef: reportRef, // 👈 new API
     documentTitle: "Weekly Evaluation Report",
@@ -233,6 +313,7 @@ export default function EmployeeWeeklyEvaluation() {
 
   // 🔍 Search + Date Filter
   const filtered = evaluations.filter((ev) => {
+
     const query = searchQuery.toLowerCase();
 
     // 🔎 Text-based search
@@ -348,7 +429,7 @@ export default function EmployeeWeeklyEvaluation() {
         }))
       );
       setSelectedWeek(week);
-
+      setEditingEvaluation(data);
       return;
     }
 
@@ -408,8 +489,6 @@ export default function EmployeeWeeklyEvaluation() {
         setSuccess(false);
         return;
       }
-
-      console.log("📤 Submitting Evaluation Payload:", payload);
 
       // ✅ Switch POST or PUT based on editing state
       const url = editingEvaluation
@@ -872,32 +951,32 @@ export default function EmployeeWeeklyEvaluation() {
 
       {/* 🔍 Search & Toggle */}
       <div className="flex items-center justify-between p-4">
-        <div className="flex items-center justify-end flex-1 ml-4">
-          <div className="flex items-center w-full max-w-md">
-            {/* Calendar Toggle Button */}
-            <button
-              onClick={() => setShowDateFilter((prev) => !prev)}
-              className={`p-3 rounded-lg border bg-white shadow-sm transition ${
-                showDateFilter
-                  ? "border-indigo-500 bg-indigo-50 text-indigo-600"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-              title="Filter by Date"
-            >
-              <Calendar className="w-4 h-4" />
-            </button>
+        {/* LEFT: Calendar Toggle Button */}
+        <div className="flex items-center">
+          <button
+            onClick={() => setShowDateFilter((prev) => !prev)}
+            className={`p-3 rounded-lg border bg-white shadow-sm transition ${
+              showDateFilter
+                ? "border-indigo-500 bg-indigo-50 text-indigo-600"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+            title="Filter by Date"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
 
-            {/* Conditional: Date Filter OR Search */}
+          {/* Filters aligned right next to calendar button */}
+          <div className="flex items-center gap-2 ml-2">
             {showDateFilter ? (
-              <div className="flex items-center gap-2 ml-2 w-full">
+              <div className="flex items-center gap-2">
                 {/* Start Date */}
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg 
-                  bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
-                  focus:border-indigo-500 text-sm transition"
+                  className="px-3 py-2 border border-gray-200 rounded-lg 
+              bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
+              focus:border-indigo-500 text-sm transition"
                 />
 
                 <ArrowRight className="w-5 h-5 text-gray-500" />
@@ -917,57 +996,134 @@ export default function EmployeeWeeklyEvaluation() {
                     new Date(startDate).getMonth() + 1,
                     0
                   ).getDate()}`}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg 
-             bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
-             focus:border-indigo-500 text-sm transition"
+                  className="px-3 py-2 border border-gray-200 rounded-lg 
+              bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
+              focus:border-indigo-500 text-sm transition"
                 />
               </div>
             ) : (
-              <div className="relative flex-1 ml-2">
-                <input
-                  type="text"
-                  placeholder="Search by name, email, or week number (1,2..)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg 
-                  bg-white shadow-sm
-                  focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
-                  text-base placeholder-gray-400 transition"
-                />
-                <Glasses className="absolute left-3 top-2.5 w-7 h-7 text-blue-500" />
+              <div className="flex items-center gap-2">
+                {/* Year dropdown */}
+                <div className="relative">
+                  <select
+                    value={SerSelectedYear}
+                    onChange={(e) => {
+                      const SerYear = Number(e.target.value);
+                      setSerSelectedYear(SerYear);
+                      SerNotifyChange(
+                        SerYear,
+                        SerSelectedMonth,
+                        SerSelectedWeeks
+                      );
+                    }}
+                    className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {SerYears.map((SerY) => (
+                      <option key={SerY} value={SerY}>
+                        {SerY}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    ▾
+                  </span>
+                </div>
+
+                {/* Month dropdown */}
+                <div className="relative">
+                  <select
+                    value={SerSelectedMonth}
+                    onChange={(e) => {
+                      const SerMonth = Number(e.target.value);
+                      setSerSelectedMonth(SerMonth);
+                      SerNotifyChange(
+                        SerSelectedYear,
+                        SerMonth,
+                        SerSelectedWeeks
+                      );
+                    }}
+                    className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {SerMonths.map((SerM) => (
+                      <option key={SerM.SerValue} value={SerM.SerValue}>
+                        {SerM.SerLabel}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    ▾
+                  </span>
+                </div>
+
+                {/* Weeks */}
+                <div className="flex items-center gap-1">
+                  {SerWeeks.map((SerW) => {
+                    const SerActive = SerSelectedWeeks.includes(SerW);
+                    return (
+                      <button
+                        key={SerW}
+                        type="button"
+                        onClick={() => {
+                          let SerNewWeeks;
+                          if (SerActive) {
+                            SerNewWeeks = SerSelectedWeeks.filter(
+                              (w) => w !== SerW
+                            );
+                          } else {
+                            SerNewWeeks = [...SerSelectedWeeks, SerW];
+                          }
+                          setSerSelectedWeeks(SerNewWeeks);
+                          SerNotifyChange(
+                            SerSelectedYear,
+                            SerSelectedMonth,
+                            SerNewWeeks
+                          );
+                        }}
+                        className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition
+                    ${
+                      SerActive
+                        ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-md"
+                        : "bg-white border border-gray-200 text-gray-700 hover:shadow"
+                    }`}
+                      >
+                        {SerW}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
-
-          {/* Toggle Buttons (hidden on mobile) */}
-          {!isMobile && (
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg border transition ${
-                  viewMode === "list"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                title="List View"
-              >
-                <List className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => setViewMode("card")}
-                className={`p-2 rounded-lg border transition ${
-                  viewMode === "card"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                title="Card View"
-              >
-                <LayoutGrid className="w-5 h-5" />
-              </button>
-            </div>
-          )}
         </div>
+
+        {/* RIGHT: Toggle buttons */}
+        {!isMobile && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 rounded-lg border transition ${
+                viewMode === "list"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+              title="List View"
+            >
+              <List className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setViewMode("card")}
+              className={`p-2 rounded-lg border transition ${
+                viewMode === "card"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+              title="Card View"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ✅ Table view */}
@@ -1265,7 +1421,7 @@ export default function EmployeeWeeklyEvaluation() {
                 <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                   {/* Add Record */}
                   <button
-                    onClick={() => handleAddEvaluation(ev._id)}
+                    onClick={() => handleAddUser(ev._id)}
                     className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
                     title="Add Record"
                   >

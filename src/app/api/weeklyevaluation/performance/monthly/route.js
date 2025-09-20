@@ -1,0 +1,149 @@
+import connectToDB from "@/lib/mongodb";
+import User from "@/models/User";
+import WeeklyEvaluation from "@/models/WeeklyEvaluation";
+
+export async function GET(req) {
+  try {
+    await connectToDB();
+
+    const { searchParams } = new URL(req.url);
+    const year = parseInt(searchParams.get("year"));
+    const month = parseInt(searchParams.get("month"));
+
+    // support multiple weeks e.g. week=1,2,3
+    const weekParam = searchParams.get("week");
+    const weeks =
+      weekParam && weekParam.trim().length > 0
+        ? weekParam.split(",").map((w) => parseInt(w.trim()))
+        : null;
+
+    if (!year || !month) {
+      return new Response(
+        JSON.stringify({ error: "Year and month are required" }),
+        { status: 400 }
+      );
+    }
+
+    // calculate start and end of month
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+
+    // build match condition
+    const matchCondition = {
+      weekEnd: { $gte: startOfMonth, $lte: endOfMonth },
+    };
+    if (weeks && weeks.length > 0) {
+      matchCondition.weekNumber = { $in: weeks };
+    }
+
+    const results = await User.aggregate([
+      {
+        $project: {
+          _id: 1,
+          fullName: { $concat: ["$firstName", " ", "$lastName"] },
+        },
+      },
+      {
+        $lookup: {
+          from: "weeklyevaluations",
+          let: { userId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$userId", "$$userId"] },
+                ...matchCondition,
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                weekNumbers: { $push: "$weekNumber" },
+                weeksCount: { $sum: 1 },
+                latestWeekStart: { $max: "$weekStart" },
+                latestWeekEnd: { $max: "$weekEnd" },
+                totalScoreSum: { $sum: "$totalScore" },
+                totalWeightedRatingSum: { $sum: "$totalWeightedRating" },
+              },
+            },
+            {
+              $addFields: {
+                avgWeightedRating: {
+                  $cond: {
+                    if: { $eq: ["$weeksCount", 0] },
+                    then: 0,
+                    else: {
+                      $divide: ["$totalWeightedRatingSum", "$weeksCount"],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+          as: "evaluations",
+        },
+      },
+      { $unwind: { path: "$evaluations", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          fullName: 1,
+          weekNumbers: { $ifNull: ["$evaluations.weekNumbers", []] },
+          weekStart: "$evaluations.latestWeekStart",
+          weekEnd: "$evaluations.latestWeekEnd",
+          totalScoreSum: { $ifNull: ["$evaluations.totalScoreSum", 0] },
+          totalWeightedRatingSum: {
+            $ifNull: ["$evaluations.totalWeightedRatingSum", 0],
+          },
+          performance: {
+            $cond: {
+              if: {
+                $eq: [
+                  { $size: { $ifNull: ["$evaluations.weekNumbers", []] } },
+                  0,
+                ],
+              },
+              then: "",
+              else: {
+                $switch: {
+                  branches: [
+                    {
+                      case: { $lte: ["$evaluations.avgWeightedRating", 1] },
+                      then: "Poor",
+                    },
+                    {
+                      case: { $lte: ["$evaluations.avgWeightedRating", 2] },
+                      then: "Partial",
+                    },
+                    {
+                      case: { $lte: ["$evaluations.avgWeightedRating", 3] },
+                      then: "Normal",
+                    },
+                    {
+                      case: { $lte: ["$evaluations.avgWeightedRating", 4] },
+                      then: "Good",
+                    },
+                    {
+                      case: { $gt: ["$evaluations.avgWeightedRating", 4] },
+                      then: "Excellent",
+                    },
+                  ],
+                  default: "Unknown",
+                },
+              },
+            },
+          },
+        },
+      },
+    ]);
+
+    return new Response(JSON.stringify(results), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Error fetching monthly performance:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+    });
+  }
+}
