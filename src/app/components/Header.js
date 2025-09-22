@@ -3,7 +3,10 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 
-export default function Header({ title = "Dashboard Overview", userName = "Super Admin" }) {
+export default function Header({
+  title = "Dashboard Overview",
+  userName = "Super Admin",
+}) {
   const [open, setOpen] = useState(false);
   const [storedName, setStoredName] = useState(userName);
   const menuRef = useRef(null);
@@ -40,8 +43,8 @@ export default function Header({ title = "Dashboard Overview", userName = "Super
           {/* Blue Dot Accent */}
           <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
           <h2 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
-  {title}
-</h2>
+            {title}
+          </h2>
         </div>
 
         {/* Right - User */}

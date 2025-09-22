@@ -16,7 +16,9 @@ export default function MainLayout({ children }) {
       ? "Roles"
       : pathname.includes("/weeklyevaluation")
       ? "Weekly Evaluation"
-      : "Page";
+      : pathname.includes("/WeeklyEvaluationViewEdit")
+      ? "User Weekly Performance"
+      : "";
 
   return (
     <div className="flex min-h-screen bg-gray-100">

@@ -496,7 +496,7 @@ export default function EmployeeWeeklyEvaluation() {
         setSuccess(false);
         return;
       }
-     
+
       // ✅ Switch POST or PUT based on editing state
       const url = editingEvaluation
         ? `/api/weeklyevaluation/${editingEvaluation._id}`
@@ -586,6 +586,18 @@ export default function EmployeeWeeklyEvaluation() {
   // ✅ Function to handle viewing an evaluation (read-only mode)
   const handleViewEvaluation = async (userId) => {
     try {
+
+       const querytest = new URLSearchParams({
+      userId,
+      year: SerSelectedYear,
+      month: SerSelectedMonth,
+      weekNumber: 1, // ✅ always pass week = 1
+    }).toString();
+
+    // ✅ Navigate with query params
+    router.push(`/main/WeeklyEvaluationViewEdit?${querytest}`);
+    return
+
       await fetchEvaluationPrograms();
 
       // build query string with userId, year, month
