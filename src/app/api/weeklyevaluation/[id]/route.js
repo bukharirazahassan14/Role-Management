@@ -8,19 +8,35 @@ export async function GET(req, context) {
   try {
     await connectToDB();
 
-    const { id } = await context.params; // ✅ userId comes from params
+    const { id } = await context.params; // ✅ userId from params
     const { searchParams } = new URL(req.url);
-    const weekNumber = parseInt(searchParams.get("weekNumber") || "1", 10); // ✅ get weekNumber from query, default 1
 
+    const year = parseInt(searchParams.get("year"), 10);
+    const month = parseInt(searchParams.get("month"), 10);
+    const weekNumber = parseInt(searchParams.get("weekNumber") || "1", 10); // ✅ default 1
+
+    if (!year || !month) {
+      return NextResponse.json(
+        { error: "Missing year or month" },
+        { status: 400 }
+      );
+    }
+
+    // month range
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    // find evaluation
     const evaluation = await WeeklyEvaluation.findOne({
       userId: id,
-      weekNumber: weekNumber,
+      weekNumber,
+      weekStart: { $gte: startDate, $lte: endDate },
     }).populate("userId", "fullName email");
 
     if (!evaluation) {
       return NextResponse.json(
         {
-          error: `Evaluation not found for userId=${id} and weekNumber=${weekNumber}`,
+          error: `Evaluation not found for userId=${id}, year=${year}, month=${month}, week=${weekNumber}`,
         },
         { status: 404 }
       );
@@ -90,33 +106,3 @@ export async function PUT(req, context) {
   }
 }
 
-// ✅ DELETE handler (like GET & PUT)
-export async function DELETE(req, context) {
-  try {
-    await connectToDB();
-    const { id } = await context.params;
-
-    const deletedEvaluation = await WeeklyEvaluation.findByIdAndDelete(id);
-
-    if (!deletedEvaluation) {
-      return NextResponse.json(
-        { message: "Evaluation not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        message: "Evaluation deleted successfully",
-        evaluation: deletedEvaluation,
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("❌ Error deleting evaluation:", error);
-    return NextResponse.json(
-      { error: "Server error", details: error.message },
-      { status: 500 }
-    );
-  }
-}

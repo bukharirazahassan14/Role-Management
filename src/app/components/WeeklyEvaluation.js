@@ -85,50 +85,49 @@ export default function EmployeeWeeklyEvaluation() {
 
   const SerWeeks = [1, 2, 3, 4];
 
-const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
-  try {
-    let weekParam = undefined;
-
-    if (Array.isArray(SerWeeks)) {
-      // if all weeks selected (1,2,3,4) => skip sending week
-      const allWeeks = [1, 2, 3, 4];
-      const isAllWeeks =
-        SerWeeks.length === allWeeks.length &&
-        allWeeks.every((w) => SerWeeks.includes(w));
-
-      if (!isAllWeeks) {
-        weekParam = SerWeeks.join(","); // only send if not all weeks
-      }
-    } else if (SerWeeks) {
-      weekParam = String(SerWeeks); // single value
-    }
-
-    // build query params
-    const query = new URLSearchParams({
-      year: SerYear,
-      month: SerMonth,
-      ...(weekParam ? { week: weekParam } : {}), // only include week if needed
-    }).toString();
-
-    console.log("query>>>>>>>>>>>>>>>", query);
-
-    const res = await fetch(
-      `/api/weeklyevaluation/performance/monthly?${query}`
-    );
-    const data = await res.json();
-
-    if (Array.isArray(data)) {
-      setEvaluations(data);
-    } else {
-      console.error("Unexpected API response:", data);
-    }
-  } catch (error) {
-    console.error("Error fetching evaluations:", error);
-  }
-};
-
-
   //search>>>>>>>>>>>>>>>>>>>>>>>>>
+
+  const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
+    try {
+      let weekParam = undefined;
+
+      if (Array.isArray(SerWeeks)) {
+        // if all weeks selected (1,2,3,4) => skip sending week
+        const allWeeks = [1, 2, 3, 4];
+        const isAllWeeks =
+          SerWeeks.length === allWeeks.length &&
+          allWeeks.every((w) => SerWeeks.includes(w));
+
+        if (!isAllWeeks) {
+          weekParam = SerWeeks.join(","); // only send if not all weeks
+        }
+      } else if (SerWeeks) {
+        weekParam = String(SerWeeks); // single value
+      }
+
+      // build query params
+      const query = new URLSearchParams({
+        year: SerYear,
+        month: SerMonth,
+        ...(weekParam ? { week: weekParam } : {}), // only include week if needed
+      }).toString();
+
+      console.log("query>>>>>>>>>>>>>>>", query);
+
+      const res = await fetch(
+        `/api/weeklyevaluation/performance/monthly?${query}`
+      );
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setEvaluations(data);
+      } else {
+        console.error("Unexpected API response:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching evaluations:", error);
+    }
+  };
 
   const handlePrint = useReactToPrint({
     contentRef: reportRef, // 👈 new API
@@ -222,7 +221,7 @@ const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
 
     setStartDate(format(firstDay));
     setEndDate(format(lastDay));
-    setShowDateFilter(true);
+    setShowDateFilter(false);
   }, []); // run only once
 
   // ✅ Fetch evaluations when startDate and endDate are ready
@@ -313,7 +312,6 @@ const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
 
   // 🔍 Search + Date Filter
   const filtered = evaluations.filter((ev) => {
-
     const query = searchQuery.toLowerCase();
 
     // 🔎 Text-based search
@@ -405,15 +403,24 @@ const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
 
   const handleWeekSelect = async (week) => {
     if (editingEvaluation || viewingEvaluation) {
+      // ✅ build query with userId, year, month, week
+      const query = new URLSearchParams({
+        userId: selectedUserId,
+        year: SerSelectedYear,
+        month: SerSelectedMonth,
+        weekNumber: week,
+      }).toString();
+
       const res = await fetch(
-        `/api/weeklyevaluation/${selectedUserId}?weekNumber=${week}`
+        `/api/weeklyevaluation/${selectedUserId}?${query}`
       );
+
       if (res.status === 404) {
         console.warn("No evaluation found for this user.");
-
         return;
       }
       if (!res.ok) throw new Error("Failed to fetch evaluation");
+
       const data = await res.json();
 
       // Pre-fill form fields
@@ -489,7 +496,7 @@ const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
         setSuccess(false);
         return;
       }
-
+     
       // ✅ Switch POST or PUT based on editing state
       const url = editingEvaluation
         ? `/api/weeklyevaluation/${editingEvaluation._id}`
@@ -535,10 +542,19 @@ const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
   const handleEditEvaluation = async (userId) => {
     try {
       await fetchEvaluationPrograms();
-      const res = await fetch(`/api/weeklyevaluation/${userId}?weekNumber=1`);
+
+      // build query string with userId, year, month
+      const query = new URLSearchParams({
+        userId,
+        year: SerSelectedYear,
+        month: SerSelectedMonth,
+        weekNumber: 1, // ✅ always pass week = 1
+      }).toString();
+
+      const res = await fetch(`/api/weeklyevaluation/${userId}?${query}`);
       if (res.status === 404) {
         console.warn("No evaluation found for this user.");
-        setDrawerOpen(false); // ✅ close drawer if not found
+        setDrawerOpen(false);
         return;
       }
       if (!res.ok) throw new Error("Failed to fetch evaluation");
@@ -571,10 +587,19 @@ const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
   const handleViewEvaluation = async (userId) => {
     try {
       await fetchEvaluationPrograms();
-      const res = await fetch(`/api/weeklyevaluation/${userId}?weekNumber=1`);
+
+      // build query string with userId, year, month
+      const query = new URLSearchParams({
+        userId,
+        year: SerSelectedYear,
+        month: SerSelectedMonth,
+        weekNumber: 1, // ✅ always pass week = 1
+      }).toString();
+
+      const res = await fetch(`/api/weeklyevaluation/${userId}?${query}`);
       if (res.status === 404) {
         console.warn("No evaluation found for this user.");
-        setDrawerOpen(false); // ✅ close drawer if not found
+        setDrawerOpen(false);
         return;
       }
       if (!res.ok) throw new Error("Failed to fetch evaluation");
@@ -606,21 +631,36 @@ const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
   };
 
   // ✅ Function to handle deleting an evaluation
-  const handleDeleteEvaluation = async (evaluationId) => {
-    if (!confirm("Are you sure you want to delete this evaluation?")) return;
+  // Example: inside your component
+  const handleDeleteEvaluation = async (userId) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete the last evaluation for this user?"
+      )
+    )
+      return;
 
     try {
-      const res = await fetch(`/api/weeklyevaluation/${evaluationId}`, {
+      const query = new URLSearchParams({
+        userId,
+        year: SerSelectedYear,
+        month: SerSelectedMonth,
+      }).toString();
+
+      const res = await fetch(`/api/weeklyevaluation/delete?${query}`, {
         method: "DELETE",
       });
 
       if (!res.ok) throw new Error("Failed to delete evaluation");
 
+      const data = await res.json();
+      console.log("Deleted Evaluation:", data);
+
       // ✅ Show success message
-      setMessage("✅ Evaluation deleted successfully");
+      setMessage("✅ Last evaluation deleted successfully");
       setSuccess(true);
 
-      // ✅ Refresh the list from backend
+      // ✅ Refresh list
       await fetchEvaluations();
     } catch (error) {
       console.error("Error deleting evaluation:", error);
