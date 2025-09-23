@@ -18,6 +18,8 @@ export default function MainLayout({ children }) {
       ? "Weekly Evaluation"
       : pathname.includes("/WeeklyEvaluationViewEdit")
       ? "User Weekly Performance"
+      : pathname.includes("/EvaluationPrograms")
+      ? "Evaluation Programs"
       : "";
 
   return (

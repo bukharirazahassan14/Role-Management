@@ -18,11 +18,10 @@ import {
   UserCircle,
   FilePlus,
   SlidersHorizontal,
+  BarChart3,
 } from "lucide-react";
 
 import useIsMobile from "../hooks/useIsMobile";
-import { useReactToPrint } from "react-to-print";
-import Report from "../components/WeeklyEvaluationReport";
 
 export default function EmployeeWeeklyEvaluation() {
   const router = useRouter();
@@ -32,7 +31,6 @@ export default function EmployeeWeeklyEvaluation() {
   const [success, setSuccess] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState(null);
   const didFetch = useRef(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
   const [viewMode, setViewMode] = useState("list");
@@ -47,10 +45,7 @@ export default function EmployeeWeeklyEvaluation() {
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [editingEvaluation, setEditingEvaluation] = useState(null);
-  const [viewingEvaluation, setViewingEvaluation] = useState(null);
   const [takenWeeks, setTakenWeeks] = useState([]);
-
-  const reportRef = useRef(null);
 
   //Search>>>>>>>>>>>>>>>>>>>>>>>>>
   const [SerSelectedYear, setSerSelectedYear] = useState(
@@ -128,11 +123,6 @@ export default function EmployeeWeeklyEvaluation() {
       console.error("Error fetching evaluations:", error);
     }
   };
-
-  const handlePrint = useReactToPrint({
-    contentRef: reportRef, // 👈 new API
-    documentTitle: "Weekly Evaluation Report",
-  });
 
   // 🔑 decode JWT
   function parseJwt(token) {
@@ -312,14 +302,6 @@ export default function EmployeeWeeklyEvaluation() {
 
   // 🔍 Search + Date Filter
   const filtered = evaluations.filter((ev) => {
-    const query = searchQuery.toLowerCase();
-
-    // 🔎 Text-based search
-    const matchesText =
-      ev.userId?.fullName?.toLowerCase().includes(query) ||
-      ev.userId?.primaryEmail?.toLowerCase().includes(query) ||
-      ev.weekNumber?.toString().includes(query);
-
     // 📅 Date filtering (PKT-safe) → always active if start/end set
     let matchesDate = true;
     if (startDate || endDate) {
@@ -337,7 +319,7 @@ export default function EmployeeWeeklyEvaluation() {
         matchesDate = matchesDate && evStart <= filterEnd;
     }
 
-    return matchesText && matchesDate;
+    return matchesDate;
   });
 
   const handleAddUser = async (userId) => {
@@ -392,7 +374,6 @@ export default function EmployeeWeeklyEvaluation() {
       // Save selected user
       setSelectedUserId(userId);
       setEditingEvaluation(null);
-      setViewingEvaluation(null);
     } catch (err) {
       console.error("Error fetching user evaluations:", err);
       setMessage("⚠️ Failed to fetch evaluations.");
@@ -402,7 +383,7 @@ export default function EmployeeWeeklyEvaluation() {
   };
 
   const handleWeekSelect = async (week) => {
-    if (editingEvaluation || viewingEvaluation) {
+    if (editingEvaluation) {
       // ✅ build query with userId, year, month, week
       const query = new URLSearchParams({
         userId: selectedUserId,
@@ -585,9 +566,7 @@ export default function EmployeeWeeklyEvaluation() {
 
   // ✅ Function to handle viewing an evaluation (read-only mode)
   const handleViewEvaluation = async (userId) => {
-    try {
-
-       const querytest = new URLSearchParams({
+    const querytest = new URLSearchParams({
       userId,
       year: SerSelectedYear,
       month: SerSelectedMonth,
@@ -596,50 +575,6 @@ export default function EmployeeWeeklyEvaluation() {
 
     // ✅ Navigate with query params
     router.push(`/main/WeeklyEvaluationViewEdit?${querytest}`);
-    return
-
-      await fetchEvaluationPrograms();
-
-      // build query string with userId, year, month
-      const query = new URLSearchParams({
-        userId,
-        year: SerSelectedYear,
-        month: SerSelectedMonth,
-        weekNumber: 1, // ✅ always pass week = 1
-      }).toString();
-
-      const res = await fetch(`/api/weeklyevaluation/${userId}?${query}`);
-      if (res.status === 404) {
-        console.warn("No evaluation found for this user.");
-        setDrawerOpen(false);
-        return;
-      }
-      if (!res.ok) throw new Error("Failed to fetch evaluation");
-
-      const data = await res.json();
-
-      // Pre-fill form fields
-      setSelectedUserId(data.userId?._id || "");
-      setSelectedWeek(data.weekNumber);
-      setWeekStart(data.weekStart.split("T")[0]);
-      setWeekEnd(data.weekEnd.split("T")[0]);
-      setComments(data.comments || "");
-      setEvaluationScores(
-        data.scores.map((s) => ({
-          kpiId: s.kpiId,
-          score: s.score,
-          weightage: s.weightage,
-          weightedRating: s.weightedRating,
-        }))
-      );
-
-      // Mark as viewing
-      setViewingEvaluation(data);
-      setEditingEvaluation(null); // make sure edit mode is off
-      setDrawerOpen(true);
-    } catch (error) {
-      console.error("Error in handleViewEvaluation:", error);
-    }
   };
 
   // ✅ Function to handle deleting an evaluation
@@ -681,11 +616,10 @@ export default function EmployeeWeeklyEvaluation() {
     }
   };
 
-  // ✅ When closing the drawer, reset editingEvaluation & viewingEvaluation
+  // ✅ When closing the drawer, reset editingEvaluation
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setEditingEvaluation(null);
-    setViewingEvaluation(null);
     setSelectedUserId("");
     setSelectedWeek(null);
     setWeekStart("");
@@ -696,16 +630,6 @@ export default function EmployeeWeeklyEvaluation() {
 
   return (
     <div className="p-8 w-full">
-      {/* Hidden Report */}
-      <div className="hidden print:block">
-        <Report
-          ref={reportRef}
-          evaluation={viewingEvaluation}
-          user={users.find((u) => u.id === selectedUserId)}
-          evaluationPrograms={evaluationPrograms}
-        />
-      </div>
-
       {/* ✅ Toast */}
       {message && (
         <div className="fixed top-5 right-5 z-50">
@@ -731,14 +655,8 @@ export default function EmployeeWeeklyEvaluation() {
         {/* Header */}
         <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="text-xl">
-              {viewingEvaluation ? "👀" : editingEvaluation ? "✏️" : "➕"}
-            </span>
-            {viewingEvaluation
-              ? "View Evaluation"
-              : editingEvaluation
-              ? "Edit Evaluation"
-              : "Add New Evaluation"}
+            <span className="text-xl">{editingEvaluation ? "✏️" : "➕"}</span>
+            {editingEvaluation ? "Edit Evaluation" : "Add New Evaluation"}
           </h2>
           <button
             onClick={handleCloseDrawer} // ✅ call reset + close function
@@ -788,12 +706,10 @@ export default function EmployeeWeeklyEvaluation() {
                       type="button"
                       onClick={() => handleWeekSelect(week)}
                       // ⛔ disable only when adding and week already taken
-                      disabled={
-                        !editingEvaluation && !viewingEvaluation && isTaken
-                      }
+                      disabled={!editingEvaluation && isTaken}
                       className={`relative w-full px-3 py-2 rounded-lg text-sm font-medium shadow transition
     ${
-      !editingEvaluation && !viewingEvaluation && isTaken
+      !editingEvaluation && isTaken
         ? "bg-gray-200 text-gray-400 cursor-not-allowed"
         : isSelected
         ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
@@ -802,7 +718,7 @@ export default function EmployeeWeeklyEvaluation() {
                     >
                       Week {week}
                       {/* ✅ show checkmark only in Add mode */}
-                      {!editingEvaluation && !viewingEvaluation && isTaken && (
+                      {!editingEvaluation && isTaken && (
                         <span className="absolute top-1 right-1 text-green-600 text-xs font-bold">
                           ✅
                         </span>
@@ -912,12 +828,27 @@ export default function EmployeeWeeklyEvaluation() {
                                   );
                                 }}
                                 required
-                                disabled={!!viewingEvaluation}
                                 className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                               >
                                 <option value="">Select</option>
                                 {[1, 2, 3, 4, 5].map((num) => (
-                                  <option key={num} value={num}>
+                                  <option
+                                    key={num}
+                                    value={num}
+                                    style={{
+                                      backgroundColor:
+                                        num === 1
+                                          ? "#fecaca" // red-200
+                                          : num === 2
+                                          ? "#fde68a" // yellow-300
+                                          : num === 3
+                                          ? "#fef3c7" // amber-100
+                                          : num === 4
+                                          ? "#bbf7d0" // green-200
+                                          : "#86efac", // green-300
+                                      color: "#000",
+                                    }}
+                                  >
                                     {num}
                                   </option>
                                 ))}
@@ -964,7 +895,6 @@ export default function EmployeeWeeklyEvaluation() {
                     <textarea
                       value={comments}
                       onChange={(e) => setComments(e.target.value)}
-                      disabled={!!viewingEvaluation}
                       rows={3}
                       placeholder="Write your evaluation comments here..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
@@ -981,22 +911,14 @@ export default function EmployeeWeeklyEvaluation() {
 
           {/* Sticky footer */}
           <div className="p-4 border-t bg-white sticky bottom-0">
-            {viewingEvaluation ? (
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="w-full bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
-              >
-                🖨️ Print Report
-              </button>
-            ) : (
+            {
               <button
                 type="submit"
                 className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
               >
                 💾 {editingEvaluation ? "Update Record" : "Save Record"}
               </button>
-            )}
+            }
           </div>
         </form>
       </div>
@@ -1173,6 +1095,19 @@ export default function EmployeeWeeklyEvaluation() {
               title="Card View"
             >
               <LayoutGrid className="w-5 h-5" />
+            </button>
+
+            {/* Evaluation Programs */}
+            <button
+               onClick={() => router.push(`/main/EvaluationPrograms`)}
+              className={`p-2 rounded-lg border transition ${
+                viewMode === "programs"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+              title="Evaluation Programs"
+            >
+              <BarChart3 className="w-5 h-5" />
             </button>
           </div>
         )}
