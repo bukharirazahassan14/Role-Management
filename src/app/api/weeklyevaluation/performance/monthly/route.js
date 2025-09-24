@@ -38,9 +38,19 @@ export async function GET(req) {
 
     const results = await User.aggregate([
       {
+        $lookup: {
+          from: "roles",
+          localField: "role",
+          foreignField: "_id",
+          as: "roleInfo",
+        },
+      },
+      { $unwind: { path: "$roleInfo", preserveNullAndEmptyArrays: true } },
+      {
         $project: {
           _id: 1,
           fullName: { $concat: ["$firstName", " ", "$lastName"] },
+          roleName: "$roleInfo.name",
         },
       },
       {
@@ -87,6 +97,7 @@ export async function GET(req) {
         $project: {
           _id: 1,
           fullName: 1,
+          roleName: 1,
           weekNumbers: { $ifNull: ["$evaluations.weekNumbers", []] },
           weekStart: "$evaluations.latestWeekStart",
           weekEnd: "$evaluations.latestWeekEnd",

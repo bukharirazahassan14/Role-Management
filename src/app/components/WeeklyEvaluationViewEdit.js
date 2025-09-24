@@ -1,5 +1,6 @@
 "use client";
-import { use, useEffect, useState, useCallback } from "react";
+import { use, useEffect, useState, useCallback, useRef } from "react";
+import { ClipboardList } from "lucide-react";
 
 export default function WeeklyEvaluationViewEdit({ searchParams }) {
   const params = use(searchParams);
@@ -7,14 +8,59 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   const [user, setUser] = useState(null);
   const [evaluationPrograms, setEvaluationPrograms] = useState([]);
   const [evaluationScores, setEvaluationScores] = useState([]);
-  const [selectedWeek, setSelectedWeek] = useState(1);
+  const [selectedWeek, setSelectedWeek] = useState(
+    weekNumber ? [Number(weekNumber)] : [1]
+  );
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
-  const [comments, setComments] = useState("");
   const [loading, setLoading] = useState(true);
   const weeks = [1, 2, 3, 4];
+  const didFetch = useRef(false);
 
-  // ✅ Wrap in useCallback so they’re memoized
+  // ✅ Fetch evaluation record for selected weeks
+  const fetchEvaluationRecord = useCallback(
+    async (weeksArray, programs = evaluationPrograms) => {
+      try {
+        const query = new URLSearchParams({ userId, year, month });
+        query.append("weekNumbers", weeksArray.join(","));
+
+        const res = await fetch(`/api/weeklyevaluation/overview?${query}`);
+        if (!res.ok) throw new Error("Failed to fetch evaluation");
+
+        const data = await res.json();
+
+        
+
+        // Set week start & end
+        setWeekStart(data.weekStart?.split("T")[0] || "");
+        setWeekEnd(data.weekEnd?.split("T")[0] || "");
+
+        // Map scores to programs, default 0 if missing
+        const scoresMap = new Map(
+          (data.scores || []).map((s) => [s.kpiId.toString(), s])
+        );
+
+        setEvaluationScores(
+          programs.map((program) => {
+            const scoreObj = scoresMap.get(program._id.toString()) || {};
+            return {
+              kpiId: program._id,
+              score: scoreObj.score ?? 0,
+              weightage: scoreObj.weightage ?? program.Weightage,
+              weightedRating: scoreObj.weightedRating ?? 0,
+            };
+          })
+        );
+      } catch (err) {
+        console.error("❌ Failed to fetch evaluation record:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [userId, year, month, evaluationPrograms]
+  );
+
+  // ✅ Fetch user
   const fetchUser = useCallback(async () => {
     try {
       const res = await fetch(`/api/users/${userId}`);
@@ -26,6 +72,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
     }
   }, [userId]);
 
+  // ✅ Fetch evaluation programs
   const fetchEvaluationPrograms = useCallback(async () => {
     try {
       const res = await fetch("/api/weeklyevaluation/evaluationprograms");
@@ -33,67 +80,35 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
       const data = await res.json();
       if (Array.isArray(data)) {
         setEvaluationPrograms(data);
-        setEvaluationScores(
-          data.map(() => ({ score: "", weightedRating: "" }))
-        );
+        // Fetch Week 1 evaluation immediately
+        fetchEvaluationRecord([1], data);
       }
     } catch (err) {
       console.error("❌ Failed to fetch evaluation programs:", err);
     }
-  }, []);
+  }, [fetchEvaluationRecord]);
 
-  // ✅ fetchEvaluationRecord now accepts a week parameter
-  const fetchEvaluationRecord = useCallback(
-    async (week) => {
-      try {
-        const query = new URLSearchParams({
-          userId,
-          year,
-          month,
-          weekNumber: week, // use the passed week
-        }).toString();
-
-        const res = await fetch(`/api/weeklyevaluation/${userId}?${query}`);
-        if (res.status === 404) return;
-        if (!res.ok) throw new Error("Failed to fetch evaluation");
-
-        const data = await res.json();
-
-        setSelectedWeek(data.weekNumber);
-        setWeekStart(data.weekStart.split("T")[0]);
-        setWeekEnd(data.weekEnd.split("T")[0]);
-        setComments(data.comments || "");
-        setEvaluationScores(
-          data.scores.map((s) => ({
-            kpiId: s.kpiId,
-            score: s.score,
-            weightage: s.weightage,
-            weightedRating: s.weightedRating,
-          }))
-        );
-      } catch (err) {
-        console.error("❌ Failed to fetch evaluation record:", err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [userId, year, month]
-  );
-
-  // ✅ First load → always fetch week 1
+  // ✅ First load
   useEffect(() => {
-    if (userId && year && month) {
+    if (userId && year && month && !didFetch.current) {
+      didFetch.current = true;
       fetchUser();
-      fetchEvaluationPrograms().then(() => fetchEvaluationRecord(1));
+      fetchEvaluationPrograms();
     }
-  }, [
-    userId,
-    year,
-    month,
-    fetchUser,
-    fetchEvaluationPrograms,
-    fetchEvaluationRecord,
-  ]);
+  }, [userId, year, month, fetchUser, fetchEvaluationPrograms]);
+
+  // ✅ Handle week selection
+  const handleWeekClick = (week) => {
+    let updated = [];
+    if (selectedWeek.includes(week)) {
+      updated = selectedWeek.filter((w) => w !== week);
+      if (updated.length === 0) updated = [1, 2, 3, 4]; // fallback
+    } else {
+      updated = [...selectedWeek, week];
+    }
+    setSelectedWeek(updated);
+    fetchEvaluationRecord(updated);
+  };
 
   if (loading) {
     return (
@@ -106,26 +121,28 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-8">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-          📊 Weekly Evaluation Overview
+      <div className="text-center mb-6">
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center justify-center gap-3">
+          <span className="p-2 bg-indigo-100 rounded-xl shadow-sm">
+            <ClipboardList className="w-8 h-8 text-indigo-600" />
+          </span>
+          Weekly Evaluation Overview
         </h1>
 
-        {/* Week Selector Circles */}
-        <div className="flex justify-center space-x-4 mt-6">
+        {/* Week Selector */}
+        <div className="flex justify-center space-x-3 mt-4">
           {weeks.map((week) => {
-            const isSelected = selectedWeek === week;
+            const isSelected = selectedWeek.includes(week);
             return (
               <button
                 key={week}
                 type="button"
-                onClick={() => fetchEvaluationRecord(week)} // 👈 pass specific week
-                className={`flex items-center justify-center w-12 h-12 rounded-full text-sm font-medium transition transform shadow-md 
-          ${
-            isSelected
-              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl scale-110"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
+                onClick={() => handleWeekClick(week)}
+                className={`flex items-center justify-center w-10 h-10 rounded-full text-xs font-medium transition transform shadow-md ${
+                  isSelected
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl scale-110"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
               >
                 {week}
               </button>
@@ -152,28 +169,44 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
         )}
 
         {/* General Info */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            📌 General Info
-          </h2>
-          <div className="flex flex-wrap gap-x-8 gap-y-2 text-gray-700 text-sm">
-            <p>
-              <span className="font-medium">Year:</span> {year}
-            </p>
-            <p>
-              <span className="font-medium">Month:</span> {month}
-            </p>
-            <p>
-              <span className="font-medium">Week Number:</span> {selectedWeek}
-            </p>
-            <p>
-              <span className="font-medium">Week Start:</span> {weekStart}
-            </p>
-            <p>
-              <span className="font-medium">Week End:</span> {weekEnd}
-            </p>
-          </div>
-        </div>
+      <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+  <h2 className="text-lg font-semibold text-gray-700 mb-3">
+    📌 General Info
+  </h2>
+  <div className="flex flex-wrap gap-x-8 gap-y-2 text-gray-700 text-sm">
+    <p>
+      <span className="font-medium">Year:</span> {year}
+    </p>
+    <p>
+      <span className="font-medium">Month:</span> {month}
+    </p>
+    <p>
+      <span className="font-medium">Week Number:</span>{" "}
+      {selectedWeek.join(", ")}
+    </p>
+    <p>
+      <span className="font-medium">Week Start:</span>{" "}
+      {weekStart
+        ? new Date(weekStart).toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
+        : "N/A"}
+    </p>
+    <p>
+      <span className="font-medium">Week End:</span>{" "}
+      {weekEnd
+        ? new Date(weekEnd).toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
+        : "N/A"}
+    </p>
+  </div>
+</div>
+
       </div>
 
       {/* Evaluation Programs */}
@@ -193,7 +226,6 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
                     key={program._id}
                     className="py-4 flex justify-between items-start"
                   >
-                    {/* Program Info */}
                     <div className="max-w-md">
                       <p className="font-medium text-gray-800">
                         {program.Name}
@@ -205,36 +237,34 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
                         Weightage: {program.Weightage}%
                       </p>
                     </div>
-
-                    {/* Scores */}
                     <div className="text-right">
                       <p className="text-indigo-600 font-semibold">
-                        Score: {evaluationScores[idx]?.score ?? "N/A"}
+                        Score: {evaluationScores[idx]?.score ?? 0}
                       </p>
                       <p className="text-gray-500 text-sm">
                         Weighted Rating:{" "}
-                        {evaluationScores[idx]?.weightedRating ?? "N/A"}
+                        {evaluationScores[idx]?.weightedRating ?? 0}
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Totals Row */}
+              {/* Totals */}
               <div className="mt-6 border-t pt-4 flex justify-between items-center">
                 <p className="text-lg font-semibold text-gray-800">Total</p>
                 <div className="text-right">
                   <p className="text-indigo-600 font-bold">
                     Total Score:{" "}
                     {evaluationScores
-                      .reduce((sum, s) => sum + (Number(s.score) || 0), 0)
+                      .reduce((sum, s) => sum + Number(s.score || 0), 0)
                       .toFixed(2)}
                   </p>
                   <p className="text-gray-700 font-medium">
                     Total Weighted Rating:{" "}
                     {evaluationScores
                       .reduce(
-                        (sum, s) => sum + (Number(s.weightedRating) || 0),
+                        (sum, s) => sum + Number(s.weightedRating || 0),
                         0
                       )
                       .toFixed(2)}
@@ -246,17 +276,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
         </div>
       </div>
 
-      {/* Comments */}
-      <div className="mt-10 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            💬 Comments
-          </h2>
-          <p className="text-gray-600">
-            {comments || "No comments available."}
-          </p>
-        </div>
-      </div>
+      
     </div>
   );
 }

@@ -1071,46 +1071,49 @@ export default function EmployeeWeeklyEvaluation() {
         </div>
 
         {/* RIGHT: Toggle buttons */}
-        {!isMobile && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 rounded-lg border transition ${
-                viewMode === "list"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-              title="List View"
-            >
-              <List className="w-5 h-5" />
-            </button>
+        <div className="flex gap-2">
+          {/* List + Card View (only desktop) */}
+          {!isMobile && (
+            <>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg border transition ${
+                  viewMode === "list"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+                title="List View"
+              >
+                <List className="w-5 h-5" />
+              </button>
 
-            <button
-              onClick={() => setViewMode("card")}
-              className={`p-2 rounded-lg border transition ${
-                viewMode === "card"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-              title="Card View"
-            >
-              <LayoutGrid className="w-5 h-5" />
-            </button>
+              <button
+                onClick={() => setViewMode("card")}
+                className={`p-2 rounded-lg border transition ${
+                  viewMode === "card"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+                title="Card View"
+              >
+                <LayoutGrid className="w-5 h-5" />
+              </button>
+            </>
+          )}
 
-            {/* Evaluation Programs */}
-            <button
-               onClick={() => router.push(`/main/EvaluationPrograms`)}
-              className={`p-2 rounded-lg border transition ${
-                viewMode === "programs"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-              title="Evaluation Programs"
-            >
-              <BarChart3 className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+          {/* ✅ Always visible on mobile & desktop, with left margin */}
+          <button
+            onClick={() => router.push(`/main/EvaluationPrograms`)}
+            className={`p-2 rounded-lg border transition ml-3 ${
+              viewMode === "programs"
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+            title="Evaluation Programs"
+          >
+            <BarChart3 className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* ✅ Table view */}
@@ -1133,7 +1136,22 @@ export default function EmployeeWeeklyEvaluation() {
             </thead>
 
             <tbody>
-              {evaluations.map((ev) => {
+               {evaluations
+    .filter((ev) => {
+      // If logged in user is Staff or Temp Staff
+      if (
+        currentUserRole === "Staff" ||
+        currentUserRole === "Temp Staff"
+      ) {
+        return (
+          ev.roleName !== "Super Admin" &&
+          ev.roleName !== "Management" &&
+          ev.roleName !== "HR"
+        );
+      }
+      return true; // other roles see everything
+    })
+    .map((ev) => {
                 let performance = ev.performance || "";
                 let colorClass = "text-gray-500 font-medium";
 

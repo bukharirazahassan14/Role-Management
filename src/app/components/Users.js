@@ -931,104 +931,175 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {currentUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-indigo-50 transition border-b last:border-none"
-                >
-                  <td className="px-4 py-4 text-center align-middle">
-                    <div className="flex justify-center items-center gap-6">
-                      {/* View Button */}
-                      <button
-                        onClick={() => handleViewUser(user)}
-                        className="text-indigo-600 hover:text-indigo-900 transition"
-                        title="View User"
-                      >
-                        <Glasses className="w-6 h-6" />
-                      </button>
+              {currentUsers
+                .filter((user) => {
+                  // If logged in user is Staff or Temp Staff
+                  if (
+                    currentUserRole === "Staff" ||
+                    currentUserRole === "Temp Staff"
+                  ) {
+                    return (
+                      user.role?.name !== "Super Admin" &&
+                      user.role?.name !== "Management" &&
+                      user.role?.name !== "HR"
+                    );
+                  }
+                  return true; // other roles see everything
+                })
+                .map((user) => (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-indigo-50 transition border-b last:border-none"
+                  >
+                    <td className="px-4 py-4 text-center align-middle">
+                      <div className="flex justify-center items-center gap-6">
+                        {/* View Button */}
+                        <button
+                          onClick={() => handleViewUser(user)}
+                          className="text-indigo-600 hover:text-indigo-900 transition"
+                          title="View User"
+                        >
+                          <Glasses className="w-6 h-6" />
+                        </button>
 
-                      {/* Edit Button */}
-                      {(currentUserRole === "Super Admin" ||
-                        currentUserRole === "HR" ||
-                        currentUserRole === "Management") && (
+                        {/* Edit Button */}
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="text-indigo-600 hover:text-indigo-900 transition"
-                          title="Edit User"
+                          className={`text-indigo-600 transition ${
+                            currentUserRole === "Super Admin" ||
+                            (currentUserRole === "Management" &&
+                              user.role?.name !== "Super Admin") ||
+                            (currentUserRole === "HR" &&
+                              user.role?.name !== "Super Admin" &&
+                              user.role?.name !== "Management")
+                              ? "hover:text-indigo-900 cursor-pointer"
+                              : "opacity-50 cursor-not-allowed"
+                          }`}
+                          title={
+                            currentUserRole === "Super Admin" ||
+                            (currentUserRole === "Management" &&
+                              user.role?.name !== "Super Admin") ||
+                            (currentUserRole === "HR" &&
+                              user.role?.name !== "Super Admin" &&
+                              user.role?.name !== "Management")
+                              ? "Edit User"
+                              : "You cannot edit this user"
+                          }
+                          disabled={
+                            !(
+                              currentUserRole === "Super Admin" ||
+                              (currentUserRole === "Management" &&
+                                user.role?.name !== "Super Admin") ||
+                              (currentUserRole === "HR" &&
+                                user.role?.name !== "Super Admin" &&
+                                user.role?.name !== "Management")
+                            )
+                          }
                         >
                           <Edit className="w-6 h-6" />
                         </button>
-                      )}
-                    </div>
-                  </td>
+                      </div>
+                    </td>
 
-                  <td className="px-8 py-4">{user.fullName || ""}</td>
-                  <td className="px-6 py-4">{user.email || "-"}</td>
-                  <td className="px-3 py-4">
-                    <select
-                      value={user.role?._id || ""}
-                      disabled={
-                        currentUserRole === "Staff" ||
-                        currentUserRole === "Temp Staff" ||
-                        ((currentUserRole === "Super Admin" ||
-                          currentUserRole === "Management" ||
-                          currentUserRole === "HR") &&
-                          user.role?.name === "Super Admin")
-                      }
-                      onChange={(e) =>
-                        handleRoleChange(user.id, e.target.value)
-                      }
-                      className="w-52 px-3 py-2 border border-white rounded-lg bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-                    >
-                      {roles
-                        .filter((role) => {
-                          if (
-                            currentUserRole === "Staff" ||
-                            currentUserRole === "Temp Staff"
-                          ) {
+                    <td className="px-8 py-4">{user.fullName || ""}</td>
+                    <td className="px-6 py-4">{user.email || "-"}</td>
+                    <td className="px-3 py-4">
+                      <select
+                        value={user.role?._id || ""}
+                        disabled={
+                          currentUserRole === "Staff" ||
+                          currentUserRole === "Temp Staff" ||
+                          ((currentUserRole === "Super Admin" ||
+                            currentUserRole === "Management" ||
+                            currentUserRole === "HR") &&
+                            user.role?.name === "Super Admin")
+                        }
+                        onChange={(e) =>
+                          handleRoleChange(user.id, e.target.value)
+                        }
+                        className="w-52 px-3 py-2 border border-white rounded-lg bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                      >
+                        {roles
+                          .filter((role) => {
+                            if (
+                              currentUserRole === "Staff" ||
+                              currentUserRole === "Temp Staff"
+                            ) {
+                              return true;
+                            }
+
+                            if (
+                              (currentUserRole === "Management" ||
+                                currentUserRole === "HR") &&
+                              role.name === "Super Admin" &&
+                              user.role?.name !== "Super Admin"
+                            ) {
+                              return false;
+                            }
+
+                            if (
+                              currentUserRole === "Super Admin" &&
+                              role.name === "Super Admin" &&
+                              user.role?.name !== "Super Admin"
+                            ) {
+                              return false;
+                            }
+
                             return true;
-                          }
+                          })
+                          .map((role) => (
+                            <option key={role._id} value={role._id}>
+                              {role.name}
+                            </option>
+                          ))}
+                      </select>
+                    </td>
 
-                          if (
-                            (currentUserRole === "Management" ||
-                              currentUserRole === "HR") &&
-                            role.name === "Super Admin" &&
-                            user.role?.name !== "Super Admin"
-                          ) {
-                            return false;
-                          }
+                    <td className="px-6 py-4">
+                      {user.createdAt
+                        ? new Date(user.createdAt).toLocaleDateString()
+                        : "-"}
+                    </td>
 
-                          if (
-                            currentUserRole === "Super Admin" &&
-                            role.name === "Super Admin" &&
-                            user.role?.name !== "Super Admin"
-                          ) {
-                            return false;
-                          }
-
-                          return true;
-                        })
-                        .map((role) => (
-                          <option key={role._id} value={role._id}>
-                            {role.name}
-                          </option>
-                        ))}
-                    </select>
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {user.createdAt
-                      ? new Date(user.createdAt).toLocaleDateString()
-                      : "-"}
-                  </td>
-
-                  {/* Active Toggle Switch */}
-                  <td className="px-6 py-4 text-center">
-                    {currentUserRole === "Super Admin" ? (
-                      user.role === "Super Admin" ||
-                      user.role?.name === "Super Admin" ? (
+                    {/* Active Toggle Switch */}
+                    <td className="px-6 py-4 text-center">
+                      {currentUserRole === "Super Admin" ? (
+                        user.role === "Super Admin" ||
+                        user.role?.name === "Super Admin" ? (
+                          <span
+                            className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
+                              user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                                user.isActive
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
+                              }`}
+                            />
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              handleToggleActive(user.id, !user.isActive)
+                            }
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                              user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                                user.isActive
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        )
+                      ) : (
                         <span
-                          className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
+                          className={`inline-flex h-6 w-11 items-center rounded-full ${
                             user.isActive ? "bg-indigo-500" : "bg-gray-300"
                           }`}
                         >
@@ -1038,112 +1109,103 @@ export default function Users() {
                             }`}
                           />
                         </span>
-                      ) : (
-                        <button
-                          onClick={() =>
-                            handleToggleActive(user.id, !user.isActive)
-                          }
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                            user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                              user.isActive ? "translate-x-6" : "translate-x-1"
-                            }`}
-                          />
-                        </button>
-                      )
-                    ) : (
-                      <span
-                        className={`inline-flex h-6 w-11 items-center rounded-full ${
-                          user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                            user.isActive ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </span>
-                    )}
-                  </td>
+                      )}
+                    </td>
 
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => handleOpenFrame(user)}
-                      className="relative inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 transition"
-                    >
-                      <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                        {fileCounts[user.id] ?? 0}
-                      </span>
-                      <FileText className="w-6 h-6" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => handleOpenFrame(user)}
+                        className="relative inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 transition"
+                      >
+                        <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                          {fileCounts[user.id] ?? 0}
+                        </span>
+                        <FileText className="w-6 h-6" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
       ) : (
         // ✅ Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {currentUsers.map((user) => (
-            <div
-              key={user.id}
-              className="relative bg-white border border-gray-100 shadow-sm hover:shadow-lg transition rounded-2xl p-6 group"
-            >
-              {/* Profile Avatar */}
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                  {user.firstName?.[0]}
-                  {user.lastName?.[0]}
+          {currentUsers
+            .filter((user) => {
+              // If logged in user is Staff or Temp Staff
+              if (
+                currentUserRole === "Staff" ||
+                currentUserRole === "Temp Staff"
+              ) {
+                return (
+                  user.role?.name !== "Super Admin" &&
+                  user.role?.name !== "Management" &&
+                  user.role?.name !== "HR"
+                );
+              }
+              return true; // other roles see everything
+            })
+            .map((user) => (
+              <div
+                key={user.id}
+                className="relative bg-white border border-gray-100 shadow-sm hover:shadow-lg transition rounded-2xl p-6 group"
+              >
+                {/* Profile Avatar */}
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                    {user.firstName?.[0]}
+                    {user.lastName?.[0]}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-lg group-hover:text-indigo-600 transition">
+                      {user.fullName || `${user.firstName} ${user.lastName}`}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {user.role?.name || "No Role"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-lg group-hover:text-indigo-600 transition">
-                    {user.fullName || `${user.firstName} ${user.lastName}`}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {user.role?.name || "No Role"}
+
+                {/* User Info */}
+                <div className="mt-5 space-y-3 text-sm text-gray-600">
+                  <p className="flex justify-between">
+                    <span className="font-medium">📧 Email:</span>
+                    <span>{user.email || "-"}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="font-medium">📅 Created:</span>
+                    <span>{new Date(user.createdAt).toLocaleDateString()}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="font-medium">✅ Active:</span>
+                    <span>{user.isActive ? "Yes" : "No"}</span>
                   </p>
                 </div>
-              </div>
 
-              {/* User Info */}
-              <div className="mt-5 space-y-3 text-sm text-gray-600">
-                <p className="flex justify-between">
-                  <span className="font-medium">📧 Email:</span>
-                  <span>{user.email || "-"}</span>
-                </p>
-                <p className="flex justify-between">
-                  <span className="font-medium">📅 Created:</span>
-                  <span>{new Date(user.createdAt).toLocaleDateString()}</span>
-                </p>
-                <p className="flex justify-between">
-                  <span className="font-medium">✅ Active:</span>
-                  <span>{user.isActive ? "Yes" : "No"}</span>
-                </p>
+                {/* Action Buttons */}
+                <div className="absolute top-4 right-4 flex gap-3 opacity-0 group-hover:opacity-100 transition">
+                  <button
+                    onClick={() => handleViewUser(user)}
+                    className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                    title="View"
+                  >
+                    <Glasses className="w-5 h-5" />
+                  </button>
+                  {(currentUserRole === "Super Admin" ||
+                    currentUserRole === "HR" ||
+                    currentUserRole === "Management") && (
+                    <button
+                      onClick={() => handleEditUser(user)}
+                      className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                      title="Edit"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="absolute top-4 right-4 flex gap-3 opacity-0 group-hover:opacity-100 transition">
-                <button
-                  onClick={() => handleViewUser(user)}
-                  className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                  title="View"
-                >
-                  <Glasses className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => handleEditUser(user)}
-                  className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                  title="Edit"
-                >
-                  <Edit className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
 
           {/* ➕ Add New User Card */}
           <div
@@ -1299,23 +1361,42 @@ export default function Users() {
                   className="w-full sm:flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
                 />
                 <button
-                  onClick={handleUpload}
-                  disabled={
-                    !["Super Admin", "HR", "Management"].includes(
-                      currentUserRole
-                    )
-                  }
-                  className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 ${
-                    ["Super Admin", "HR", "Management"].includes(
-                      currentUserRole
-                    )
-                      ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload</span>
-                </button>
+  onClick={handleUpload}
+  disabled={
+    !(
+      currentUserRole === "Super Admin" ||
+      (currentUserRole === "Management" &&
+        fileFrameUser?.role?.name !== "Super Admin") ||
+      (currentUserRole === "HR" &&
+        fileFrameUser?.role?.name !== "Super Admin" &&
+        fileFrameUser?.role?.name !== "Management")
+    )
+  }
+  className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
+    currentUserRole === "Super Admin" ||
+    (currentUserRole === "Management" &&
+      fileFrameUser?.role?.name !== "Super Admin") ||
+    (currentUserRole === "HR" &&
+      fileFrameUser?.role?.name !== "Super Admin" &&
+      fileFrameUser?.role?.name !== "Management")
+      ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+      : "bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed"
+  }`}
+  title={
+    currentUserRole === "Super Admin" ||
+    (currentUserRole === "Management" &&
+      fileFrameUser?.role?.name !== "Super Admin") ||
+    (currentUserRole === "HR" &&
+      fileFrameUser?.role?.name !== "Super Admin" &&
+      fileFrameUser?.role?.name !== "Management")
+      ? "Upload File"
+      : "You cannot upload for this user"
+  }
+>
+  <Upload className="w-4 h-4" />
+  <span>Upload</span>
+</button>
+
               </div>
             </div>
           </div>

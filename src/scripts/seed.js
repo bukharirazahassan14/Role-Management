@@ -28,22 +28,84 @@ async function seed() {
   const roleMap = {};
   roles.forEach((r) => (roleMap[r.name] = r._id));
 
-  // Create default user
-  const [superAdmin] = await User.insertMany([
+  // Create default users
+  const users = await User.insertMany([
     {
       firstName: "Super",
       lastName: "Admin",
-      primaryEmail: "superadmin@greyloops.com",
-      secondaryEmail: "",
+      primaryEmail: "admin@greyloops.com",
       fatherName: "John Admin",
       phone: "1234567890",
       emergencyContact: "0987654321",
       emergencyRelation: "Brother",
       cnic: "12345-1234567-1",
       role: roleMap["Super Admin"],
-      medicalCondition: "",
       jd: "Oversee all operations",
       exp: "10 years",
+      password: await bcrypt.hash("123456", 10),
+      isActive: true,
+      created_at: new Date(),
+    },
+    {
+      firstName: "Manager",
+      lastName: "User",
+      primaryEmail: "manager@greyloops.com",
+      fatherName: "John Manager",
+      phone: "1111111111",
+      emergencyContact: "2222222222",
+      emergencyRelation: "Father",
+      cnic: "11111-1111111-1",
+      role: roleMap["Management"],
+      jd: "Manage operations",
+      exp: "7 years",
+      password: await bcrypt.hash("123456", 10),
+      isActive: true,
+      created_at: new Date(),
+    },
+    {
+      firstName: "HR",
+      lastName: "User",
+      primaryEmail: "hr@greyloops.com",
+      fatherName: "John HR",
+      phone: "3333333333",
+      emergencyContact: "4444444444",
+      emergencyRelation: "Sister",
+      cnic: "22222-2222222-2",
+      role: roleMap["HR"],
+      jd: "Handle employee management",
+      exp: "5 years",
+      password: await bcrypt.hash("123456", 10),
+      isActive: true,
+      created_at: new Date(),
+    },
+    {
+      firstName: "Staff",
+      lastName: "User",
+      primaryEmail: "staff@greyloops.com",
+      fatherName: "John Staff",
+      phone: "5555555555",
+      emergencyContact: "6666666666",
+      emergencyRelation: "Mother",
+      cnic: "33333-3333333-3",
+      role: roleMap["Staff"],
+      jd: "Execute assigned tasks",
+      exp: "2 years",
+      password: await bcrypt.hash("123456", 10),
+      isActive: true,
+      created_at: new Date(),
+    },
+    {
+      firstName: "Temp",
+      lastName: "Staff",
+      primaryEmail: "tempstaff@greyloops.com",
+      fatherName: "John Temp",
+      phone: "7777777777",
+      emergencyContact: "8888888888",
+      emergencyRelation: "Friend",
+      cnic: "44444-4444444-4",
+      role: roleMap["Temp Staff"],
+      jd: "Temporary staff responsibilities",
+      exp: "1 year",
       password: await bcrypt.hash("123456", 10),
       isActive: true,
       created_at: new Date(),
@@ -51,7 +113,7 @@ async function seed() {
   ]);
 
   // Evaluation Programs (KPIs)
-  const programs = await EvaluationProgram.insertMany([
+  await EvaluationProgram.insertMany([
     {
       Name: "Task Deliverability",
       Description:
@@ -84,68 +146,10 @@ async function seed() {
     },
   ]);
 
-  const programMap = {};
-  programs.forEach((p) => (programMap[p.Name] = p._id));
-
-  // Helper to calculate weighted rating
-  const calcWeighted = (score, weightage) => (score * weightage) / 100;
-
-  // Scores with correct calculation
-  const scores = [
-    {
-      kpiId: programMap["Task Deliverability"],
-      score: 4,
-      weightage: 30,
-    },
-    {
-      kpiId: programMap["Reliability & Accountability"],
-      score: 5,
-      weightage: 20,
-    },
-    {
-      kpiId: programMap["Efficiency & Problem Solving"],
-      score: 3,
-      weightage: 20,
-    },
-    {
-      kpiId: programMap["Growth, Learning & Technical Proficiency"],
-      score: 4,
-      weightage: 15,
-    },
-    {
-      kpiId: programMap["Communication & Collaboration"],
-      score: 5,
-      weightage: 15,
-    },
-  ].map((item) => ({
-    ...item,
-    weightedRating: calcWeighted(item.score, item.weightage),
-  }));
-
-  // Calculate totals
-  const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
-  const totalWeightedRating = scores.reduce(
-    (sum, s) => sum + s.weightedRating,
-    0
-  );
-
-  await WeeklyEvaluation.create({
-    _id: "68c0209936e4f6533ce003ab",
-    userId: superAdmin._id,
-    weekNumber: 1,
-    weekStart: new Date("2025-09-02T00:00:00.000Z"),
-    weekEnd: new Date("2025-09-08T23:59:59.000Z"),
-    scores,
-    comments:
-      "Great performance overall, but needs improvement in problem solving.",
-    totalScore,
-    totalWeightedRating,
-    evaluatedBy: superAdmin._id,
-    created_at: new Date("2025-09-09T12:30:00.000Z"),
-  });
-
-  console.log("✅ Seeding completed with calculated weighted ratings!");
-  process.exit(0);
+  console.log("✅ Database seeded successfully!");
 }
 
-seed();
+seed().catch((err) => {
+  console.error("❌ Seeding error:", err);
+  process.exit(1);
+});
