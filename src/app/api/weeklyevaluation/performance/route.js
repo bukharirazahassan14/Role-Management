@@ -50,7 +50,7 @@ export async function GET(req) {
                 _id: null,
                 weekNumbers: { $push: "$weekNumber" },
                 weeksCount: { $sum: 1 },
-                latestWeekStart: { $max: "$weekStart" },
+                latestWeekStart: { $min: "$weekStart" },
                 latestWeekEnd: { $max: "$weekEnd" },
                 totalScoreSum: { $sum: "$totalScore" },
                 totalWeightedRatingSum: { $sum: "$totalWeightedRating" },

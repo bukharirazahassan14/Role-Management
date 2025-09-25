@@ -33,6 +33,15 @@ export async function GET(req) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
+    // Find which weeks actually exist in DB
+    const existing = await WeeklyEvaluation.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      weekNumber: { $in: weekNumbers },
+      weekStart: { $gte: startDate, $lte: endDate },
+    }).select("weekNumber").lean();
+
+    const existingWeeks = existing.map((e) => e.weekNumber);
+
     // Aggregation pipeline for combined scores & week range
     const evaluations = await WeeklyEvaluation.aggregate([
       {
@@ -76,6 +85,10 @@ export async function GET(req) {
     if (!evaluations || evaluations.length === 0) {
       return NextResponse.json(
         {
+          foundWeeks: weekNumbers.map((w) => ({
+            week: w,
+            found: existingWeeks.includes(w),
+          })),
           error: `Evaluation not found for userId=${userId}, year=${year}, month=${month}, weeks=${weekNumbers}`,
         },
         { status: 404 }
@@ -88,6 +101,23 @@ export async function GET(req) {
       .findById(userId, { fullName: 1, email: 1 })
       .lean();
 
+    // Calculate performance
+    const totalWeeks = existingWeeks.length;
+    const avgWeightedRating =
+      totalWeeks > 0
+        ? evaluations[0].totalWeightedRating / totalWeeks
+        : 0;
+
+    let performance = "";
+    if (totalWeeks > 0) {
+      if (avgWeightedRating <= 1) performance = "Poor";
+      else if (avgWeightedRating <= 2) performance = "Partial";
+      else if (avgWeightedRating <= 3) performance = "Normal";
+      else if (avgWeightedRating <= 4) performance = "Good";
+      else if (avgWeightedRating > 4) performance = "Excellent";
+      else performance = "Unknown";
+    }
+
     const result = {
       userId,
       user: {
@@ -95,12 +125,17 @@ export async function GET(req) {
         email: userRes?.email || "",
       },
       weeks: weekNumbers,
+      foundWeeks: weekNumbers.map((w) => ({
+        week: w,
+        found: existingWeeks.includes(w),
+      })),
       weekStart: evaluations[0].weekStart || null,
       weekEnd: evaluations[0].weekEnd || null,
       scores: evaluations[0].scores,
       totalScore: evaluations[0].totalScore,
       totalWeightage: evaluations[0].totalWeightage,
       totalWeightedRating: evaluations[0].totalWeightedRating,
+      performance, // ✅ Added field here
     };
 
     return NextResponse.json(result, { status: 200 });

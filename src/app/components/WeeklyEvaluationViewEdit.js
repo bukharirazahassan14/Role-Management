@@ -17,6 +17,38 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   const weeks = [1, 2, 3, 4];
   const didFetch = useRef(false);
 
+  const [totalScore, setTotalScore] = useState(0);
+  const [totalWeightedRating, setTotalWeightedRating] = useState(0);
+  const [performance, setPerformance] = useState("");
+  const [viewMode, setViewMode] = useState("Weekly");
+  const [selectedMonths, setSelectedMonths] = useState([
+    new Date().getMonth() + 1,
+  ]); // default current month
+
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  const toggleMonth = (monthNumber) => {
+    setSelectedMonths(
+      (prev) =>
+        prev.includes(monthNumber)
+          ? prev.filter((m) => m !== monthNumber) // uncheck
+          : [...prev, monthNumber] // check
+    );
+  };
+
   // ✅ Fetch evaluation record for selected weeks
   const fetchEvaluationRecord = useCallback(
     async (weeksArray, programs = evaluationPrograms) => {
@@ -25,11 +57,32 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
         query.append("weekNumbers", weeksArray.join(","));
 
         const res = await fetch(`/api/weeklyevaluation/overview?${query}`);
-        if (!res.ok) throw new Error("Failed to fetch evaluation");
+
+        if (!res.ok) {
+          if (res.status === 404) {
+            console.warn("❌ No records found, week not selected:", weeksArray);
+            alert(
+              "No records found for selected week(s): " + weeksArray.join(",")
+            );
+            return;
+          } else {
+            const errorData = await res.json();
+            console.error("❌ Server error:", errorData);
+            alert("Something went wrong: " + errorData.error);
+            return;
+          }
+        }
 
         const data = await res.json();
 
-        
+        console.log(">>>>>>>>>>>>>>>>data ", data);
+
+        // ✅ Update selected weeks only where found = true
+        const updatedWeeks = data.foundWeeks
+          .filter((fw) => fw.found)
+          .map((fw) => fw.week);
+
+        setSelectedWeek(updatedWeeks);
 
         // Set week start & end
         setWeekStart(data.weekStart?.split("T")[0] || "");
@@ -51,6 +104,11 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
             };
           })
         );
+
+        // ✅ Set totals and performance
+        setTotalScore(data.totalScore ?? 0);
+        setTotalWeightedRating(data.totalWeightedRating ?? 0);
+        setPerformance(data.performance ?? "");
       } catch (err) {
         console.error("❌ Failed to fetch evaluation record:", err);
       } finally {
@@ -106,7 +164,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
     } else {
       updated = [...selectedWeek, week];
     }
-    setSelectedWeek(updated);
+    //setSelectedWeek(updated);
     fetchEvaluationRecord(updated);
   };
 
@@ -119,100 +177,155 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-10">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center justify-center gap-3">
-          <span className="p-2 bg-indigo-100 rounded-xl shadow-sm">
-            <ClipboardList className="w-8 h-8 text-indigo-600" />
-          </span>
-          Weekly Evaluation Overview
-        </h1>
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center justify-center gap-4 drop-shadow-sm">
+  {/* Year Circle */}
+  <span className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-300 text-yellow-900 font-bold text-xl shadow-lg">
+    {year || "2025"}
+  </span>
+
+  Evaluation Overview
+
+  {/* Modern Inline Toggle */}
+  <span className="flex items-center gap-4 text-base font-medium text-gray-600">
+    <button
+      onClick={() => setViewMode("Monthly")}
+      className={`transition-colors duration-200 px-3 py-1 rounded-full ${
+        viewMode === "Monthly"
+          ? "text-indigo-600 font-semibold bg-indigo-50"
+          : "hover:text-indigo-400 hover:bg-gray-100"
+      }`}
+    >
+      Monthly
+    </button>
+    <span className="text-gray-400 font-bold">|</span>
+    <button
+      onClick={() => setViewMode("Weekly")}
+      className={`transition-colors duration-200 px-3 py-1 rounded-full ${
+        viewMode === "Weekly"
+          ? "text-indigo-600 font-semibold bg-indigo-50"
+          : "hover:text-indigo-400 hover:bg-gray-100"
+      }`}
+    >
+      Weekly
+    </button>
+  </span>
+</h1>
+
+
+        {/* Monthly Selector */}
+        {viewMode === "Monthly" && (
+          <div className="flex justify-center flex-wrap gap-2 mt-4">
+            {months.map((month, idx) => {
+              const monthNumber = idx + 1;
+              const isSelected = selectedMonths.includes(monthNumber);
+
+              return (
+                <button
+                  key={month}
+                  onClick={() => toggleMonth(monthNumber)}
+                  className={`px-4 py-1.5 rounded-full font-medium transition shadow-sm ${
+                    isSelected
+                      ? "bg-indigo-600 text-white shadow-md scale-105"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {month}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Week Selector */}
-        <div className="flex justify-center space-x-3 mt-4">
-          {weeks.map((week) => {
-            const isSelected = selectedWeek.includes(week);
-            return (
-              <button
-                key={week}
-                type="button"
-                onClick={() => handleWeekClick(week)}
-                className={`flex items-center justify-center w-10 h-10 rounded-full text-xs font-medium transition transform shadow-md ${
-                  isSelected
-                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl scale-110"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {week}
-              </button>
-            );
-          })}
-        </div>
+        {viewMode === "Weekly" && (
+          <div className="flex justify-center space-x-3 mt-4">
+            {weeks.map((week) => {
+              const isSelected = selectedWeek.includes(week);
+              return (
+                <button
+                  key={week}
+                  type="button"
+                  onClick={() => handleWeekClick(week)}
+                  className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition-all duration-300 ${
+                    isSelected
+                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md scale-110"
+                      : "bg-white/70 text-gray-700 hover:bg-indigo-50 hover:scale-105"
+                  }`}
+                >
+                  {week}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
-
       {/* User & General Info */}
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* User Info */}
         {user && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 flex items-center space-x-5">
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow">
-              {user.firstName[0]}
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-gray-900">
-                {user.firstName} {user.lastName}
-              </p>
-              <p className="text-sm text-gray-500">{user.primaryEmail}</p>
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition">
+            <div className="flex items-center space-x-5">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                {user.firstName[0]}
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-sm text-gray-500">{user.primaryEmail}</p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* General Info */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-  <h2 className="text-lg font-semibold text-gray-700 mb-3">
-    📌 General Info
-  </h2>
-  <div className="flex flex-wrap gap-x-8 gap-y-2 text-gray-700 text-sm">
-    <p>
-      <span className="font-medium">Year:</span> {year}
-    </p>
-    <p>
-      <span className="font-medium">Month:</span> {month}
-    </p>
-    <p>
-      <span className="font-medium">Week Number:</span>{" "}
-      {selectedWeek.join(", ")}
-    </p>
-    <p>
-      <span className="font-medium">Week Start:</span>{" "}
-      {weekStart
-        ? new Date(weekStart).toLocaleDateString("en-US", {
-            month: "short",
-            day: "2-digit",
-            year: "numeric",
-          })
-        : "N/A"}
-    </p>
-    <p>
-      <span className="font-medium">Week End:</span>{" "}
-      {weekEnd
-        ? new Date(weekEnd).toLocaleDateString("en-US", {
-            month: "short",
-            day: "2-digit",
-            year: "numeric",
-          })
-        : "N/A"}
-    </p>
-  </div>
-</div>
+        {/* Evaluation Periods */}
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition">
+          <h2 className="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
+            <span className="text-indigo-600">📆</span> Evaluation Periods
+          </h2>
 
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="px-4 py-1.5 bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 rounded-full font-medium shadow-sm">
+              Year: {year}
+            </span>
+            <span className="px-4 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-medium shadow-sm">
+              Month:{" "}
+              {new Date(year, month - 1).toLocaleString("en-US", {
+                month: "long",
+              })}
+            </span>
+            <span className="px-4 py-1.5 bg-gradient-to-r from-pink-50 to-pink-100 text-pink-700 rounded-full font-medium shadow-sm">
+              Week: {selectedWeek.join(", ")}
+            </span>
+            <span className="px-4 py-1.5 bg-gradient-to-r from-green-50 to-green-100 text-green-700 rounded-full font-medium shadow-sm">
+              Period:{" "}
+              {weekStart
+                ? new Date(weekStart).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                    year: "numeric",
+                  })
+                : "N/A"}{" "}
+              →{" "}
+              {weekEnd
+                ? new Date(weekEnd).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                    year: "numeric",
+                  })
+                : "N/A"}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Evaluation Programs */}
-      <div className="mt-10 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-700 mb-6">
+      <div className="mt-12 max-w-6xl mx-auto">
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-lg p-8 border border-gray-200 hover:shadow-xl transition">
+          <h2 className="text-2xl font-bold text-gray-800 mb-8 flex items-center gap-2">
             📝 Evaluation Programs & Scores
           </h2>
 
@@ -220,14 +333,15 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
             <p className="text-gray-500 text-center">No programs found.</p>
           ) : (
             <div>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-200">
                 {evaluationPrograms.map((program, idx) => (
                   <div
                     key={program._id}
-                    className="py-4 flex justify-between items-start"
+                    className="py-5 flex justify-between items-start transition hover:bg-indigo-50/50 px-2 rounded-xl"
                   >
+                    {/* Program Info */}
                     <div className="max-w-md">
-                      <p className="font-medium text-gray-800">
+                      <p className="font-medium text-gray-900">
                         {program.Name}
                       </p>
                       <p className="text-sm text-gray-500">
@@ -237,7 +351,9 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
                         Weightage: {program.Weightage}%
                       </p>
                     </div>
-                    <div className="text-right">
+
+                    {/* Scores stacked */}
+                    <div className="flex flex-col items-end space-y-1">
                       <p className="text-indigo-600 font-semibold">
                         Score: {evaluationScores[idx]?.score ?? 0}
                       </p>
@@ -250,33 +366,68 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
                 ))}
               </div>
 
-              {/* Totals */}
-              <div className="mt-6 border-t pt-4 flex justify-between items-center">
-                <p className="text-lg font-semibold text-gray-800">Total</p>
-                <div className="text-right">
-                  <p className="text-indigo-600 font-bold">
-                    Total Score:{" "}
-                    {evaluationScores
-                      .reduce((sum, s) => sum + Number(s.score || 0), 0)
-                      .toFixed(2)}
-                  </p>
-                  <p className="text-gray-700 font-medium">
-                    Total Weighted Rating:{" "}
-                    {evaluationScores
-                      .reduce(
-                        (sum, s) => sum + Number(s.weightedRating || 0),
-                        0
-                      )
-                      .toFixed(2)}
-                  </p>
+              {/* Totals Section */}
+              <div className="mt-10">
+                <div className="bg-gradient-to-r from-indigo-50 via-white to-purple-50 rounded-3xl shadow-xl p-8 border border-gray-200">
+                  <h2 className="text-2xl font-extrabold text-gray-900 mb-8 flex items-center gap-3">
+                    <span className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
+                      📊
+                    </span>
+                    Totals Overview
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Total Score */}
+                    <div className="flex items-center justify-between bg-white/90 backdrop-blur-lg p-6 rounded-2xl shadow-md hover:shadow-lg transition">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">
+                          Total Score
+                        </p>
+                        <p className="text-3xl font-bold text-indigo-700 mt-1">
+                          {totalScore.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="h-12 w-12 flex items-center justify-center bg-indigo-100 text-indigo-600 rounded-xl shadow-inner">
+                        ⭐
+                      </div>
+                    </div>
+
+                    {/* Total Weighted Rating */}
+                    <div className="flex items-center justify-between bg-white/90 backdrop-blur-lg p-6 rounded-2xl shadow-md hover:shadow-lg transition">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">
+                          Total Weighted Rating
+                        </p>
+                        <p className="text-3xl font-bold text-purple-700 mt-1">
+                          {totalWeightedRating.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="h-12 w-12 flex items-center justify-center bg-purple-100 text-purple-600 rounded-xl shadow-inner">
+                        🎯
+                      </div>
+                    </div>
+
+                    {/* Performance */}
+                    <div className="flex items-center justify-between bg-white/90 backdrop-blur-lg p-6 rounded-2xl shadow-md hover:shadow-lg transition">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">
+                          Performance
+                        </p>
+                        <p className="text-3xl font-bold text-emerald-700 mt-1">
+                          {performance || "N/A"}
+                        </p>
+                      </div>
+                      <div className="h-12 w-12 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-xl shadow-inner">
+                        🚀
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
-
-      
     </div>
   );
 }

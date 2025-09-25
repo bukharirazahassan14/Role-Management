@@ -270,6 +270,17 @@ export default function EmployeeWeeklyEvaluation() {
     fetchEvaluationPrograms();
   }, []);
 
+  useEffect(() => {
+    if (SerSelectedYear && SerSelectedMonth) {
+      const newDate = new Date(SerSelectedYear, SerSelectedMonth - 1, 1);
+      // ✅ format as yyyy-mm-dd in PKT (no UTC shift)
+      const formatted = newDate.toLocaleDateString("en-CA", {
+        timeZone: "Asia/Karachi",
+      });
+      setStartDate(formatted);
+    }
+  }, [SerSelectedYear, SerSelectedMonth]);
+
   // Handle score input + calculate weighted rating
   const handleScoreChange = (index, score, weightage, progId) => {
     const newScores = [...evaluationScores];
@@ -1136,159 +1147,161 @@ export default function EmployeeWeeklyEvaluation() {
             </thead>
 
             <tbody>
-               {evaluations
-    .filter((ev) => {
-      // If logged in user is Staff or Temp Staff
-      if (
-        currentUserRole === "Staff" ||
-        currentUserRole === "Temp Staff"
-      ) {
-        return (
-          ev.roleName !== "Super Admin" &&
-          ev.roleName !== "Management" &&
-          ev.roleName !== "HR"
-        );
-      }
-      return true; // other roles see everything
-    })
-    .map((ev) => {
-                let performance = ev.performance || "";
-                let colorClass = "text-gray-500 font-medium";
+              {evaluations
+                .filter((ev) => {
+                  // If logged in user is Staff or Temp Staff
+                  if (
+                    currentUserRole === "Staff" ||
+                    currentUserRole === "Temp Staff"
+                  ) {
+                    return (
+                      ev.roleName !== "Super Admin" &&
+                      ev.roleName !== "Management" &&
+                      ev.roleName !== "HR"
+                    );
+                  }
+                  return true; // other roles see everything
+                })
+                .map((ev) => {
+                  let performance = ev.performance || "";
+                  let colorClass = "text-gray-500 font-medium";
 
-                if (performance === "Poor")
-                  colorClass = "text-red-600 font-semibold";
-                else if (performance === "Partial")
-                  colorClass = "text-orange-500 font-semibold";
-                else if (performance === "Normal")
-                  colorClass = "text-yellow-500 font-semibold";
-                else if (performance === "Good")
-                  colorClass = "text-green-600 font-semibold";
-                else if (performance === "Excellent")
-                  colorClass = "text-blue-600 font-semibold";
+                  if (performance === "Poor")
+                    colorClass = "text-red-600 font-semibold";
+                  else if (performance === "Partial")
+                    colorClass = "text-orange-500 font-semibold";
+                  else if (performance === "Normal")
+                    colorClass = "text-yellow-500 font-semibold";
+                  else if (performance === "Good")
+                    colorClass = "text-green-600 font-semibold";
+                  else if (performance === "Excellent")
+                    colorClass = "text-blue-600 font-semibold";
 
-                return (
-                  <tr key={ev._id} className="hover:bg-indigo-50 border-b">
-                    {/* View & Edit Buttons */}
-                    <td className="px-4 py-4 text-center align-middle">
-                      <div className="flex justify-center items-center gap-6">
-                        <button
-                          onClick={() => handleViewEvaluation(ev._id)}
-                          className="text-indigo-600 hover:text-indigo-900 transition"
-                          title="View Evaluation"
-                        >
-                          <Glasses className="w-6 h-6" />
-                        </button>
-
-                        {(currentUserRole === "Super Admin" ||
-                          currentUserRole === "HR" ||
-                          currentUserRole === "Management") && (
+                  return (
+                    <tr key={ev._id} className="hover:bg-indigo-50 border-b">
+                      {/* View & Edit Buttons */}
+                      <td className="px-4 py-4 text-center align-middle">
+                        <div className="flex justify-center items-center gap-6">
                           <button
-                            onClick={() => handleEditEvaluation(ev._id)}
+                            onClick={() => handleViewEvaluation(ev._id)}
                             className="text-indigo-600 hover:text-indigo-900 transition"
-                            title="Edit Evaluation"
+                            title="View Evaluation"
                           >
-                            <Edit className="w-6 h-6" />
+                            <Glasses className="w-6 h-6" />
                           </button>
-                        )}
-                        {/* Add New Record */}
-                        {(currentUserRole === "Super Admin" ||
-                          currentUserRole === "HR" ||
-                          currentUserRole === "Management") && (
-                          <button
-                            onClick={() => handleAddUser(ev._id)}
-                            className="text-indigo-600 hover:text-indigo-900 transition"
-                            title="Add New Record"
-                          >
-                            <FilePlus className="w-6 h-6" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
 
-                    {/* Data Columns */}
-                    <td className="px-4 py-4 truncate">{ev.fullName || ""}</td>
+                          {(currentUserRole === "Super Admin" ||
+                            currentUserRole === "HR" ||
+                            currentUserRole === "Management") && (
+                            <button
+                              onClick={() => handleEditEvaluation(ev._id)}
+                              className="text-indigo-600 hover:text-indigo-900 transition"
+                              title="Edit Evaluation"
+                            >
+                              <Edit className="w-6 h-6" />
+                            </button>
+                          )}
+                          {/* Add New Record */}
+                          {(currentUserRole === "Super Admin" ||
+                            currentUserRole === "HR" ||
+                            currentUserRole === "Management") && (
+                            <button
+                              onClick={() => handleAddUser(ev._id)}
+                              className="text-indigo-600 hover:text-indigo-900 transition"
+                              title="Add New Record"
+                            >
+                              <FilePlus className="w-6 h-6" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
 
-                    {/* Weeks Column */}
-                    <td className="px-4 py-4 truncate">
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4].map((week) => {
-                          const isActive = ev.weekNumbers?.includes(week);
+                      {/* Data Columns */}
+                      <td className="px-4 py-4 truncate">
+                        {ev.fullName || ""}
+                      </td>
 
-                          return (
-                            <span
-                              key={week}
-                              className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition
+                      {/* Weeks Column */}
+                      <td className="px-4 py-4 truncate">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4].map((week) => {
+                            const isActive = ev.weekNumbers?.includes(week);
+
+                            return (
+                              <span
+                                key={week}
+                                className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition
                         ${
                           isActive
                             ? "bg-indigo-600 text-white shadow-md"
                             : "bg-gray-200 text-gray-400"
                         }
                       `}
-                              title={`Week ${week}`}
-                            >
-                              {week}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </td>
+                                title={`Week ${week}`}
+                              >
+                                {week}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </td>
 
-                    {/* Start Date */}
-                    <td className="px-4 py-4 truncate">
-                      {ev.weekStart
-                        ? new Date(ev.weekStart).toLocaleDateString("en-US", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : ""}
-                    </td>
+                      {/* Start Date */}
+                      <td className="px-4 py-4 truncate">
+                        {ev.weekStart
+                          ? new Date(ev.weekStart).toLocaleDateString("en-US", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : ""}
+                      </td>
 
-                    {/* End Date (narrower column) */}
-                    <td className="px-4 py-4 truncate">
-                      {ev.weekEnd
-                        ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : ""}
-                    </td>
+                      {/* End Date (narrower column) */}
+                      <td className="px-4 py-4 truncate">
+                        {ev.weekEnd
+                          ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : ""}
+                      </td>
 
-                    {/* Score + Rating (right aligned) */}
-                    <td className="px-4 py-4 truncate text-right">
-                      {ev.totalScoreSum > 0 ? ev.totalScoreSum : ""}
-                    </td>
-                    <td className="px-4 py-4 truncate text-right">
-                      {ev.totalWeightedRatingSum > 0
-                        ? ev.totalWeightedRatingSum.toFixed(2)
-                        : ""}
-                    </td>
+                      {/* Score + Rating (right aligned) */}
+                      <td className="px-4 py-4 truncate text-right">
+                        {ev.totalScoreSum > 0 ? ev.totalScoreSum : ""}
+                      </td>
+                      <td className="px-4 py-4 truncate text-right">
+                        {ev.totalWeightedRatingSum > 0
+                          ? ev.totalWeightedRatingSum.toFixed(2)
+                          : ""}
+                      </td>
 
-                    {/* Performance full word */}
-                    <td
-                      className={`px-4 py-4 truncate text-center ${colorClass}`}
-                    >
-                      {performance || ""}
-                    </td>
+                      {/* Performance full word */}
+                      <td
+                        className={`px-4 py-4 truncate text-center ${colorClass}`}
+                      >
+                        {performance || ""}
+                      </td>
 
-                    {/* Delete Button */}
-                    <td className="px-4 py-4 text-center">
-                      {(currentUserRole === "Super Admin" ||
-                        currentUserRole === "HR" ||
-                        currentUserRole === "Management") && (
-                        <button
-                          onClick={() => handleDeleteEvaluation(ev._id)}
-                          className="text-red-600 hover:text-red-800 transition"
-                          title="Delete Evaluation"
-                        >
-                          <Trash2 className="w-6 h-6" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                      {/* Delete Button */}
+                      <td className="px-4 py-4 text-center">
+                        {(currentUserRole === "Super Admin" ||
+                          currentUserRole === "HR" ||
+                          currentUserRole === "Management") && (
+                          <button
+                            onClick={() => handleDeleteEvaluation(ev._id)}
+                            className="text-red-600 hover:text-red-800 transition"
+                            title="Delete Evaluation"
+                          >
+                            <Trash2 className="w-6 h-6" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
