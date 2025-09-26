@@ -25,8 +25,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   ]); // default current month
   const [monthlyAverage, setMonthlyAverage] = useState(0);
   const [Action, setAction] = useState("");
-const didFetchMonthly = useRef(false);
-  
+  const didFetchMonthly = useRef(false);
 
   const months = [
     "Jan",
@@ -173,7 +172,6 @@ const didFetchMonthly = useRef(false);
     fetchEvaluationRecord(updated);
   };
 
-  
   // ✅ Fetch multi-month data
   const fetchMonthlyData = useCallback(
     async (months) => {
@@ -203,27 +201,27 @@ const didFetchMonthly = useRef(false);
     );
   };
 
-/// ✅ Fetch when months change
-useEffect(() => {
-  if (viewMode === "Monthly" && selectedMonths.length > 0) {
-    // prevent duplicate fetch in StrictMode
-    if (didFetchMonthly.current) return;
+  /// ✅ Fetch when months change
+  useEffect(() => {
+    if (viewMode === "Monthly" && selectedMonths.length > 0) {
+      // prevent duplicate fetch in StrictMode
+      if (didFetchMonthly.current) return;
 
-    didFetchMonthly.current = true;
-    fetchMonthlyData(selectedMonths);
-  }
-}, [selectedMonths, viewMode, fetchMonthlyData]);
+      didFetchMonthly.current = true;
+      fetchMonthlyData(selectedMonths);
+    }
+  }, [selectedMonths, viewMode, fetchMonthlyData]);
 
-// ✅ Set default month when switching to Monthly
-useEffect(() => {
-  if (viewMode === "Monthly") {
-    const currentMonth = new Date().getMonth() + 1;
-    setSelectedMonths([currentMonth]);
+  // ✅ Set default month when switching to Monthly
+  useEffect(() => {
+    if (viewMode === "Monthly") {
+      const currentMonth = new Date().getMonth() + 1;
+      setSelectedMonths([currentMonth]);
 
-    // Reset guard so next change actually fetches
-    didFetchMonthly.current = false;
-  }
-}, [viewMode]);
+      // Reset guard so next change actually fetches
+      didFetchMonthly.current = false;
+    }
+  }, [viewMode]);
 
   if (loading) {
     return (
