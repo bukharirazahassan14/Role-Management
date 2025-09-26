@@ -38,7 +38,9 @@ export async function GET(req) {
       userId: new mongoose.Types.ObjectId(userId),
       weekNumber: { $in: weekNumbers },
       weekStart: { $gte: startDate, $lte: endDate },
-    }).select("weekNumber").lean();
+    })
+      .select("weekNumber")
+      .lean();
 
     const existingWeeks = existing.map((e) => e.weekNumber);
 
@@ -104,9 +106,7 @@ export async function GET(req) {
     // Calculate performance
     const totalWeeks = existingWeeks.length;
     const avgWeightedRating =
-      totalWeeks > 0
-        ? evaluations[0].totalWeightedRating / totalWeeks
-        : 0;
+      totalWeeks > 0 ? evaluations[0].totalWeightedRating / 4 : 0;
 
     let performance = "";
     if (totalWeeks > 0) {
@@ -117,6 +117,23 @@ export async function GET(req) {
       else if (avgWeightedRating > 4) performance = "Excellent";
       else performance = "Unknown";
     }
+
+    // ✅ Monthly Average
+    const monthlyAverage =
+      totalWeeks > 0
+        ? (evaluations[0].totalWeightedRating / 4).toFixed(2)
+        : "0.00";
+
+    // ✅ Action (like Excel IFS)
+    let Action = "";
+    const avg = parseFloat(monthlyAverage);
+
+    if (avg <= 1) Action = "Urgent Meeting";
+    else if (avg <= 2) Action = "Hr Meeting";
+    else if (avg <= 3) Action = "Motivate";
+    else if (avg <= 4) Action = "Nothing";
+    else if (avg <= 5) Action = "Bonus";
+    else Action = "Unknown";
 
     const result = {
       userId,
@@ -135,7 +152,9 @@ export async function GET(req) {
       totalScore: evaluations[0].totalScore,
       totalWeightage: evaluations[0].totalWeightage,
       totalWeightedRating: evaluations[0].totalWeightedRating,
-      performance, // ✅ Added field here
+      performance,            // Existing field
+      monthlyAverage,         // Computed monthly average
+      Action,                 // ✅ New field like Excel IFS
     };
 
     return NextResponse.json(result, { status: 200 });
