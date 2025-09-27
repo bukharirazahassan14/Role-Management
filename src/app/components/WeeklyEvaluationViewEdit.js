@@ -1,5 +1,5 @@
 "use client";
-import { use, useEffect, useState, useCallback, useRef } from "react";
+import { use, useEffect, useState, useCallback, useRef, useMemo } from "react";
 
 export default function WeeklyEvaluationViewEdit({ searchParams }) {
   const params = use(searchParams);
@@ -20,11 +20,10 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   const [totalWeightedRating, setTotalWeightedRating] = useState(0);
   const [performance, setPerformance] = useState("");
   const [viewMode, setViewMode] = useState("Weekly");
-  const [selectedMonths, setSelectedMonths] = useState([
-    new Date().getMonth() + 1,
-  ]); // default current month
+  const [selectedMonths, setSelectedMonths] = useState([Number(month)]);
   const [monthlyAverage, setMonthlyAverage] = useState(0);
   const [Action, setAction] = useState("");
+  const [Increment, setIncrement] = useState("");
   const didFetchMonthly = useRef(false);
 
   const months = [
@@ -161,18 +160,12 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
 
   // ✅ Handle week selection
   const handleWeekClick = (week) => {
-    let updated = [];
-    if (selectedWeek.includes(week)) {
-      updated = selectedWeek.filter((w) => w !== week);
-      if (updated.length === 0) updated = [1, 2, 3, 4]; // fallback
-    } else {
-      updated = [...selectedWeek, week];
-    }
-    //setSelectedWeek(updated);
+    // Always set the selected week to the clicked one
+    const updated = [week];
+    // Fetch evaluation record for the selected week
     fetchEvaluationRecord(updated);
   };
 
-  // ✅ Fetch multi-month data
   const fetchMonthlyData = useCallback(
     async (months) => {
       try {
@@ -183,13 +176,47 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
 
         if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
-        const data = await res.json();
+        const result = await res.json();
+        const data = result[0] || {};
+
         console.log("📦 API Response >>>>>>>", data);
+
+        // ✅ Update states
+        setSelectedWeek(data.weeksCovered || []);
+
+        // Set week start & end
+        setWeekStart(data.monthStart?.split("T")[0] || "");
+        setWeekEnd(data.monthEnd?.split("T")[0] || "");
+
+        // Map scores to programs
+        const scoresMap = new Map(
+          (data.scores || []).map((s) => [s.kpiId.toString(), s])
+        );
+
+        setEvaluationScores(
+          evaluationPrograms.map((program) => {
+            const scoreObj = scoresMap.get(program._id.toString()) || {};
+            return {
+              kpiId: program._id,
+              score: scoreObj.score ?? 0,
+              weightage: scoreObj.weightage ?? program.Weightage,
+              weightedRating: scoreObj.weightedRating ?? 0,
+            };
+          })
+        );
+
+        // ✅ Totals and performance fields
+        setTotalScore(data.totalScore ?? 0);
+        setTotalWeightedRating(data.totalWeightedRating ?? 0);
+        setPerformance(data.performance ?? "");
+        setMonthlyAverage(data.monthlyAverage ?? 0);
+        setAction(data.Action ?? "");
+        setIncrement(data.Increment ?? "");
       } catch (error) {
         console.error("❌ Error fetching monthly data:", error);
       }
     },
-    [year]
+    [year, evaluationPrograms] // <-- use evaluationPrograms instead of programs
   );
 
   // ✅ Toggle month selection
@@ -204,9 +231,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   /// ✅ Fetch when months change
   useEffect(() => {
     if (viewMode === "Monthly" && selectedMonths.length > 0) {
-      // prevent duplicate fetch in StrictMode
-      if (didFetchMonthly.current) return;
-
+      if (didFetchMonthly.current) return; // prevent duplicate fetch in StrictMode
       didFetchMonthly.current = true;
       fetchMonthlyData(selectedMonths);
     }
@@ -215,13 +240,36 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   // ✅ Set default month when switching to Monthly
   useEffect(() => {
     if (viewMode === "Monthly") {
-      const currentMonth = new Date().getMonth() + 1;
-      setSelectedMonths([currentMonth]);
+      // 👉 Reset to current month when switching to Monthly mode
+      setSelectedMonths([Number(month)]);
+      didFetchMonthly.current = false; // allow next monthly fetch
+    } else if (viewMode === "Weekly") {
+      // 👉 Reset to default week (e.g., week 1) or keep the current week
+      const updated = [Number(weekNumber) || 1];
+      setSelectedWeek(updated);
 
-      // Reset guard so next change actually fetches
-      didFetchMonthly.current = false;
+      // 👉 Fetch evaluation record for the selected week
+      fetchEvaluationRecord(updated);
     }
-  }, [viewMode]);
+  }, [viewMode, month, weekNumber, fetchEvaluationRecord]);
+
+  const incrementDisplay = useMemo(() => {
+    // prefer server-provided Increment state if available
+    if (Increment && Increment !== "") return Increment;
+    // fallback to monthlyAverage logic
+    if (monthlyAverage <= 2) return "NO";
+    if (monthlyAverage <= 3) return "1%";
+    if (monthlyAverage <= 4) return "1.5%";
+    return "2%";
+  }, [Increment, monthlyAverage]);
+
+  const incrementIcon = useMemo(() => {
+    if (!incrementDisplay || incrementDisplay === "NO") return "❌";
+    if (incrementDisplay === "1%") return "📈";
+    if (incrementDisplay === "1.5%") return "💹";
+    if (incrementDisplay === "2%") return "🏆";
+    return "❌";
+  }, [incrementDisplay]);
 
   if (loading) {
     return (
@@ -238,7 +286,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
         <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center justify-center gap-4 drop-shadow-sm">
           {/* Year Circle */}
           <span className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-300 text-yellow-900 font-bold text-xl shadow-lg">
-            {year || "2025"}
+            {year}
           </span>
           Evaluation Overview
           {/* Modern Inline Toggle */}
@@ -277,7 +325,6 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
               return (
                 <button
                   key={month}
-                  onClick={() => handleMonthClick(monthNumber)} // ✅ Updated handler
                   className={`px-4 py-1.5 rounded-full font-medium transition shadow-sm ${
                     isSelected
                       ? "bg-indigo-600 text-white shadow-md scale-105"
@@ -448,99 +495,86 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
               </div>
 
               {/* Totals Section */}
-              <div className="mt-8">
-                <div className="rounded-2xl bg-gradient-to-r from-indigo-50 via-white to-purple-50 p-6 md:p-8 border border-gray-200">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                    Monthly Summary
-                  </h2>
+              {viewMode === "Monthly" && (
+                <div className="mt-8">
+                  <div className="rounded-2xl bg-gradient-to-r from-indigo-50 via-white to-purple-50 p-6 md:p-8 border border-gray-200">
+                    <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                      Monthly Summary
+                    </h2>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                    {/* Monthly Average */}
-                    <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
-                      <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
-                        Monthly Avg
-                      </div>
-                      <div className="text-pink-600 text-2xl md:text-3xl font-semibold">
-                        {monthlyAverage}
-                      </div>
-                      <div className="absolute -top-2 right-2 h-7 w-7 flex items-center justify-center bg-pink-100 text-pink-600 rounded-full text-sm shadow-md">
-                        📈
-                      </div>
-                    </div>
-
-                    {/* Performance */}
-                    <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
-                      <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
-                        Performance
-                      </div>
-                      <div className="text-emerald-700 text-2xl md:text-3xl font-semibold">
-                        {performance || "N/A"}
-                      </div>
-                      <div className="absolute -top-2 right-2 h-7 w-7 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-full text-sm shadow-md">
-                        🚀
-                      </div>
-                    </div>
-
-                    {/* Action */}
-                    <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
-                      <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
-                        Action
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                      {/* Monthly Average */}
+                      <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
+                        <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
+                          Monthly Avg
+                        </div>
+                        <div className="text-pink-600 text-2xl md:text-3xl font-semibold">
+                          {monthlyAverage ?? "N/A"}
+                        </div>
+                        <div className="absolute -top-2 right-2 h-7 w-7 flex items-center justify-center bg-pink-100 text-pink-600 rounded-full text-sm shadow-md">
+                          📈
+                        </div>
                       </div>
 
-                      {/* Show Action Text */}
-                      <div className="text-indigo-700 text-2xl md:text-3xl font-semibold">
-                        {Action}
+                      {/* Performance */}
+                      <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
+                        <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
+                          Performance
+                        </div>
+                        <div className="text-emerald-700 text-2xl md:text-3xl font-semibold">
+                          {performance || "N/A"}
+                        </div>
+                        <div className="absolute -top-2 right-2 h-7 w-7 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-full text-sm shadow-md">
+                          🚀
+                        </div>
                       </div>
 
-                      {/* Dynamic Icon */}
-                      <div
-                        className="absolute -top-2 right-2 h-8 w-8 flex items-center justify-center 
-                  bg-indigo-100 text-indigo-600 rounded-full text-lg shadow-md"
-                      >
-                        {Action === "Urgent Meeting" && "🚨"}
-                        {Action === "Hr Meeting" && "🧑‍💼"}
-                        {Action === "Motivate" && "💪"}
-                        {Action === "Nothing" && "🙂"}
-                        {Action === "Bonus" && "🎉"}
-                      </div>
-                    </div>
+                      {/* Action */}
+                      <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
+                        <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
+                          Action
+                        </div>
 
-                    {/* Eligible for Increment */}
-                    <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
-                      {/* Heading */}
-                      <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
-                        Increment
-                      </div>
+                        <div className="text-indigo-700 text-2xl md:text-3xl font-semibold">
+                          {Action || "N/A"}
+                        </div>
 
-                      {/* Increment Value based on monthlyAverage */}
-                      <div className="text-green-700 text-2xl md:text-3xl font-semibold">
-                        {monthlyAverage <= 1
-                          ? "NO"
-                          : monthlyAverage <= 2
-                          ? "NO"
-                          : monthlyAverage <= 3
-                          ? "1%"
-                          : monthlyAverage <= 4
-                          ? "1.5%"
-                          : "2%"}
+                        <div
+                          className="absolute -top-2 right-2 h-8 w-8 flex items-center justify-center 
+                   bg-indigo-100 text-indigo-600 rounded-full text-lg shadow-md"
+                          aria-hidden
+                        >
+                          {Action === "Urgent Meeting" && "🚨"}
+                          {Action === "Hr Meeting" && "🧑‍💼"}
+                          {Action === "Motivate" && "💪"}
+                          {Action === "Nothing" && "🙂"}
+                          {Action === "Bonus" && "🎉"}
+                        </div>
                       </div>
 
-                      {/* Dynamic Icon */}
-                      <div
-                        className="absolute -top-2 right-2 h-8 w-8 flex items-center justify-center 
-                  bg-green-100 text-green-600 rounded-full text-lg shadow-md"
-                      >
-                        {monthlyAverage <= 2 && "❌"} {/* Not eligible */}
-                        {monthlyAverage > 2 && monthlyAverage <= 3 && "📈"}{" "}
-                        {/* Small increment */}
-                        {monthlyAverage > 3 && monthlyAverage <= 4 && "💹"}{" "}
-                        {/* Moderate increment */}
-                        {monthlyAverage > 4 && "🏆"} {/* Top increment */}
+                      {/* Eligible for Increment */}
+                      <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
+                        <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
+                          Increment
+                        </div>
+
+                        {/* Use computed incrementDisplay (prefers API value, falls back to monthlyAverage logic) */}
+                        <div className="text-green-700 text-2xl md:text-3xl font-semibold">
+                          {incrementDisplay}
+                        </div>
+
+                        <div
+                          className="absolute -top-2 right-2 h-8 w-8 flex items-center justify-center 
+                   bg-green-100 text-green-600 rounded-full text-lg shadow-md"
+                          aria-hidden
+                        >
+                          {incrementIcon}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

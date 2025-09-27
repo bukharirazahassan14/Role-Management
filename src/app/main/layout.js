@@ -15,7 +15,7 @@ export default function MainLayout({ children }) {
       : pathname.includes("/roles")
       ? "Roles"
       : pathname.includes("/weeklyevaluation")
-      ? "Weekly Evaluation"
+      ? "Performance Evaluation"
       : pathname.includes("/WeeklyEvaluationViewEdit")
       ? "Evaluation Overview"
       : pathname.includes("/EvaluationPrograms")

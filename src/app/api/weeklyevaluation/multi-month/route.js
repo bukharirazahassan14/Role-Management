@@ -8,7 +8,7 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const year = Number(searchParams.get("year"));
-    const monthsParam = searchParams.get("months"); // e.g. "9,11"
+    const monthsParam = searchParams.get("months"); // e.g. "9"
 
     if (!year || !monthsParam) {
       return NextResponse.json(
@@ -17,11 +17,11 @@ export async function GET(req) {
       );
     }
 
-    // ✅ Parse months into an array of numbers
+    // Parse selected months → [9]
     const selectedMonths = monthsParam
       .split(",")
-      .map(m => Number(m.trim()))
-      .filter(m => !isNaN(m));
+      .map((m) => Number(m.trim()))
+      .filter((m) => !isNaN(m));
 
     if (selectedMonths.length === 0) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function GET(req) {
       );
     }
 
-    // ✅ Run aggregation
+    // ✅ Run your provided aggregation
     const result = await WeeklyEvaluation.aggregate([
       {
         $match: {
@@ -42,29 +42,51 @@ export async function GET(req) {
           }
         }
       },
-      {
+
+      { 
         $lookup: {
           from: "users",
           localField: "userId",
           foreignField: "_id",
           as: "user"
-        }
+        } 
       },
       { $unwind: "$user" },
+
       { $unwind: "$scores" },
+
       {
         $group: {
-          _id: "$scores.kpiId",
-          totalScore: { $sum: "$scores.score" },
-          totalWeightedRating: { $sum: "$scores.weightedRating" },
+          _id: {
+            kpiId: "$scores.kpiId",
+            weekNumber: "$weekNumber"
+          },
+          score: { $sum: "$scores.score" },
+          weightedRating: { $sum: "$scores.weightedRating" },
           weightage: { $first: "$scores.weightage" },
-          firstWeekStart: { $min: "$weekStart" },
-          lastWeekEnd: { $max: "$weekEnd" },
+          weekStart: { $first: "$weekStart" },
+          weekEnd: { $first: "$weekEnd" },
           firstName: { $first: "$user.firstName" },
           lastName: { $first: "$user.lastName" },
           primaryEmail: { $first: "$user.primaryEmail" }
         }
       },
+
+      {
+        $group: {
+          _id: "$_id.kpiId",
+          totalScore: { $sum: "$score" },
+          totalWeightedRating: { $sum: "$weightedRating" },
+          weightage: { $first: "$weightage" },
+          firstWeekStart: { $min: "$weekStart" },
+          lastWeekEnd: { $max: "$weekEnd" },
+          weeksCovered: { $addToSet: "$_id.weekNumber" },
+          firstName: { $first: "$firstName" },
+          lastName: { $first: "$lastName" },
+          primaryEmail: { $first: "$primaryEmail" }
+        }
+      },
+
       {
         $group: {
           _id: null,
@@ -81,21 +103,81 @@ export async function GET(req) {
           totalWeightage: { $sum: "$weightage" },
           monthStart: { $min: "$firstWeekStart" },
           monthEnd: { $max: "$lastWeekEnd" },
+          weeksCovered: { $addToSet: "$weeksCovered" },
           firstName: { $first: "$firstName" },
           lastName: { $first: "$lastName" },
           primaryEmail: { $first: "$primaryEmail" }
         }
       },
+
+      {
+        $addFields: {
+          weeksCovered: {
+            $reduce: {
+              input: "$weeksCovered",
+              initialValue: [],
+              in: { $setUnion: ["$$value", "$$this"] }
+            }
+          }
+        }
+      },
+
       {
         $addFields: {
           fullName: { $concat: ["$firstName", " ", "$lastName"] },
-          // ✅ Dynamic monthly average
           monthlyAverage: {
             $divide: [
               "$totalWeightedRating",
-              { $multiply: [selectedMonths.length, 4] } // months × 4 weeks
+              { $multiply: [selectedMonths.length, 4] }
             ]
           }
+        }
+      },
+
+      {
+        $addFields: {
+          performance: {
+            $switch: {
+              branches: [
+                { case: { $lte: ["$monthlyAverage", 1] }, then: "Poor" },
+                { case: { $lte: ["$monthlyAverage", 2] }, then: "Partial" },
+                { case: { $lte: ["$monthlyAverage", 3] }, then: "Normal" },
+                { case: { $lte: ["$monthlyAverage", 4] }, then: "Good" },
+                { case: { $gt: ["$monthlyAverage", 4] }, then: "Excellent" }
+              ],
+              default: "N/A"
+            }
+          },
+          Action: {
+            $switch: {
+              branches: [
+                { case: { $lte: ["$monthlyAverage", 1] }, then: "Urgent Meeting" },
+                { case: { $lte: ["$monthlyAverage", 2] }, then: "Hr Meeting" },
+                { case: { $lte: ["$monthlyAverage", 3] }, then: "Motivate" },
+                { case: { $lte: ["$monthlyAverage", 4] }, then: "Nothing" },
+                { case: { $lte: ["$monthlyAverage", 5] }, then: "Bonus" }
+              ],
+              default: "N/A"
+            }
+          },
+          Increment: {
+            $switch: {
+              branches: [
+                { case: { $lte: ["$monthlyAverage", 1] }, then: "NO" },
+                { case: { $lte: ["$monthlyAverage", 2] }, then: "NO" },
+                { case: { $lte: ["$monthlyAverage", 3] }, then: "1%" },
+                { case: { $lte: ["$monthlyAverage", 4] }, then: "1.5%" },
+                { case: { $gt: ["$monthlyAverage", 4] }, then: "2%" }
+              ],
+              default: "NO"
+            }
+          }
+        }
+      },
+
+      {
+        $addFields: {
+          weeksCovered: { $sortArray: { input: "$weeksCovered", sortBy: 1 } }
         }
       }
     ]);
