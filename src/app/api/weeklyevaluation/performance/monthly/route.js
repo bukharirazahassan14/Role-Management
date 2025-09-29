@@ -82,7 +82,7 @@ export async function GET(req) {
                     if: { $eq: ["$weeksCount", 0] },
                     then: 0,
                     else: {
-                      $divide: ["$totalWeightedRatingSum", "$weeksCount"],
+                      $divide: ["$totalWeightedRatingSum", 4],
                     },
                   },
                 },
@@ -105,6 +105,7 @@ export async function GET(req) {
           totalWeightedRatingSum: {
             $ifNull: ["$evaluations.totalWeightedRatingSum", 0],
           },
+          avgWeightedRating: { $ifNull: ["$evaluations.avgWeightedRating", 0] },
           performance: {
             $cond: {
               if: {

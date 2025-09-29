@@ -51,23 +51,65 @@ export default function Roles() {
 
   return (
     <div className="p-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {roles.map((role) => {
-          const Icon = role.icon;
-          return (
-            <div
-              key={role.name}
-              className="flex flex-col items-center bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition duration-300"
-            >
-              <div className="bg-indigo-100 p-4 rounded-full mb-4">
-                <Icon className="h-8 w-8 text-indigo-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">{role.name}</h3>
-              <p className="text-gray-500 text-center">{role.description}</p>
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    {roles.map((role) => {
+      const Icon = role.icon;
+      return (
+        <div
+          key={role.name}
+          className="
+            group relative flex flex-col items-center
+            rounded-2xl p-8 cursor-pointer
+            bg-white/80 backdrop-blur-sm
+            shadow-lg hover:shadow-2xl
+            border border-gray-100
+            transition-all duration-300
+            hover:-translate-y-2 hover:border-indigo-300
+          "
+        >
+          {/* Gradient accent ring behind the icon */}
+          <div
+            className="
+              absolute -top-6 flex items-center justify-center
+              h-16 w-16 rounded-full
+              bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500
+              shadow-md group-hover:scale-110 transition-transform duration-300
+            "
+          >
+            <div className="h-14 w-14 bg-white rounded-full flex items-center justify-center shadow-sm">
+              <Icon className="h-7 w-7 text-indigo-600 group-hover:text-indigo-700 transition-colors" />
             </div>
-          );
-        })}
-      </div>
-    </div>
+          </div>
+
+          {/* Title & Description */}
+          <div className="mt-12 text-center">
+            <h3
+              className="
+                text-xl font-semibold text-gray-900 mb-2
+                group-hover:text-indigo-600 transition-colors
+              "
+            >
+              {role.name}
+            </h3>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              {role.description}
+            </p>
+          </div>
+
+          {/* Bottom Glow */}
+          <div
+            className="
+              absolute inset-x-0 bottom-0 h-1
+              bg-gradient-to-r from-indigo-500 to-pink-500
+              rounded-b-2xl opacity-0
+              group-hover:opacity-100 transition-opacity duration-300
+            "
+          />
+        </div>
+      );
+    })}
+  </div>
+</div>
+
   );
 }

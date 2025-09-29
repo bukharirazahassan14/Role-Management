@@ -107,8 +107,7 @@ export default function EmployeeWeeklyEvaluation() {
         ...(weekParam ? { week: weekParam } : {}), // only include week if needed
       }).toString();
 
-      console.log("query>>>>>>>>>>>>>>>", query);
-
+     
       const res = await fetch(
         `/api/weeklyevaluation/performance/monthly?${query}`
       );
@@ -191,6 +190,9 @@ export default function EmployeeWeeklyEvaluation() {
       if (Array.isArray(data)) {
         setEvaluations(data);
       }
+
+      console.log('>>>>>>>>>>>>>>>>>>>>>>data ',data);
+
     } catch (err) {
       console.error("Failed to fetch evaluations:", err);
     } finally {
@@ -901,7 +903,7 @@ export default function EmployeeWeeklyEvaluation() {
                   {/* ✅ Comments Section */}
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      💬 Comments
+                      💬 If any critical comment
                     </label>
                     <textarea
                       value={comments}
@@ -1140,7 +1142,7 @@ export default function EmployeeWeeklyEvaluation() {
                 <th className="px-4 py-3 w-2/12">Start Date</th>
                 <th className="px-4 py-3 w-2/12">End Date</th>
                 <th className="px-4 py-3 w-1/12 text-right">Score</th>
-                <th className="px-4 py-3 w-1/12 text-right">Rating</th>
+                <th className="px-4 py-3 w-2/12 text-right">AVG Rating</th>
                 <th className="px-4 py-3 w-2/12 text-center">Performance</th>
                 <th className="px-4 py-3 w-1/12 text-center">Action</th>
               </tr>
@@ -1273,8 +1275,8 @@ export default function EmployeeWeeklyEvaluation() {
                         {ev.totalScoreSum > 0 ? ev.totalScoreSum : ""}
                       </td>
                       <td className="px-4 py-4 truncate text-right">
-                        {ev.totalWeightedRatingSum > 0
-                          ? ev.totalWeightedRatingSum.toFixed(2)
+                        {ev.avgWeightedRating > 0
+                          ? ev.avgWeightedRating.toFixed(2)
                           : ""}
                       </td>
 
