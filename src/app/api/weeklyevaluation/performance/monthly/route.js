@@ -1,3 +1,5 @@
+///api/weeklyevaluation/performance/monthly/route.js
+
 import connectToDB from "@/lib/mongodb";
 import User from "@/models/User";
 import WeeklyEvaluation from "@/models/WeeklyEvaluation";
@@ -10,7 +12,7 @@ export async function GET(req) {
     const year = parseInt(searchParams.get("year"));
     const month = parseInt(searchParams.get("month"));
 
-    // support multiple weeks e.g. week=1,2,3
+    // support multiple weeks e.g. week=1,2,3,4
     const weekParam = searchParams.get("week");
     const weeks =
       weekParam && weekParam.trim().length > 0
