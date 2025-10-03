@@ -20,6 +20,8 @@ export default function MainLayout({ children }) {
       ? "Evaluation Overview"
       : pathname.includes("/EvaluationPrograms")
       ? "Evaluation Programs"
+      : pathname.includes("/UserProfile")
+      ? "User Profile"
       : "";
 
   return (

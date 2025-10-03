@@ -3,28 +3,14 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  UserCheck,
   Shield,
   Briefcase,
   Users,
   User,
   UserPlus,
   TrendingUp,
-  Award,
-  Star,
 } from "lucide-react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 /* ---------------- Modern Toast ---------------- */
 function Toast({ message, onClose }) {
@@ -76,6 +62,7 @@ const UserProfileCard = ({
   currentIndex,
   totalCount,
 }) => {
+  const router = useRouter();
   // Avatar gradient color
   const avatarBgColor = useMemo(() => {
     const colors = [
@@ -86,6 +73,11 @@ const UserProfileCard = ({
     ];
     return colors[currentIndex % colors.length];
   }, [currentIndex]);
+
+  const handleAvatarClick = () => {
+    // Navigate to profile page with member id in query string
+    router.push(`/main/UserProfile?userID=${member.id}`);
+  };
 
   return (
     <div className="lg:col-span-4 rounded-3xl p-5 shadow-lg bg-white/80 backdrop-blur-md border border-gray-100 flex flex-col justify-between relative overflow-hidden">
@@ -106,7 +98,7 @@ const UserProfileCard = ({
       <div className="flex flex-col items-center text-center">
         {/* Avatar */}
         <div
-          onClick={() => console.log("Clicked Member ID:", member.id)}
+          onClick={handleAvatarClick}
           className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-extrabold text-white shadow-lg mb-3
                       bg-gradient-to-br ${avatarBgColor} ring-2 ring-white ring-offset-2`}
         >
@@ -184,11 +176,6 @@ export default function Dashboard() {
   const [monthlyPerformance, setMonthlyPerformance] = useState([]);
   const didFetch = useRef(false);
   const [teamMembers, setTeamMembers] = useState([]);
-  const [teamStats, setTeamStats] = useState({
-    totalUsers: 0,
-    sumRatings: 0,
-    overallPerformance: 0,
-  });
 
   // Months
   const months = [
@@ -382,29 +369,6 @@ export default function Dashboard() {
         );
 
         setMonthlyPerformance(sortedData);
-
-        // ✅ Count of users
-        const totalUsers = sortedData.length;
-
-        // ✅ Sum of avgWeightedRating
-        const sumRatings = sortedData.reduce(
-          (sum, user) => sum + (user.avgWeightedRating || 0),
-          0
-        );
-
-        // ✅ Overall team performance
-        const overallPerformance = totalUsers > 0 ? sumRatings / totalUsers : 0;
-
-        console.log("Total Users:", totalUsers);
-        console.log("Sum of Ratings:", sumRatings);
-        console.log("Overall Team Performance:", overallPerformance.toFixed(2));
-
-        // If you want to store in state for display in UI
-        setTeamStats({
-          totalUsers,
-          sumRatings,
-          overallPerformance: overallPerformance.toFixed(2),
-        });
       } catch (err) {
         console.error("Monthly performance fetch error:", err);
       }
@@ -699,61 +663,8 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Team Overview Line Chart */}
-        <div className="lg:col-span-4 bg-white rounded-3xl shadow-xl p-5 border border-gray-100">
-          <h3 className="text-xl font-extrabold text-gray-900 mb-3">
-            Team Performance
-          </h3>
-          <div className="w-full h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={[
-                  { metric: "Total Users", value: teamStats.totalUsers },
-                  {
-                    metric: "Overall Performance",
-                    value: Number(teamStats.overallPerformance),
-                  },
-                ]}
-                margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis
-                  dataKey="metric"
-                  tick={{ fontSize: 12, fontWeight: 500 }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 12, fontWeight: 500 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#fff",
-                    borderRadius: "12px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                    border: "none",
-                  }}
-                  itemStyle={{ color: "#4B5563" }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#4f46e5"
-                  strokeWidth={3}
-                  dot={{
-                    r: 6,
-                    fill: "#4f46e5",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Evaluation Programs */}
-        <div className="lg:col-span-4 bg-white rounded-3xl shadow-xl p-4 border border-gray-100">
+        <div className="lg:col-span-6 bg-white rounded-3xl shadow-xl p-4 border border-gray-100">
           <h3 className="text-xl font-extrabold text-gray-900 mb-3">
             Evaluation Programs
           </h3>
