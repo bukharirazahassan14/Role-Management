@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Mail,
@@ -17,26 +17,28 @@ import {
   Star,
 } from "lucide-react";
 
-import { Doughnut } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
-ChartJS.register(ArcElement, Tooltip, Legend, Title);
+import { Doughnut, Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement, // Needed for Doughnut
+  Tooltip,
+  Legend,
+  Title,
+  CategoryScale, // Needed for Bar
+  LinearScale, // Needed for Bar
+  BarElement, // Needed for Bar
+} from "chart.js";
 
-// --- FAKE DATA FOR CHART ---
-const FAKE_MONTHLY_RATINGS = [
-  { month: "Jan", rating: 4.2 },
-  { month: "Feb", rating: 4.5 },
-  { month: "Mar", rating: 4.0 },
-  { month: "Apr", rating: 4.7 },
-  { month: "May", rating: 4.3 },
-  { month: "Jun", rating: 4.6 },
-  { month: "Jul", rating: 4.1 },
-  { month: "Aug", rating: 4.4 },
-  { month: "Sep", rating: 4.8 },
-  { month: "Oct", rating: 4.9 },
-  { month: "Nov", rating: 4.2 },
-  { month: "Dec", rating: 4.5 },
-];
-
+// ✅ Register ALL chart types used in this file
+ChartJS.register(
+  ArcElement, // For Doughnut chart
+  Tooltip,
+  Legend,
+  Title,
+  CategoryScale, // For Bar chart X axis
+  LinearScale, // For Bar chart Y axis
+  BarElement // For rendering bars
+);
 const COLORS = [
   "#FF6384",
   "#36A2EB",
@@ -52,7 +54,7 @@ const COLORS = [
   "#F79F79",
 ];
 
-// --- JWT parse helper (kept as-is) ---
+// --- Helper to parse JWT ---
 function parseJwt(token) {
   try {
     const base64Url = token.split(".")[1];
@@ -69,136 +71,127 @@ function parseJwt(token) {
   }
 }
 
-// ----------------- MONTHLY PIE CHART -----------------
-const MonthlyRatingPieChart = () => {
+// --- MonthlyRatingPieChart Component ---
+const MonthlyRatingPieChart = ({ monthlyRatings = [], selectedYear }) => {
+  // ✅ Chart data
   const data = useMemo(
     () => ({
-      labels: FAKE_MONTHLY_RATINGS.map(item => item.month),
+      labels: monthlyRatings.map((m) => m.month),
       datasets: [
         {
-          data: FAKE_MONTHLY_RATINGS.map(item => item.rating),
+          data: Array(monthlyRatings.length).fill(1), // all slices same size
           backgroundColor: COLORS,
-          hoverBackgroundColor: COLORS.map(c => c + "AA"),
+          hoverBackgroundColor: COLORS.map((c) => c + "AA"),
           borderWidth: 1,
         },
       ],
     }),
-    []
+    [monthlyRatings]
   );
 
+  // ✅ Tooltip
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: "60%",          // 🔹 make pie smaller
-    layout: { padding: 60 }, // 🔹 add breathing space for labels
+    layout: {
+      padding: 30, // adds padding around the pie
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: context => {
-            const month = context.label || "";
-            const rating =
-              FAKE_MONTHLY_RATINGS[context.dataIndex].rating.toFixed(1);
-            return `${month}: ${rating}`;
-          },
-        },
+          label: (ctx) => {
+            const month = monthlyRatings[ctx.dataIndex]?.month ?? '';
+            const rating = monthlyRatings[ctx.dataIndex]?.rating ?? 0;
+            // Always format rating to two decimal places
+            return `${month}: ${rating.toFixed(2)}`;
+          }
+        }
+      }
+    },
+    cutout: "60%", // increase cutout for smaller pie
+  };
+
+  // ✅ Slice labels
+  const sliceLabelPlugin = useMemo(
+    () => ({
+      id: "sliceLabelPlugin",
+      afterDraw(chart) {
+        if (!monthlyRatings?.length) return;
+
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta?.data) return;
+
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        meta.data.forEach((arc, i) => {
+          const rating = monthlyRatings[i]?.rating ?? 0;
+          const monthLabel = monthlyRatings[i]?.month || "";
+          const angle = (arc.startAngle + arc.endAngle) / 2;
+
+          // --- Draw rating inside slice
+          const innerRadius =
+            arc.innerRadius + (arc.outerRadius - arc.innerRadius) * 0.45; // move closer to center
+          const innerX = arc.x + Math.cos(angle) * innerRadius;
+          const innerY = arc.y + Math.sin(angle) * innerRadius;
+
+          ctx.font = "bold 12px sans-serif";
+          ctx.fillStyle = "#000";
+          ctx.fillText(rating.toFixed(2), innerX, innerY + 1); // slight y-shift for centering
+
+          // --- Draw month label closer to the slice to avoid clipping
+          const outerRadius = arc.outerRadius + 15; // increased distance for labels
+          const outerX = arc.x + Math.cos(angle) * outerRadius;
+          const outerY = arc.y + Math.sin(angle) * outerRadius;
+
+          ctx.font = "10px sans-serif";
+          ctx.fillStyle = "#4B5563"; // gray text
+          ctx.fillText(monthLabel, outerX, outerY);
+        });
+
+        ctx.restore();
       },
-    },
-  };
+    }),
+    [monthlyRatings]
+  );
 
-  // 🔹 Average rating inside each slice
-  const sliceLabelPlugin = {
-    id: "ratingValueInSlice",
-    afterDraw(chart) {
-      const { ctx, chartArea } = chart;
-      const meta = chart.getDatasetMeta(0);
-      if (!meta || !meta.data) return;
+  // ✅ Center year text
+  const centerTextPlugin = useMemo(
+    () => ({
+      id: "centerTextPlugin",
+      afterDraw(chart) {
+        const { ctx, chartArea } = chart;
+        const centerX = chartArea.left + chartArea.width / 2;
+        const centerY = chartArea.top + chartArea.height / 2;
 
-      const centerX = chartArea.left + chartArea.width / 2;
-      const centerY = chartArea.top + chartArea.height / 2;
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "600 24px Inter, sans-serif";
+        ctx.fillStyle = "#4F46E5";
+        ctx.fillText(String(selectedYear), centerX, centerY);
+        ctx.restore();
+      },
+    }),
+    [selectedYear]
+  );
 
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = "bold 12px sans-serif";
-      ctx.fillStyle = "#000";
-
-      meta.data.forEach((arc, i) => {
-        const angle = (arc.startAngle + arc.endAngle) / 2;
-        const radius = (arc.innerRadius + arc.outerRadius) / 2;
-        const x = centerX + Math.cos(angle) * radius;
-        const y = centerY + Math.sin(angle) * radius;
-        ctx.fillText(FAKE_MONTHLY_RATINGS[i].rating.toFixed(1), x, y);
-      });
-
-      ctx.restore();
-    },
-  };
-
-  // 🔹 Month names around the pie
-  const monthLabelPlugin = {
-    id: "monthLabelsAroundPie",
-    afterDraw(chart) {
-      const { ctx, chartArea } = chart;
-      const meta = chart.getDatasetMeta(0);
-      if (!meta || !meta.data) return;
-
-      const labels = chart.data.labels || [];
-      const centerX = chartArea.left + chartArea.width / 2;
-      const centerY = chartArea.top + chartArea.height / 2;
-
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = "600 11px Inter, sans-serif";
-      ctx.fillStyle = "#374151";
-
-      meta.data.forEach((arc, i) => {
-        const angle = (arc.startAngle + arc.endAngle) / 2;
-        const maxRadius = Math.min(chartArea.width, chartArea.height) / 2;
-        const labelRadius = Math.max(arc.outerRadius * 1.05, maxRadius * 0.8);
-
-        const x = centerX + Math.cos(angle) * labelRadius;
-        const y = centerY + Math.sin(angle) * labelRadius;
-
-        ctx.fillText(labels[i], x, y);
-      });
-
-      ctx.restore();
-    },
-  };
-
-  // 🔹 Year at center
-  const centerYearPlugin = {
-    id: "centerYear",
-    afterDraw(chart) {
-      const { ctx, chartArea } = chart;
-      const centerX = chartArea.left + chartArea.width / 2;
-      const centerY = chartArea.top + chartArea.height / 2;
-
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = "700 22px Inter, sans-serif";
-      ctx.fillStyle = "#4F46E5";
-      ctx.fillText("2025", centerX, centerY);
-      ctx.restore();
-    },
-  };
-
+  // ✅ Add key to force re-render on data or year change
   return (
-    <div className="relative w-full h-[420px]">
-      <Doughnut
-        data={data}
-        options={options}
-        plugins={[sliceLabelPlugin, monthLabelPlugin, centerYearPlugin]}
-      />
-    </div>
+    <Doughnut
+      key={selectedYear + monthlyRatings.map((r) => r.rating).join(",")}
+      data={data}
+      options={options}
+      plugins={[sliceLabelPlugin, centerTextPlugin]}
+    />
   );
 };
-// ----------------------------------------------------
 
-const availableYears = [2023, 2024, 2025, 2026]; // You can fetch this from API
+// --- UserProfile Page ---
+const availableYears = [2023, 2024, 2025, 2026];
 
 export default function UserProfile({ searchParams }) {
   const router = useRouter();
@@ -206,9 +199,61 @@ export default function UserProfile({ searchParams }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [selectedYear, setSelectedYear] = useState(2025); // Default year
-  const yearAvgRating = "4.8";
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [monthlyRatings, setMonthlyRatings] = useState([]);
+  
+  // ✅ Calculate Yearly Average Rating including all 12 months
+  const yearAvgRating = useMemo(() => {
+    if (!monthlyRatings || monthlyRatings.length === 0) return 0;
 
+    // Always calculate for all 12 months
+    const total = monthlyRatings.reduce((sum, m) => sum + (m.rating || 0), 0);
+    return (total / 12).toFixed(2);
+  }, [monthlyRatings]);
+
+  // --- Fetch monthly ratings from API ---
+  const fetchMonthlyRatings = useCallback(async (userID, year) => {
+    if (!userID) return;
+    try {
+      const res = await fetch(
+        `/api/weeklyevaluation/monthlyRatingAvg?userId=${userID}&year=${year}`
+      );
+      if (!res.ok) {
+        setMonthlyRatings([]);
+        return;
+      }
+      const apiData = await res.json();
+
+      // console.log("apiData>>>", apiData); // Keep for debugging if needed
+
+      // Ensure 12 months
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const filledData = monthNames.map((m) => {
+        const found = apiData.find((d) => d.month === m);
+        // Ensure rating is treated as a number, defaulting to 0
+        return { month: m, rating: found?.rating ? Number(found.rating) : 0 };
+      });
+
+      setMonthlyRatings(filledData);
+    } catch {
+      setMonthlyRatings([]);
+    }
+  }, []);
+
+  // --- Fetch user & files ---
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -219,7 +264,6 @@ export default function UserProfile({ searchParams }) {
     const payload = parseJwt(token);
     if (!payload || payload.exp < Math.floor(Date.now() / 1000)) {
       localStorage.removeItem("token");
-      alert("Session expired. Please login again.");
       router.push("/login");
       return;
     }
@@ -233,16 +277,13 @@ export default function UserProfile({ searchParams }) {
           fetch(`/api/files?userId=${userID}`),
         ]);
 
-        if (!userRes.ok || !filesRes.ok)
-          throw new Error("Failed to fetch data");
-
         const userData = await userRes.json();
         const filesData = await filesRes.json();
 
         setUser(userData);
         setFiles(filesData);
-      } catch (error) {
-        console.error("❌ Fetch error:", error);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -251,7 +292,12 @@ export default function UserProfile({ searchParams }) {
     fetchData();
   }, [router, searchParams]);
 
-  if (loading || !user) {
+  // ✅ Fetch ratings when user or year changes
+  useEffect(() => {
+    if (user) fetchMonthlyRatings(user._id, selectedYear);
+  }, [user, selectedYear, fetchMonthlyRatings]);
+
+  if (loading || !user)
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <p className="text-gray-700">
@@ -259,186 +305,256 @@ export default function UserProfile({ searchParams }) {
         </p>
       </div>
     );
-  }
+
+  // --- Info Components ---
+  // Updated InfoRow and HorizontalInfoItem for a more structured, modern look
 
   const InfoRow = ({ icon: Icon, label, value }) => (
-    <div>
-      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center mb-1">
-        <Icon className="w-4 h-4 mr-2 text-gray-400" />
-        {label}
-      </h3>
-      <p className="text-base font-semibold text-gray-800 break-words">
-        {value || "N/A"}
-      </p>
+    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 flex items-start space-x-3">
+      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5 text-indigo-400" />
+      <div>
+        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-0.5">
+          {label}
+        </h3>
+        <p className="text-sm font-semibold text-gray-800 break-words">
+          {value || "N/A"}
+        </p>
+      </div>
     </div>
   );
 
   const HorizontalInfoItem = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center space-x-2">
-      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center">
-        <Icon className="w-4 h-4 mr-1 text-gray-400" />
+    <div className="flex items-center p-2 rounded-md bg-red-50/50 border border-red-100">
+      <Icon className="w-4 h-4 mr-2 flex-shrink-0 text-red-500" />
+      <h3 className="text-xs font-medium text-red-600 uppercase tracking-wider mr-2">
         {label}:
       </h3>
       <p className="text-sm font-semibold text-gray-800">{value || "N/A"}</p>
     </div>
   );
 
-  const RatingColumn = ({ title, content }) => (
-    <div className="bg-white rounded-xl shadow-md p-4 flex flex-col items-center justify-center text-center h-full">
-      <h2 className="text-lg font-bold text-gray-800 flex items-center justify-center mb-2">
-        <Star className="w-5 h-5 mr-2 text-yellow-500 fill-yellow-400" />
-        {title}
-      </h2>
-      {content}
-    </div>
-  );
+  // Custom Rating Card component for the "Year AVG Rating"
+  const YearAvgRatingCard = ({ avgRating }) => {
+    const ratingValue = parseFloat(avgRating);
+    const percentage = (ratingValue / 5) * 100;
+
+    return (
+      <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
+        <div className="flex items-center justify-center mb-6 text-center pb-3 border-b border-gray-100"> {/* Subtle border for separation */}
+          <Star className="w-6 h-6 mr-2 text-yellow-500 fill-yellow-400" />
+          <h2 className="text-xl font-bold text-gray-800">
+            Year AVG Rating
+          </h2>
+        </div>
+        
+        {/* Metric Display */}
+        <div className="flex flex-col items-center">
+          <div className="flex items-baseline gap-2">
+            <span className="text-7xl font-extrabold text-indigo-600 leading-none">
+              {avgRating}
+            </span>
+            <span className="text-2xl text-gray-500">/ 5.0</span>
+          </div>
+          <p className="mt-2 text-base text-gray-500 font-medium">
+            Performance Score for {selectedYear}
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-8">
+          <div className="flex justify-between text-sm font-medium text-gray-600 mb-1">
+            <span>Overall Progress</span>
+            <span className="text-indigo-600">{percentage.toFixed(0)}%</span>
+          </div>
+          <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="absolute top-0 left-0 h-3 rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 shadow-md transition-all duration-700 ease-out"
+              style={{ width: `${percentage}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 lg:p-6">
-      {/* Top */}
-      <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
+    <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
+      {/* Top Section */}
+      <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
         <div className="flex items-center space-x-6">
-          <div className="w-24 h-24 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-4xl font-bold shadow">
+          <div className="w-24 h-24 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-4xl font-bold border-4 border-indigo-200 shadow-inner">
             {user.firstName?.charAt(0)}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-4xl font-extrabold text-gray-900">
               {user.firstName} {user.lastName}
             </h1>
-            <p className="mt-1 text-base text-gray-600 flex items-center">
-              <Briefcase className="w-5 h-5 mr-2 text-gray-500" />
-              {user.role?.name || "Role Not Defined"}
+            <p className="mt-2 text-lg text-gray-600 flex items-center">
+              <Briefcase className="w-5 h-5 mr-2 text-indigo-500" />
+              <span className="font-semibold">{user.role?.name || "Role Not Defined"}</span>
             </p>
           </div>
         </div>
-
         <span
-          className={`px-4 py-1.5 rounded-full text-sm font-semibold shadow ${
-            user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+          className={`px-4 py-1.5 rounded-full text-sm font-semibold tracking-wider shadow-md ${
+            user.isActive
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
           }`}
         >
           {user.isActive ? "ACTIVE" : "INACTIVE"}
         </span>
       </div>
 
-      {/* Middle */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-md p-4">
-          <h2 className="text-lg font-bold text-gray-800 flex items-center mb-3">
+      {/* Middle Info - Grouped and Cleaned */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Job Description Card */}
+        <div className="bg-white rounded-xl shadow-md p-5 lg:col-span-2 border border-gray-100">
+          <div className="flex items-center mb-3 pb-2 border-b border-gray-100"> {/* Subtle border */}
             <FileText className="w-5 h-5 mr-2 text-indigo-500" />
-            Job Description
-          </h2>
-          <p className="text-gray-700 text-sm">
+            <h2 className="text-lg font-bold text-gray-800">
+              Job Description
+            </h2>
+          </div>
+          <p className="text-gray-700 text-sm leading-relaxed">
             {user.jd || "No job description provided."}
           </p>
         </div>
-
-        <div className="bg-white rounded-xl shadow-md p-4">
-          <h2 className="text-lg font-bold text-gray-800 flex items-center mb-3">
+        
+        {/* Emergency Contact Card */}
+        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+          <div className="flex items-center mb-3 pb-2 border-b border-gray-100"> {/* Subtle border */}
             <Tag className="w-5 h-5 mr-2 text-red-500" />
-            Emergency Contact
-          </h2>
-          <div className="space-y-2">
+            <h2 className="text-lg font-bold text-gray-800">
+              Emergency Contact
+            </h2>
+          </div>
+          <div className="space-y-3">
             <HorizontalInfoItem
               icon={Phone}
               label="Contact No."
               value={user.emergencyContact}
             />
-            <HorizontalInfoItem icon={User} label="Relationship" value={user.emergencyRelation} />
+            <HorizontalInfoItem
+              icon={User}
+              label="Relationship"
+              value={user.emergencyRelation}
+            />
           </div>
         </div>
       </div>
 
       {/* Primary Info & Files */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-md p-4">
-          <h2 className="text-lg font-bold text-gray-800 flex items-center mb-4">
-            <UserCheck className="w-5 h-5 mr-2 text-indigo-500" />
-            Primary Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <InfoRow icon={Mail} label="Primary Email" value={user.primaryEmail} />
-              <InfoRow icon={Shield} label="CNIC / ID" value={user.cnic} />
-              <InfoRow icon={User} label="Father's Name" value={user.fatherName} />
-            </div>
-            <div className="space-y-3">
-              <InfoRow icon={Phone} label="Phone Number" value={user.phone} />
-              <InfoRow icon={Clock} label="Experience (Years)" value={user.exp} />
-              <InfoRow icon={Calendar} label="Date Joined" value={new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+          <div className="flex items-center mb-4 pb-2 border-b border-gray-100"> {/* Subtle border */}
+            <UserCheck className="w-6 h-6 mr-2 text-indigo-500" />
+            <h2 className="text-xl font-bold text-gray-800">
+              Primary Information
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InfoRow
+              icon={Mail}
+              label="Primary Email"
+              value={user.primaryEmail}
+            />
+            <InfoRow icon={Phone} label="Phone Number" value={user.phone} />
+            <InfoRow icon={Shield} label="CNIC / ID" value={user.cnic} />
+            <InfoRow
+              icon={Clock}
+              label="Experience (Years)"
+              value={user.exp}
+            />
+            <InfoRow
+              icon={User}
+              label="Father's Name"
+              value={user.fatherName}
+            />
+            <InfoRow
+              icon={Calendar}
+              label="Date Joined"
+              value={new Date(user.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-4">
-          <h2 className="text-lg font-bold text-gray-800 flex items-center mb-4">
-            <Paperclip className="w-5 h-5 mr-2 text-indigo-500" />
-            Attached Files
-          </h2>
+        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+          <div className="flex items-center mb-4 pb-2 border-b border-gray-100"> {/* Subtle border */}
+            <Paperclip className="w-6 h-6 mr-2 text-indigo-500" />
+            <h2 className="text-xl font-bold text-gray-800">
+              Attached Files
+            </h2>
+          </div>
           {files.length > 0 ? (
-            <ul className="space-y-3">
+            <ul className="space-y-3 max-h-72 overflow-y-auto pr-2"> {/* Added pr-2 for scrollbar spacing */}
               {files.map((file) => (
-                <li key={file._id} className="p-3 rounded-lg bg-gray-50 flex flex-col shadow-sm hover:shadow-md transition">
-                  <span className="text-sm font-semibold text-gray-800">{file.title}</span>
-                  <p className="text-xs text-gray-500">{file.description}</p>
-                  <a href={file.fileUrl} target="_blank" className="mt-1 text-xs text-indigo-600 hover:underline">View / Download</a>
+                <li
+                  key={file._id}
+                  className="p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 flex flex-col transition border border-indigo-200"
+                >
+                  <span className="text-sm font-semibold text-gray-800">
+                    {file.title}
+                  </span>
+                  <p className="text-xs text-gray-500 truncate">
+                    {file.description}
+                  </p>
+                  <a
+                    href={file.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 text-xs text-indigo-600 font-medium hover:underline"
+                  >
+                    View / Download
+                  </a>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">No files attached.</p>
+            <div className="flex items-center justify-center h-40 bg-gray-50 rounded-lg text-gray-500 text-sm">
+                No files attached.
+            </div>
           )}
         </div>
       </div>
 
-    {/* Ratings */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  {/* LEFT SIDE */}
-  <div className="bg-white rounded-xl shadow-md p-6 relative flex flex-col justify-center">
-    {/* Title + Dropdown */}
-    <div className="flex items-center gap-4 mb-4 z-10 relative">
-      <h2 className="text-lg font-bold text-gray-800">Monthly AVG Rating</h2>
+      {/* Ratings Section - Enhanced Design */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Monthly AVG Rating Chart */}
+        <div className="bg-white rounded-xl shadow-lg p-6 relative flex flex-col border border-gray-100">
+          <div className="flex items-center justify-between gap-4 mb-4 z-10 relative pb-3 border-b border-gray-100"> {/* Subtle border */}
+            <div className="flex items-center">
+              <h2 className="text-xl font-bold text-gray-800">
+                Monthly AVG Rating
+              </h2>
+            </div>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm bg-gray-50 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 z-50"
+            >
+              {availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="w-full h-[400px] relative z-0">
+            <MonthlyRatingPieChart
+              monthlyRatings={monthlyRatings}
+              selectedYear={selectedYear}
+            />
+          </div>
+        </div>
 
-      <select
-        value={selectedYear}
-        onChange={(e) => setSelectedYear(Number(e.target.value))}
-        className="
-          border border-gray-300
-          rounded-lg px-3 py-1.5
-          text-sm font-medium text-gray-700
-          shadow-sm bg-white
-          cursor-pointer
-          hover:border-gray-400
-          focus:outline-none focus:ring-2 focus:ring-indigo-500
-          z-50
-        "
-      >
-        {availableYears.map((year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    {/* Chart */}
-    <div className="w-full h-[380px] relative z-0">
-      <MonthlyRatingPieChart selectedYear={selectedYear} />
-    </div>
-  </div>
-
-  {/* RIGHT SIDE */}
-  <RatingColumn
-    title="Year AVG Rating"
-    content={
-      <p className="text-4xl font-extrabold text-indigo-600">
-        {yearAvgRating}
-        <span className="text-base font-normal text-gray-600"> / 5.0</span>
-      </p>
-    }
-  />
-</div>
-
+        {/* Year AVG Rating Card (Using the new component) */}
+        <YearAvgRatingCard avgRating={yearAvgRating} />
+      </div>
     </div>
   );
 }
