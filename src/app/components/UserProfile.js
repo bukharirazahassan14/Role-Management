@@ -191,7 +191,7 @@ const MonthlyRatingPieChart = ({ monthlyRatings = [], selectedYear }) => {
 };
 
 // --- UserProfile Page ---
-const availableYears = [2023, 2024, 2025, 2026];
+const availableYears = [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
 
 export default function UserProfile({ searchParams }) {
   const router = useRouter();

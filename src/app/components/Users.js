@@ -211,22 +211,41 @@ export default function Users() {
     }
   };
 
-  useEffect(() => {
-    if (didFetch.current) return; // ✅ stop duplicate calls
+   useEffect(() => {
+    if (didFetch.current) return;        // ✅ avoid duplicate calls
     didFetch.current = true;
 
     async function fetchUsers() {
       try {
-        // ✅ get logged-in role from localStorage
         const role = localStorage.getItem("userRole");
+        const loginID = localStorage.getItem("loginID");
+
         setCurrentUserRole(role);
-        const res = await fetch("/api/users");
+
+        let res;
+        if (
+          role === "Super Admin" ||
+          role === "Management" ||
+          role === "HR"
+        ) {
+          // ✅ Fetch ALL users
+          res = await fetch("/api/users");
+        } else if (loginID) {
+          // ✅ Fetch only logged-in user's record
+          res = await fetch(`/api/users/profile/${loginID}`);
+        }
+
         const data = await res.json();
-        if (Array.isArray(data)) setUsers(data);
-        // fetch counts for all users
-        data.forEach((u) => fetchFileCount(u.id));
+
+        // Normalize into array so downstream code still works
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else if (data && typeof data === "object") {
+          setUsers([data]);
+        }
+
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching users:", err);
       } finally {
         setLoading(false);
       }
@@ -238,14 +257,13 @@ export default function Users() {
         const data = await res.json();
         if (Array.isArray(data)) setRoles(data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching roles:", err);
       }
     }
 
     fetchUsers();
     fetchRoles();
   }, []);
-
   const handleRoleChange = async (userId, roleId) => {
     try {
       const res = await fetch(`/api/users/${userId}/role`, {
@@ -1128,6 +1146,7 @@ export default function Users() {
             </tbody>
           </table>
         </div>
+
       ) : (
         // ✅ Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

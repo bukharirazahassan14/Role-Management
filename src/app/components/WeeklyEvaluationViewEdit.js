@@ -171,7 +171,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
       try {
         const monthsParam = months.join(",");
         const res = await fetch(
-          `/api/weeklyevaluation/multi-month?year=${year}&months=${monthsParam}`
+          `/api/weeklyevaluation/multi-month?year=${year}&months=${monthsParam}&userId=${userId}`
         );
 
         if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -216,7 +216,7 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
         console.error("❌ Error fetching monthly data:", error);
       }
     },
-    [year, evaluationPrograms] // <-- use evaluationPrograms instead of programs
+    [year, evaluationPrograms, userId] // <-- use evaluationPrograms instead of programs
   );
 
   // ✅ Toggle month selection
@@ -509,7 +509,10 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
                           Monthly Avg
                         </div>
                         <div className="text-pink-600 text-2xl md:text-3xl font-semibold">
-                          {monthlyAverage ?? "N/A"}
+                          {monthlyAverage != null &&
+                          !isNaN(Number(monthlyAverage))
+                            ? Number(monthlyAverage).toFixed(2)
+                            : "N/A"}
                         </div>
                         <div className="absolute -top-2 right-2 h-7 w-7 flex items-center justify-center bg-pink-100 text-pink-600 rounded-full text-sm shadow-md">
                           📈

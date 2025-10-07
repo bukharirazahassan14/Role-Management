@@ -1,73 +1,97 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Briefcase, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from 'react';
+
+const navItems = [
+  {
+    name: "Dashboard",
+    href: "/main/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Roles",
+    href: "/main/roles",
+    icon: Briefcase,
+  },
+  {
+    name: "Users",
+    href: "/main/users",
+    icon: Users,
+  },
+  {
+    name: "Evaluation",
+    href: "/main/weeklyevaluation",
+    icon: ClipboardCheck,
+  },
+];
 
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // CRITICAL CHANGE: Collapsed width changed from w-16 to w-20 (80px)
+  const sidebarWidth = isCollapsed ? 'w-20' : 'w-40';
+  const sidebarPadding = isCollapsed ? 'px-2' : 'px-3'; // Adjusted padding for w-20
+
+  const ToggleIcon = isCollapsed ? ChevronRight : ChevronLeft;
 
   return (
-    <aside className="w-20 bg-gradient-to-b from-gray-950 to-indigo-800 text-white flex flex-col items-center py-6 space-y-6 shadow-xl rounded-r-2xl overflow-visible">
-      {/* Dashboard */}
-      <div className="relative group">
+    <aside 
+      className={`${sidebarWidth} ${sidebarPadding} bg-gradient-to-b from-gray-950 to-indigo-800 text-white 
+                  flex flex-col py-6 space-y-4 shadow-xl h-screen sticky top-0 z-20 rounded-r-2xl
+                  transition-all duration-300 ease-in-out`}
+    >
+      
+      {/* Toggle Button Container */}
+      <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} mb-4`}>
         <button
-          onClick={() => router.replace("/main/dashboard")}
-          className={`p-3 rounded-xl transition ${
-            pathname === "/main/dashboard" ? "bg-indigo-500" : "hover:bg-indigo-400"
-          }`}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1.5 rounded-full text-indigo-300 bg-gray-900/50 hover:text-white hover:bg-indigo-600 border border-transparent hover:border-white/20 transition duration-300"
+          title={isCollapsed ? "Expand Menu" : "Collapse Menu"}
         >
-          <LayoutDashboard size={28} />
+          <ToggleIcon size={20} />
         </button>
-        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 rounded-md text-sm bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition z-50 whitespace-nowrap">
-          Dashboard
-        </span>
       </div>
 
-      {/* Roles */}
-      <div className="relative group">
-        <button
-          onClick={() => router.replace("/main/roles")}
-          className={`p-3 rounded-xl transition ${
-            pathname === "/main/roles" ? "bg-indigo-500" : "hover:bg-indigo-400"
-          }`}
-        >
-          <Briefcase size={28} />
-        </button>
-        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 rounded-md text-sm bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition z-50 whitespace-nowrap">
-          Roles
-        </span>
-      </div>
+      {/* Navigation Links Container */}
+      <nav className="flex flex-col space-y-1">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon; 
 
-      {/* Users */}
-      <div className="relative group">
-        <button
-          onClick={() => router.replace("/main/users")}
-          className={`p-3 rounded-xl transition ${
-            pathname === "/main/users" ? "bg-indigo-500" : "hover:bg-indigo-400"
-          }`}
-        >
-          <Users size={28} />
-        </button>
-        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 rounded-md text-sm bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition z-50 whitespace-nowrap">
-          Users
-        </span>
-      </div>
+          // CRITICAL CHANGE: Increased icon size when collapsed from 24 to 28
+          const iconSize = isCollapsed ? 28 : 18; 
 
-      {/* Employee Weekly Evaluation */}
-      <div className="relative group">
-        <button
-          onClick={() => router.replace("/main/weeklyevaluation")}
-          className={`p-3 rounded-xl transition ${
-            pathname === "/main/weeklyevaluation" ? "bg-indigo-500" : "hover:bg-indigo-400"
-          }`}
-        >
-          <ClipboardCheck size={28} />
-        </button>
-        <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 rounded-md text-sm bg-gray-900 text-white opacity-0 group-hover:opacity-100 transition z-50 whitespace-nowrap">
-          Evaluation
-        </span>
-      </div>
+          return (
+            <button
+              key={item.name}
+              onClick={() => router.replace(item.href)}
+              className={`
+                w-full flex items-center 
+                ${isCollapsed ? 'justify-center space-x-0 p-3' : 'space-x-2 px-3 py-2'} 
+                rounded-xl font-semibold transition-all duration-300
+                text-xs
+                ${
+                  isActive
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700 ring-1 ring-white/50"
+                    : "text-gray-200 hover:bg-indigo-700/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                }
+              `}
+            >
+              <Icon size={iconSize} className="flex-shrink-0 transition-all duration-300" />
+              
+              {!isCollapsed && (
+                <span className="truncate">{item.name}</span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+      
     </aside>
   );
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import connectToDB from "@/lib/mongodb";
 import WeeklyEvaluation from "@/models/WeeklyEvaluation";
 
@@ -9,12 +10,19 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const year = Number(searchParams.get("year"));
     const monthsParam = searchParams.get("months"); // e.g. "9"
+    const userIdParam = searchParams.get("userId"); // 👈 NEW: get userId
 
     if (!year || !monthsParam) {
       return NextResponse.json(
         { error: "Missing required parameters: year or months" },
         { status: 400 }
       );
+    }
+
+    // ✅ Convert userId to ObjectId if present
+    let userIdFilter = {};
+    if (userIdParam) {
+      userIdFilter.userId = mongoose.Types.ObjectId.createFromHexString(userIdParam);
     }
 
     // Parse selected months → [9]
@@ -30,10 +38,11 @@ export async function GET(req) {
       );
     }
 
-    // ✅ Run your provided aggregation
+    // ✅ Run your provided aggregation (UNCHANGED except first $match includes userIdFilter)
     const result = await WeeklyEvaluation.aggregate([
       {
         $match: {
+          ...userIdFilter, // 👈 Add userId filter here
           $expr: {
             $and: [
               { $eq: [{ $year: "$weekStart" }, year] },
