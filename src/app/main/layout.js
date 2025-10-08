@@ -9,7 +9,7 @@ export default function MainLayout({ children }) {
 
   const title =
     pathname.includes("/dashboard")
-      ? "Dashboard Overview"
+      ? "Staff Evaluation Dashboard"
       : pathname.includes("/users")
       ? "Users"
       : pathname.includes("/roles")

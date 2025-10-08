@@ -208,7 +208,7 @@ export default function EmployeeWeeklyEvaluation() {
           `/api/weeklyevaluation/performance?${query.toString()}`
         );
       } else {
-         console.log('loginID>>>>>>>>>>',loginID);
+
         // 👉 Single user
         query.append("userId", loginID); // ✅ include userId
         res = await fetch(
@@ -217,8 +217,6 @@ export default function EmployeeWeeklyEvaluation() {
       }
 
       const data = await res.json();
-
-      console.log('data>>>>>>>>>>',data);
 
       if (Array.isArray(data)) {
         setEvaluations(data);
