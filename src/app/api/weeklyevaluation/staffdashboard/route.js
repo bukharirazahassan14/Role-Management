@@ -1,5 +1,3 @@
-//api/weeklyevaluation/staffdashboard/route.js
-
 import connectToDB from "@/lib/mongodb";
 import User from "@/models/User";
 import mongoose from "mongoose";
@@ -9,7 +7,7 @@ export async function GET(req) {
     await connectToDB();
 
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId"); // e.g. 68d3a5a5d73c5b1aedcbd4b3
+    const userId = searchParams.get("userId");
     const year = parseInt(searchParams.get("year"));
     const month = parseInt(searchParams.get("month"));
 
@@ -22,13 +20,13 @@ export async function GET(req) {
 
     const objectId = new mongoose.Types.ObjectId(userId);
     const currentYear = year;
-    const currentMonth = month; // 1-based
+    const currentMonth = month;
 
     const results = await User.aggregate([
-      // 1. Match user
+      // 1️⃣ Match user
       { $match: { _id: objectId } },
 
-      // 2. Join role
+      // 2️⃣ Join role
       {
         $lookup: {
           from: "roles",
@@ -39,7 +37,7 @@ export async function GET(req) {
       },
       { $unwind: "$roleInfo" },
 
-      // 3. Join evaluations for last 6 months
+      // 3️⃣ Join evaluations for last 6 months
       {
         $lookup: {
           from: "weeklyevaluations",
@@ -72,11 +70,10 @@ export async function GET(req) {
         }
       },
 
-      // 4. Compute currentMonthAvg
+      // 4️⃣ Compute currentMonthAvg
       {
         $addFields: {
           currentEvaluation: { $arrayElemAt: ["$evaluations", 0] },
-
           currentMonthAvg: {
             $let: {
               vars: {
@@ -99,7 +96,7 @@ export async function GET(req) {
                   {
                     $divide: [
                       { $sum: "$$monthEvals.totalWeightedRating" },
-                      4 // fixed 4 weeks
+                      4
                     ]
                   },
                   0.0
@@ -110,12 +107,12 @@ export async function GET(req) {
         }
       },
 
-      // 5. Build the lastSixMonths array
+      // 5️⃣ Build lastSixMonths
       {
         $addFields: {
           lastSixMonths: {
             $map: {
-              input: [5, 4, 3, 2, 1, 0], // 5 months back + current
+              input: [5, 4, 3, 2, 1, 0],
               as: "i",
               in: {
                 month: {
@@ -215,7 +212,7 @@ export async function GET(req) {
         }
       },
 
-      // 6. Performance rating
+      // 6️⃣ Performance rating
       {
         $addFields: {
           performance: {
@@ -233,7 +230,60 @@ export async function GET(req) {
         }
       },
 
-      // 7. Final projection
+      // 7️⃣ Scoring rate per KPI (without % symbols)
+      {
+        $lookup: {
+          from: "evaluationprograms",
+          localField: "currentEvaluation.scores.kpiId",
+          foreignField: "_id",
+          as: "kpiDetails"
+        }
+      },
+      {
+        $addFields: {
+          scoringRates: {
+            $map: {
+              input: "$currentEvaluation.scores",
+              as: "sc",
+              in: {
+                $let: {
+                  vars: {
+                    kpi: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$kpiDetails",
+                            as: "k",
+                            cond: { $eq: ["$$k._id", "$$sc.kpiId"] }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  },
+                  in: {
+                    name: "$$kpi.Name",
+                    achieved: {
+                      $round: [
+                        {
+                          $multiply: [
+                            { $divide: ["$$sc.score", 5] },
+                            "$$sc.weightage"
+                          ]
+                        },
+                        2
+                      ]
+                    },
+                    weightage: "$$sc.weightage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+
+      // 8️⃣ Final projection
       {
         $project: {
           _id: 0,
@@ -244,7 +294,8 @@ export async function GET(req) {
           currentWeekRating: "$currentEvaluation.totalWeightedRating",
           currentMonthAvg: 1,
           performance: 1,
-          lastSixMonths: 1
+          lastSixMonths: 1,
+          scoringRates: 1
         }
       }
     ]);
@@ -255,9 +306,8 @@ export async function GET(req) {
     });
   } catch (error) {
     console.error("Error fetching performance:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500
+    });
   }
 }

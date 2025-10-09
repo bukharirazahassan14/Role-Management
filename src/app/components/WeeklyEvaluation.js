@@ -208,7 +208,6 @@ export default function EmployeeWeeklyEvaluation() {
           `/api/weeklyevaluation/performance?${query.toString()}`
         );
       } else {
-
         // 👉 Single user
         query.append("userId", loginID); // ✅ include userId
         res = await fetch(
@@ -318,14 +317,18 @@ export default function EmployeeWeeklyEvaluation() {
   const handleScoreChange = (index, score, weightage, progId) => {
     const newScores = [...evaluationScores];
     const numericScore = parseFloat(score) || 0;
-    const weightedRating = ((numericScore * weightage) / 100).toFixed(1);
+
+    // Correct calculation as a number
+    const weightedRating =
+      Math.round((numericScore * weightage * 10) / 100) / 10;
 
     newScores[index] = {
       _id: progId,
       score: numericScore,
       weightage,
-      weightedRating,
+      weightedRating, // keep as number
     };
+
     setEvaluationScores(newScores);
   };
 
@@ -922,10 +925,10 @@ export default function EmployeeWeeklyEvaluation() {
                         <td className="px-4 py-2 text-center text-indigo-900">
                           {evaluationScores
                             .reduce(
-                              (sum, s) => sum + Number(s?.weightedRating || 0),
+                              (sum, s) => sum + (s.weightedRating || 0),
                               0
                             )
-                            .toFixed(2)}
+                            .toFixed(1)}
                         </td>
                       </tr>
                     </tbody>
@@ -1163,195 +1166,198 @@ export default function EmployeeWeeklyEvaluation() {
       {/* ✅ Table view */}
       {viewMode === "list" && !isMobile ? (
         <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
-  <table className="w-full table-fixed text-left">
-    <thead className="bg-indigo-900 text-white">
-      <tr>
-        <th className="px-4 py-3 w-2/12 text-center"></th>
-        <th className="px-4 py-3 w-2/12">Name</th>
-        <th className="px-4 py-3 w-2/12">Weeks</th>
-        <th className="px-4 py-3 w-2/12">Start Date</th>
-        <th className="px-4 py-3 w-2/12">End Date</th>
-        <th className="px-4 py-3 w-1/12 text-right">Score</th>
-        <th className="px-4 py-3 w-2/12 text-right">AVG Rating</th>
-        <th className="px-4 py-3 w-2/12 text-center">Performance</th>
-        <th className="px-4 py-3 w-1/12 text-center">Action</th>
-      </tr>
-    </thead>
+          <table className="w-full table-fixed text-left">
+            <thead className="bg-indigo-900 text-white">
+              <tr>
+                <th className="px-4 py-3 w-2/12 text-center"></th>
+                <th className="px-4 py-3 w-2/12">Name</th>
+                <th className="px-4 py-3 w-2/12">Weeks</th>
+                <th className="px-4 py-3 w-2/12">Start Date</th>
+                <th className="px-4 py-3 w-2/12">End Date</th>
+                <th className="px-4 py-3 w-1/12 text-right">Score</th>
+                <th className="px-4 py-3 w-2/12 text-right">AVG Rating</th>
+                <th className="px-4 py-3 w-2/12 text-center">Performance</th>
+                <th className="px-4 py-3 w-1/12 text-center">Action</th>
+              </tr>
+            </thead>
 
-    <tbody>
-      {/* ✅ Check for empty evaluations OR single empty record */}
-      {evaluations.length === 0 ||
-      (evaluations.length === 1 &&
-        (!evaluations[0].weekNumbers || evaluations[0].weekNumbers.length === 0))
-        ? (
-          <tr>
-            <td
-              colSpan={9}
-              className="text-center py-6 text-gray-500 font-medium"
-            >
-              No records found
-            </td>
-          </tr>
-        )
-        : (
-          evaluations
-            .filter((ev) => {
-              // If logged in user is Staff or Temp Staff
-              if (
-                currentUserRole === "Staff" ||
-                currentUserRole === "Temp Staff"
-              ) {
-                return (
-                  ev.roleName !== "Super Admin" &&
-                  ev.roleName !== "Management" &&
-                  ev.roleName !== "HR"
-                );
-              }
-              return true; // Other roles see everything
-            })
-            .map((ev) => {
-              let performance = ev.performance || "";
-              let colorClass = "text-gray-500 font-medium";
-
-              if (performance === "Poor")
-                colorClass = "text-red-600 font-semibold";
-              else if (performance === "Partial")
-                colorClass = "text-orange-500 font-semibold";
-              else if (performance === "Normal")
-                colorClass = "text-yellow-500 font-semibold";
-              else if (performance === "Good")
-                colorClass = "text-green-600 font-semibold";
-              else if (performance === "Excellent")
-                colorClass = "text-blue-600 font-semibold";
-
-              return (
-                <tr key={ev._id} className="hover:bg-indigo-50 border-b">
-                  {/* View & Edit Buttons */}
-                  <td className="px-4 py-4 text-center align-middle">
-                    <div className="flex justify-center items-center gap-6">
-                      <button
-                        onClick={() => handleViewEvaluation(ev._id)}
-                        className="text-indigo-600 hover:text-indigo-900 transition"
-                        title="View Evaluation"
-                      >
-                        <Glasses className="w-6 h-6" />
-                      </button>
-
-                      {(currentUserRole === "Super Admin" ||
-                        currentUserRole === "HR" ||
-                        currentUserRole === "Management") && (
-                        <button
-                          onClick={() => handleEditEvaluation(ev._id)}
-                          className="text-indigo-600 hover:text-indigo-900 transition"
-                          title="Edit Evaluation"
-                        >
-                          <Edit className="w-6 h-6" />
-                        </button>
-                      )}
-
-                      {(currentUserRole === "Super Admin" ||
-                        currentUserRole === "HR" ||
-                        currentUserRole === "Management") && (
-                        <button
-                          onClick={() => handleAddUser(ev._id)}
-                          className="text-indigo-600 hover:text-indigo-900 transition"
-                          title="Add New Record"
-                        >
-                          <FilePlus className="w-6 h-6" />
-                        </button>
-                      )}
-                    </div>
+            <tbody>
+              {/* ✅ Check for empty evaluations OR single empty record */}
+              {evaluations.length === 0 ||
+              (evaluations.length === 1 &&
+                (!evaluations[0].weekNumbers ||
+                  evaluations[0].weekNumbers.length === 0)) ? (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="text-center py-6 text-gray-500 font-medium"
+                  >
+                    No records found
                   </td>
+                </tr>
+              ) : (
+                evaluations
+                  .filter((ev) => {
+                    // If logged in user is Staff or Temp Staff
+                    if (
+                      currentUserRole === "Staff" ||
+                      currentUserRole === "Temp Staff"
+                    ) {
+                      return (
+                        ev.roleName !== "Super Admin" &&
+                        ev.roleName !== "Management" &&
+                        ev.roleName !== "HR"
+                      );
+                    }
+                    return true; // Other roles see everything
+                  })
+                  .map((ev) => {
+                    let performance = ev.performance || "";
+                    let colorClass = "text-gray-500 font-medium";
 
-                  {/* Name */}
-                  <td className="px-4 py-4 truncate">{ev.fullName || ""}</td>
+                    if (performance === "Poor")
+                      colorClass = "text-red-600 font-semibold";
+                    else if (performance === "Partial")
+                      colorClass = "text-orange-500 font-semibold";
+                    else if (performance === "Normal")
+                      colorClass = "text-yellow-500 font-semibold";
+                    else if (performance === "Good")
+                      colorClass = "text-green-600 font-semibold";
+                    else if (performance === "Excellent")
+                      colorClass = "text-blue-600 font-semibold";
 
-                  {/* Weeks */}
-                  <td className="px-4 py-4 truncate">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4].map((week) => {
-                        const isActive = ev.weekNumbers?.includes(week);
-                        return (
-                          <span
-                            key={week}
-                            className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition
+                    return (
+                      <tr key={ev._id} className="hover:bg-indigo-50 border-b">
+                        {/* View & Edit Buttons */}
+                        <td className="px-4 py-4 text-center align-middle">
+                          <div className="flex justify-center items-center gap-6">
+                            <button
+                              onClick={() => handleViewEvaluation(ev._id)}
+                              className="text-indigo-600 hover:text-indigo-900 transition"
+                              title="View Evaluation"
+                            >
+                              <Glasses className="w-6 h-6" />
+                            </button>
+
+                            {(currentUserRole === "Super Admin" ||
+                              currentUserRole === "HR" ||
+                              currentUserRole === "Management") && (
+                              <button
+                                onClick={() => handleEditEvaluation(ev._id)}
+                                className="text-indigo-600 hover:text-indigo-900 transition"
+                                title="Edit Evaluation"
+                              >
+                                <Edit className="w-6 h-6" />
+                              </button>
+                            )}
+
+                            {(currentUserRole === "Super Admin" ||
+                              currentUserRole === "HR" ||
+                              currentUserRole === "Management") && (
+                              <button
+                                onClick={() => handleAddUser(ev._id)}
+                                className="text-indigo-600 hover:text-indigo-900 transition"
+                                title="Add New Record"
+                              >
+                                <FilePlus className="w-6 h-6" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Name */}
+                        <td className="px-4 py-4 truncate">
+                          {ev.fullName || ""}
+                        </td>
+
+                        {/* Weeks */}
+                        <td className="px-4 py-4 truncate">
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4].map((week) => {
+                              const isActive = ev.weekNumbers?.includes(week);
+                              return (
+                                <span
+                                  key={week}
+                                  className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition
                               ${
                                 isActive
                                   ? "bg-indigo-600 text-white shadow-md"
                                   : "bg-gray-200 text-gray-400"
                               }`}
-                            title={`Week ${week}`}
-                          >
-                            {week}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </td>
+                                  title={`Week ${week}`}
+                                >
+                                  {week}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </td>
 
-                  {/* Start Date */}
-                  <td className="px-4 py-4 truncate">
-                    {ev.weekStart
-                      ? new Date(ev.weekStart).toLocaleDateString("en-US", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : ""}
-                  </td>
+                        {/* Start Date */}
+                        <td className="px-4 py-4 truncate">
+                          {ev.weekStart
+                            ? new Date(ev.weekStart).toLocaleDateString(
+                                "en-US",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              )
+                            : ""}
+                        </td>
 
-                  {/* End Date */}
-                  <td className="px-4 py-4 truncate">
-                    {ev.weekEnd
-                      ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : ""}
-                  </td>
+                        {/* End Date */}
+                        <td className="px-4 py-4 truncate">
+                          {ev.weekEnd
+                            ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : ""}
+                        </td>
 
-                  {/* Score */}
-                  <td className="px-4 py-4 truncate text-right">
-                    {ev.totalScoreSum > 0 ? ev.totalScoreSum : ""}
-                  </td>
+                        {/* Score */}
+                        <td className="px-4 py-4 truncate text-right">
+                          {ev.totalScoreSum > 0 ? ev.totalScoreSum : ""}
+                        </td>
 
-                  {/* AVG Rating */}
-                  <td className="px-4 py-4 truncate text-right">
-                    {ev.avgWeightedRating > 0
-                      ? ev.avgWeightedRating.toFixed(2)
-                      : ""}
-                  </td>
+                        {/* AVG Rating */}
+                        <td className="px-4 py-4 truncate text-right">
+                          {ev.avgWeightedRating > 0
+                            ? ev.avgWeightedRating.toFixed(2)
+                            : ""}
+                        </td>
 
-                  {/* Performance */}
-                  <td
-                    className={`px-4 py-4 truncate text-center ${colorClass}`}
-                  >
-                    {performance || ""}
-                  </td>
+                        {/* Performance */}
+                        <td
+                          className={`px-4 py-4 truncate text-center ${colorClass}`}
+                        >
+                          {performance || ""}
+                        </td>
 
-                  {/* Delete Button */}
-                  <td className="px-4 py-4 text-center">
-                    {(currentUserRole === "Super Admin" ||
-                      currentUserRole === "HR" ||
-                      currentUserRole === "Management") && (
-                      <button
-                        onClick={() => handleDeleteEvaluation(ev._id)}
-                        className="text-red-600 hover:text-red-800 transition"
-                        title="Delete Evaluation"
-                      >
-                        <Trash2 className="w-6 h-6" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })
-        )}
-    </tbody>
-  </table>
-</div>
-
+                        {/* Delete Button */}
+                        <td className="px-4 py-4 text-center">
+                          {(currentUserRole === "Super Admin" ||
+                            currentUserRole === "HR" ||
+                            currentUserRole === "Management") && (
+                            <button
+                              onClick={() => handleDeleteEvaluation(ev._id)}
+                              className="text-red-600 hover:text-red-800 transition"
+                              title="Delete Evaluation"
+                            >
+                              <Trash2 className="w-6 h-6" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+              )}
+            </tbody>
+          </table>
+        </div>
       ) : (
         // Modern Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">

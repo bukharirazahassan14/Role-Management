@@ -1,6 +1,20 @@
+/**
+ * ==============================================================================
+ * 🚀 Staff Dashboard Component (Next.js/React)
+ * ==============================================================================
+ *
+ * This file implements the Staff Dashboard page. It features:
+ * 1. Data fetching from a local API endpoint on component mount.
+ * 2. Three main columns for Profile/Stats, Score/Performance, and KPIs/Notifications.
+ * 3. Several sub-components for displaying stylized information (Cards, Charts, Progress Bars).
+ * 4. Dynamic styling and routing based on user data.
+ */
+
+// --- 1. IMPORTS & HOOKS ---
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+// --- Lucide Icons ---
 import {
   User,
   Mail,
@@ -11,21 +25,14 @@ import {
   Flame,
   BellRing,
   Briefcase,
+  Bell,
 } from "lucide-react";
 
+// --- 2. MOCK & STATIC DATA ---
 const STATS_DATA = {
   leaveBalance: 12,
   totalLeaveDays: 12,
   attendancePercentage: 100,
-
-  monthlyAverages: [
-    { month: "May", score: 3.2, target: 4.0 },
-    { month: "Jun", score: 3.8, target: 4.0 },
-    { month: "Jul", score: 4.1, target: 4.0 },
-    { month: "Aug", score: 3.9, target: 4.0 },
-    { month: "Sep", score: 4.5, target: 5.0 },
-    { month: "Oct", score: 4.65, target: 5.0 },
-  ],
 };
 
 const KPI_BREAKDOWN_DATA = [
@@ -37,15 +44,14 @@ const KPI_BREAKDOWN_DATA = [
 ];
 
 const NOTIFICATIONS = [
-  {
-    id: 1,
-    text: "Quarterly review meeting scheduled for Oct 15.",
-    time: "2h ago",
-  },
-  { id: 2, text: "Project Alpha milestone achieved.", time: "5h ago" },
+  // Example data — leave this empty `[]` to test the empty state
+  // { id: 1, text: "Quarterly review meeting scheduled for Oct 15.", time: "2h ago" },
+  // { id: 2, text: "Project Alpha milestone achieved.", time: "5h ago" },
 ];
 
-// --- Circular Progress ---
+// --- 3. UI COMPONENTS (Shared) ---
+
+// --- Circular Progress Bar Component (Reused for StatCards) ---
 const CircularProgressBar = ({ percentage, color }) => {
   const safePercentage = Math.max(
     0,
@@ -90,7 +96,7 @@ const CircularProgressBar = ({ percentage, color }) => {
   );
 };
 
-// --- Quick Stat Card ---
+// --- Quick Stat Card Component ---
 const StatCard = ({
   title,
   value,
@@ -124,6 +130,9 @@ const StatCard = ({
   </div>
 );
 
+// --- 4. DASHBOARD SECTION CARDS ---
+
+// --- User Profile Card Component ---
 const ProfileCard = ({ user }) => {
   const router = useRouter();
 
@@ -187,12 +196,13 @@ const ProfileCard = ({ user }) => {
   );
 };
 
-
-// --- Modern Score Summary Card ---
-const ScoreSummaryCard = ({ currentScore, maxScore }) => {
+// --- Modern Score Summary Card (Circular Ring) ---
+const ScoreSummaryCard = ({ currentScore, maxScore, performance }) => {
+  const router = useRouter();
+  const loginID = localStorage.getItem("loginID");
   const percentage = (currentScore / maxScore) * 100;
 
-  // --- Dynamic Styling Logic based on currentScore ---
+  // --- Dynamic Styling Logic ---
   let sentimentColorClass;
   let sentimentIcon;
 
@@ -213,19 +223,22 @@ const ScoreSummaryCard = ({ currentScore, maxScore }) => {
     sentimentIcon = <CheckCircle className="h-5 w-5 text-blue-600" />;
   }
 
-  // --- Circular Progress Ring Component ---
+  // --- Match ring color to your provided palette ---
+  const getColorByScore = (score) => {
+    if (score < 1) return "#dc2626"; // red
+    if (score < 2) return "#f97316"; // orange
+    if (score < 3) return "#eab308"; // yellow
+    if (score < 4) return "#16a34a"; // green
+    return "#2563eb"; // blue
+  };
+
+  const ringColor = getColorByScore(currentScore);
+
+  // --- Circular Progress Ring Sub-Component ---
   const ProgressRing = ({ radius, stroke, progress }) => {
     const normalizedRadius = radius - stroke * 2;
     const circumference = normalizedRadius * 2 * Math.PI;
     const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-    // ✅ Use same colors for the ring as sentiment
-    let strokeColor;
-    if (currentScore < 1) strokeColor = "#dc2626"; // red-600
-    else if (currentScore < 2) strokeColor = "#f97316"; // orange-500
-    else if (currentScore < 3) strokeColor = "#eab308"; // yellow-500
-    else if (currentScore < 4) strokeColor = "#16a34a"; // green-600
-    else strokeColor = "#2563eb"; // blue-600
 
     return (
       <svg height={radius * 2} width={radius * 2} className="rotate-[-90deg]">
@@ -241,8 +254,8 @@ const ScoreSummaryCard = ({ currentScore, maxScore }) => {
           className="transition-all duration-1000 ease-in-out"
           strokeLinecap="round"
           strokeWidth={stroke}
-          strokeDasharray={circumference + " " + circumference}
-          style={{ strokeDashoffset, stroke: strokeColor }}
+          strokeDasharray={`${circumference} ${circumference}`}
+          style={{ strokeDashoffset, stroke: ringColor }}
           r={normalizedRadius}
           cx={radius}
           cy={radius}
@@ -251,6 +264,22 @@ const ScoreSummaryCard = ({ currentScore, maxScore }) => {
     );
   };
 
+  // --- Click Handler for Navigation ---
+  const handleViewEvaluation = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const queryParams = new URLSearchParams({
+      userId: loginID,
+      year,
+      month,
+      weekNumber: 1,
+    }).toString();
+
+    router.push(`/main/WeeklyEvaluationViewEdit?${queryParams}`);
+  };
+
+  // --- Circle Config ---
   const R = 60;
   const STROKE = 10;
 
@@ -270,6 +299,7 @@ const ScoreSummaryCard = ({ currentScore, maxScore }) => {
         </div>
 
         <ArrowRight
+          onClick={handleViewEvaluation}
           className="h-8 w-8 text-indigo-500 cursor-pointer animate-bounce"
           aria-label="View Score Details"
         />
@@ -278,9 +308,16 @@ const ScoreSummaryCard = ({ currentScore, maxScore }) => {
       {/* Progress Ring */}
       <div className="relative h-[120px] w-[120px] mb-6 bg-gray-900 rounded-full shadow-inner">
         <ProgressRing radius={R} stroke={STROKE} progress={percentage} />
-        <span className="absolute inset-0 flex items-center justify-center">
+        <span className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-extrabold text-white leading-none">
             {Math.round(percentage)}%
+          </span>
+          {/* ✅ Performance label */}
+          <span
+            className="text-xs font-semibold mt-1"
+            style={{ color: ringColor }}
+          >
+            {performance}
           </span>
         </span>
       </div>
@@ -304,205 +341,154 @@ const ScoreSummaryCard = ({ currentScore, maxScore }) => {
 
 // --- Month Performance Chart (Sleeker Pill-Bar Style) ---
 const MonthPerformanceChart = ({ monthlyAverages }) => {
-  const getPerformanceCategory = (score) => {
-    if (score <= 1) return "Poor";
-    if (score <= 2) return "Partial";
-    if (score <= 3) return "Normal";
-    if (score <= 4) return "Good";
-    if (score > 4) return "Excellent";
-    return "Poor";
+  const getMonthLabel = (month, year) => {
+    const date = new Date();
+    date.setMonth(month - 1);
+    const shortMonth = date.toLocaleString("default", { month: "short" });
+    const shortYear = year.toString().slice(-2);
+    return `${shortMonth} '${shortYear}`; // e.g., Oct '25
+  };
+
+  // --- Color logic reused ---
+  const getColorByScore = (score) => {
+    if (score < 1) return "#dc2626"; // red-600
+    if (score < 2) return "#f97316"; // orange-500
+    if (score < 3) return "#eab308"; // yellow-500
+    if (score < 4) return "#16a34a"; // green-600
+    return "#2563eb"; // blue-600
   };
 
   return (
-    // P18 Padding simulated with p-8. Using a border for the Glass effect.
-    <div className="bg-white p-8 rounded-3xl shadow-2xl border border-gray-100 transition-all duration-300 hover:shadow-3xl hover:scale-[1.01] backdrop-blur-sm">
-      {/* Heading: Standard size, black, bold font */}
-      <h2 className="text-xl font-bold text-gray-900 mb-6">
-        Last 6 Months Average Performance
+    <div className="bg-white p-8 rounded-3xl shadow-2xl border border-gray-100 transition-all duration-300 hover:shadow-3xl hover:scale-[1.01] backdrop-blur-sm relative overflow-hidden">
+      <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center justify-between">
+        <span>Last 6 Months Average Performance</span>
+        <span className="text-xs text-gray-400 font-medium tracking-wide">
+          (Scale: 0 - 5)
+        </span>
       </h2>
 
-      <div className="space-y-5">
-        {" "}
-        {/* Vertical spacing for the list */}
-        {monthlyAverages.map((data) => {
-          const baseMax = 5.0;
-          const barWidth = Math.min(100, (data.score / baseMax) * 100);
-          const performance = getPerformanceCategory(data.score);
+      {!monthlyAverages || monthlyAverages.length === 0 ? (
+        <p className="text-gray-500 text-sm">No performance data available.</p>
+      ) : (
+        <div className="space-y-5">
+          {monthlyAverages.map((data, index) => {
+            const baseMax = 5.0;
+            const score = data.avgRating || 0;
+            const barWidth = Math.min(100, (score / baseMax) * 100);
+            const barColor = score === 0 ? "#d1d5db" : getColorByScore(score);
 
-          let gradientClass;
+            return (
+              <div
+                key={index}
+                className="flex items-center gap-4 group hover:scale-[1.01] transition-all duration-300"
+              >
+                {/* Month + Year Label */}
+                <div className="w-1/5 text-base font-semibold text-gray-700 group-hover:text-gray-900 transition">
+                  {getMonthLabel(data.month, data.year)}
+                </div>
 
-          // Define colors using clean, slightly muted hues for the pill look
-          switch (performance) {
-            case "Poor":
-              gradientClass = "bg-gradient-to-r from-red-400 to-red-500";
-              break;
-            case "Partial":
-              gradientClass = "bg-gradient-to-r from-amber-400 to-amber-500";
-              break;
-            case "Normal":
-              gradientClass = "bg-gradient-to-r from-yellow-400 to-yellow-500";
-              break;
-            case "Good":
-              gradientClass = "bg-gradient-to-r from-green-400 to-green-500";
-              break;
-            case "Excellent":
-              gradientClass = "bg-gradient-to-r from-blue-400 to-blue-500";
-              break;
-            default:
-              gradientClass = "bg-gray-400";
-          }
+                {/* Performance Bar */}
+                <div className="flex-grow bg-gray-200 rounded-full h-3 overflow-hidden border border-gray-300/40 relative">
+                  <div
+                    className="h-full rounded-full transition-all duration-700 ease-out shadow-md shadow-black/10"
+                    style={{
+                      width: `${barWidth}%`,
+                      backgroundColor: barColor,
+                    }}
+                  ></div>
+                </div>
 
-          return (
-            <div key={data.month} className="flex items-center gap-4">
-              {/* Month Name */}
-              <div className="w-1/5 text-base font-medium text-gray-600">
-                {data.month}
+                {/* Numeric Score */}
+                <div className="w-[12%] text-lg font-bold text-right text-gray-800">
+                  {score.toFixed(2)}
+                </div>
               </div>
-
-              {/* Pill-Shaped Progress Bar Container: REDUCED HEIGHT to h-2 */}
-              <div className="flex-grow bg-gray-200 rounded-full h-2 overflow-hidden border border-gray-300/50">
-                <div
-                  // Full rounded shape ('rounded-full') and clean gradient fill
-                  // Height is also h-2 to match the container
-                  className={`h-full rounded-full transition-all duration-700 ease-out ${gradientClass} shadow-md shadow-black/10`}
-                  style={{
-                    width: `${barWidth}%`,
-                  }}
-                ></div>
-              </div>
-
-              {/* Score Value */}
-              <div className="w-[10%] text-lg font-bold text-right text-gray-800">
-                {data.score.toFixed(2)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
 
-// --- KPI Breakdown (Sleek Bar with Glow Effect) ---
-const KpiBreakdownCard = ({ data }) => {
-  // Static colors array provided by the user (Index-based bar colors)
-  const colors = [
-    "bg-blue-500", // Blue
-    "bg-green-500", // Green
-    "bg-yellow-500", // Yellow
-    "bg-red-500", // Red
-    "bg-purple-500", // Purple
-  ];
+// --- KPI Color Helper Function (Based on Achieved/Target Ratio) ---
+const getColorByScore = (achieved, target) => {
+  if (target === 0) return "#d1d5db"; // grey
+  const ratio = achieved / target; // normalized ratio 0-1
+  if (ratio <= 0.2) return "#dc2626"; // red
+  if (ratio <= 0.4) return "#f97316"; // orange
+  if (ratio <= 0.6) return "#eab308"; // yellow
+  if (ratio <= 0.8) return "#16a34a"; // green
+  return "#2563eb"; // blue
+};
 
-  // Custom glow/shadow classes corresponding to the colors above
-  const glowShadows = [
-    "shadow-blue-500/50",
-    "shadow-green-500/50",
-    "shadow-yellow-500/50",
-    "shadow-red-500/50",
-    "shadow-purple-500/50",
-  ];
+// --- KPI Breakdown Card (Progress Bars) ---
 
-  // Helper function to map performance status to a strong text color
-  const getTextColor = (performance) => {
-    switch (performance) {
-      case "Excellent":
-        return "text-green-600";
-      case "Great":
-        return "text-indigo-600";
-      case "Good":
-        return "text-blue-600";
-      case "Normal":
-        return "text-yellow-600";
-      case "Needs Improvement":
-        return "text-orange-600";
-      case "Poor":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
-    }
-  };
-
-  // Logic to determine performance based on 5% levels
-  const getPerformanceStatus = (score, target) => {
-    if (score >= target * 1.1) return "Excellent"; // > 110%
-    if (score >= target * 1.05) return "Great"; // > 105%
-    if (score >= target) return "Good"; // >= 100%
-    if (score >= target * 0.95) return "Normal"; // >= 95%
-    if (score >= target * 0.85) return "Needs Improvement"; // >= 85%
-    return "Poor"; // < 85%
-  };
+const KpiBreakdownCard = ({ data, staffData }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white p-5 rounded-3xl shadow-2xl border border-gray-100 h-96 flex items-center justify-center text-gray-500">
+        No KPI data available
+      </div>
+    );
+  }
 
   return (
-    // Card Container: Enhanced shadow/rounding for a premium look
     <div className="bg-white p-5 rounded-3xl h-96 shadow-2xl border border-gray-100 transition-all duration-300 hover:shadow-3xl">
-      {/* Heading: Clear, separated with a faint line */}
       <h2 className="text-xl font-extrabold text-gray-900 mb-4 pb-2 border-b border-gray-100">
-        KPI Breakdown & Status
+        Week {staffData?.currentWeekNumber ?? "N/A"} KPI Insights
       </h2>
 
-      {/* Reduced vertical spacing within the list */}
       <div className="space-y-5">
         {data.slice(0, 5).map((item, idx) => {
-          const rawPercentage = (item.score / item.target) * 100;
-          const barWidth = Math.min(120, rawPercentage);
+          const score = Number(item.achieved || 0);
+          const target = Number(item.weightage || 0);
+          const percentage = target ? (score / target) * 100 : 0;
+          const barColor = getColorByScore(score, target);
 
-          const performance = getPerformanceStatus(item.score, item.target);
-
-          // BAR COLOR: Determined by index
-          const barColor = colors[idx % colors.length];
-          const glowClass = glowShadows[idx % glowShadows.length];
-          // TEXT COLOR: Determined by the dynamic performance status
-          const textColor = getTextColor(performance);
+          // Determine performance text
+          let performance = "";
+          const ratio = score / target;
+          if (ratio <= 0.2) performance = "Poor";
+          else if (ratio <= 0.4) performance = "Partial";
+          else if (ratio <= 0.6) performance = "Normal";
+          else if (ratio <= 0.8) performance = "Good";
+          else performance = "Excellent";
 
           return (
             <div key={idx} className="space-y-1.5">
+              {/* KPI Name + Target % + Achieved % + Performance inline */}
               <div className="flex justify-between items-center">
-                {/* Program Name and Performance Status */}
-                <span className="text-sm font-semibold text-gray-700">
-                  {item.program}
-                </span>
-                <span
-                  className={`text-sm font-extrabold ${textColor} flex items-center gap-1`}
-                >
-                  {/* Performance Category Label */}
-                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    {performance
-                      .split(" ")
-                      .map((w) => w[0])
-                      .join("")}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-700">
+                    {item.kpiName || item.name}
                   </span>
-                  {item.score.toFixed(1)}/{item.target}
-                </span>
+                  <span className="text-sm font-semibold text-gray-400">
+                    {target}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-extrabold text-gray-800">
+                    {score}%
+                  </span>
+                  <span
+                    className="text-sm font-semibold"
+                    style={{ color: barColor }}
+                  >
+                    {performance}
+                  </span>
+                </div>
               </div>
 
-              {/* BAR CONTAINER: Reduced height to h-2 for a very sleek look */}
-              <div className="w-full bg-gray-200 rounded-full h-2 relative overflow-visible shadow-inner shadow-gray-300/50">
-                {/* Target Segment Marker (Height is now h-2 to match the container) */}
+              {/* Slim Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 relative overflow-hidden shadow-inner shadow-gray-300/50">
                 <div
-                  className="absolute top-0 h-full w-[2px] bg-white border border-gray-400/50 rounded-sm"
-                  style={{ left: "99%", zIndex: 10 }}
-                  aria-label="100% Target Line"
-                />
-
-                {/* Progress Fill Bar: GLOW effect and full rounding */}
-                <div
-                  // Height is also h-2 to match the container
-                  className={`${barColor} h-2 rounded-full transition-all duration-700 ease-out shadow-lg ${glowClass}`}
+                  className="h-2 rounded-full transition-all duration-700 ease-out"
                   style={{
-                    width: `${Math.min(100, barWidth)}%`,
+                    width: `${Math.min(100, percentage)}%`,
+                    backgroundColor: barColor,
                   }}
                 ></div>
-
-                {/* Overflow Badge */}
-                {barWidth > 100 && (
-                  <div
-                    className={`absolute right-[-10px] top-1/2 -translate-y-1/2 text-xs font-bold text-white px-2 py-0.5 rounded-full ${barColor} shadow-lg`}
-                    style={{ zIndex: 15 }}
-                  >
-                    +{Math.round(barWidth - 100)}%
-                  </div>
-                )}
               </div>
             </div>
           );
@@ -512,58 +498,57 @@ const KpiBreakdownCard = ({ data }) => {
   );
 };
 
-// --- Notifications ---
+// --- Notifications Card Component ---
 const NotificationCard = ({ notifications }) => (
-  // Card Container: Minimal padding, strong shadow for depth
   <div className="bg-white p-4 rounded-3xl shadow-2xl border-t-4 border-indigo-500 transition-all duration-300 hover:shadow-3xl">
-    {/* Header: Title with a Clear Icon */}
+    {/* Header */}
     <h2 className="text-xl font-extrabold text-gray-900 mb-4 flex items-center gap-3 border-b pb-3 border-gray-100">
       <BellRing className="h-6 w-6 text-indigo-600" />
       Notifications
     </h2>
 
-    {/* Scrollable Content Area: 
-        - h-56 for fixed height.
-        - overflow-y-auto for scrolling.
-        - Scrollbar appearance is OS/browser-dependent, but we optimize the surrounding area.
-    */}
+    {/* Scrollable area */}
     <div className="space-y-3 h-51 overflow-y-auto pr-1.5">
-      {" "}
-      {/* Reduced right padding (pr-1.5) to keep scrollbar tight */}
-      {notifications.map((note) => (
-        <div
-          key={note.id}
-          // Inner card design: subtle color flash on the left border
-          className="flex items-start p-3 rounded-xl transition-all duration-300 bg-gray-50 hover:bg-indigo-50 cursor-pointer border-l-4 border-gray-100 hover:border-indigo-400 group"
-        >
-          {/* Status Indicator / Time */}
-          <div className="flex-shrink-0 pt-0.5 mr-3">
-            {/* Use a slight tint for new/unread emphasis */}
-            <div className="h-2 w-2 rounded-full bg-indigo-500 group-hover:bg-indigo-700 shadow-sm"></div>
-          </div>
+      {notifications.length > 0 ? (
+        notifications.map((note) => (
+          <div
+            key={note.id}
+            className="flex items-start p-3 rounded-xl transition-all duration-300 bg-gray-50 hover:bg-indigo-50 cursor-pointer border-l-4 border-gray-100 hover:border-indigo-400 group"
+          >
+            <div className="flex-shrink-0 pt-0.5 mr-3">
+              <div className="h-2 w-2 rounded-full bg-indigo-500 group-hover:bg-indigo-700 shadow-sm"></div>
+            </div>
 
-          {/* Content */}
-          <div className="flex-grow">
-            <p className="text-sm font-semibold text-gray-800 leading-snug">
-              {note.text}
-            </p>
-            {/* Time stamp is subtle and clean */}
-            <span className="text-xs text-gray-500 mt-0.5 block">
-              {note.time}
-            </span>
-          </div>
+            <div className="flex-grow">
+              <p className="text-sm font-semibold text-gray-800 leading-snug">
+                {note.text}
+              </p>
+              <span className="text-xs text-gray-500 mt-0.5 block">
+                {note.time}
+              </span>
+            </div>
 
-          {/* Action Arrow (fades in on hover) */}
-          <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-indigo-500 transition-all ml-2" />
+            <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-indigo-500 transition-all ml-2" />
+          </div>
+        ))
+      ) : (
+        // --- Empty State Message ---
+        <div className="flex flex-col items-center justify-center h-48 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-indigo-200">
+          <Bell className="h-10 w-10 mb-2 text-indigo-300" />
+          <p className="text-sm font-medium text-gray-600">
+            You’re all caught up — no new notifications.
+          </p>
         </div>
-      ))}
+      )}
     </div>
   </div>
 );
-// --- Main Dashboard ---
+
+// --- 5. MAIN STAFF DASHBOARD COMPONENT ---
 export default function StaffDashboard() {
   const [staffData, setStaffData] = useState(null);
 
+  // --- Derived State and Dynamic Styling Logic ---
   const attendanceProgress = STATS_DATA.attendancePercentage;
   const scoreProgress = staffData ? (staffData.currentWeekRating / 5) * 100 : 0;
 
@@ -583,6 +568,7 @@ export default function StaffDashboard() {
     }
   }
 
+  // --- Data Fetching Effect (API Call) ---
   useEffect(() => {
     const loginId = localStorage.getItem("loginID");
     const now = new Date();
@@ -600,10 +586,12 @@ export default function StaffDashboard() {
       .catch((err) => console.error("❌ API call failed:", err));
   }, []);
 
+  // --- Loading State Render ---
   if (!staffData) {
     return <div className="text-center py-10">Loading...</div>;
   }
 
+  // --- Main Dashboard Layout Render ---
   return (
     <div className="bg-gray-100 min-h-screen py-4 font-['Inter']">
       {" "}
@@ -613,11 +601,9 @@ export default function StaffDashboard() {
         {/* Reduced horizontal padding */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
           {" "}
-          
           {/* Column 1: Profile & Stats */}
           <div className="space-y-4 flex flex-col">
             {" "}
-            {/* Reduced spacing */}
             <ProfileCard
               user={{
                 name: staffData.fullName,
@@ -625,6 +611,7 @@ export default function StaffDashboard() {
                 role: staffData.roleName,
               }}
             />
+            {/* Stats */}
             <div className="space-y-3">
               <StatCard
                 title="Leave Balance"
@@ -657,26 +644,28 @@ export default function StaffDashboard() {
               />
             </div>
           </div>
-
           {/* Column 2: Score & Performance */}
           <div className="space-y-4 flex flex-col">
-            {" "}    
+            {" "}
             <ScoreSummaryCard
               currentScore={staffData.currentMonthAvg}
               maxScore={5}
+              performance={staffData.performance}
             />
             <MonthPerformanceChart
-              monthlyAverages={STATS_DATA.monthlyAverages}
+              monthlyAverages={staffData.lastSixMonths}
               className="flex-grow"
             />
           </div>
-          
-          {/* Column 3: KPI Breakdown */}
+          {/* Column 3: KPI Breakdown and Notifications */}
           <div className="space-y-4 flex flex-col">
             {" "}
             {/* Reduced spacing */}
             <NotificationCard notifications={NOTIFICATIONS} />
-            <KpiBreakdownCard data={KPI_BREAKDOWN_DATA} />
+            <KpiBreakdownCard
+              data={staffData.scoringRates || []}
+              staffData={staffData}
+            />
           </div>
         </div>
         {/* Footer */}
