@@ -1,53 +1,77 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Briefcase, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from 'react';
-
-const navItems = [
-  {
-    name: "Dashboard",
-    href: "/main/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Roles",
-    href: "/main/roles",
-    icon: Briefcase,
-  },
-  {
-    name: "Users",
-    href: "/main/users",
-    icon: Users,
-  },
-  {
-    name: "Evaluation",
-    href: "/main/weeklyevaluation",
-    icon: ClipboardCheck,
-  },
-];
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  ClipboardCheck,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
-  // CRITICAL CHANGE: Collapsed width changed from w-16 to w-20 (80px)
-  const sidebarWidth = isCollapsed ? 'w-20' : 'w-40';
-  const sidebarPadding = isCollapsed ? 'px-2' : 'px-3'; // Adjusted padding for w-20
+  useEffect(() => {
+    // Get user role from localStorage
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+  }, []);
 
+  // Dynamically build nav items based on user role
+  const navItems = useMemo(() => {
+    const items = [
+      {
+        name: "Dashboard",
+        href: "/main/dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        name: "Roles",
+        href: "/main/roles",
+        icon: Briefcase,
+      },
+      {
+        name: "Profile",
+        href: "/main/users",
+        icon: Users,
+      },
+      {
+        name: "Evaluation",
+        href: "/main/weeklyevaluation",
+        icon: ClipboardCheck,
+      },
+    ];
+
+    // If user is Staff or Temp Staff -> remove "Roles" and rename "Evaluation" to "Report"
+    if (userRole === "Staff" || userRole === "Temp Staff") {
+      return items
+        .filter((item) => item.name !== "Roles")
+        .map((item) =>
+          item.name === "Evaluation" ? { ...item, name: "Report" } : item
+        );
+    }
+
+    return items;
+  }, [userRole]);
+
+  const sidebarWidth = isCollapsed ? "w-20" : "w-40";
+  const sidebarPadding = isCollapsed ? "px-2" : "px-3";
   const ToggleIcon = isCollapsed ? ChevronRight : ChevronLeft;
 
   return (
-    <aside 
+    <aside
       className={`${sidebarWidth} ${sidebarPadding} bg-gradient-to-b from-gray-950 to-indigo-800 text-white 
-                  flex flex-col py-6 space-y-4 shadow-xl h-screen sticky top-0 z-20 rounded-r-2xl
-                  transition-all duration-300 ease-in-out`}
+        flex flex-col py-6 space-y-4 shadow-xl h-screen sticky top-0 z-20 rounded-r-2xl
+        transition-all duration-300 ease-in-out`}
     >
-      
-      {/* Toggle Button Container */}
-      <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} mb-4`}>
+      {/* Toggle Button */}
+      <div className={`flex ${isCollapsed ? "justify-center" : "justify-end"} mb-4`}>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-1.5 rounded-full text-indigo-300 bg-gray-900/50 hover:text-white hover:bg-indigo-600 border border-transparent hover:border-white/20 transition duration-300"
@@ -57,14 +81,12 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Navigation Links Container */}
+      {/* Navigation Links */}
       <nav className="flex flex-col space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
-          const Icon = item.icon; 
-
-          // CRITICAL CHANGE: Increased icon size when collapsed from 24 to 28
-          const iconSize = isCollapsed ? 28 : 18; 
+          const Icon = item.icon;
+          const iconSize = isCollapsed ? 28 : 18;
 
           return (
             <button
@@ -72,7 +94,7 @@ export default function Sidebar() {
               onClick={() => router.replace(item.href)}
               className={`
                 w-full flex items-center 
-                ${isCollapsed ? 'justify-center space-x-0 p-3' : 'space-x-2 px-3 py-2'} 
+                ${isCollapsed ? "justify-center space-x-0 p-3" : "space-x-2 px-3 py-2"} 
                 rounded-xl font-semibold transition-all duration-300
                 text-xs
                 ${
@@ -83,15 +105,11 @@ export default function Sidebar() {
               `}
             >
               <Icon size={iconSize} className="flex-shrink-0 transition-all duration-300" />
-              
-              {!isCollapsed && (
-                <span className="truncate">{item.name}</span>
-              )}
+              {!isCollapsed && <span className="truncate">{item.name}</span>}
             </button>
           );
         })}
       </nav>
-      
     </aside>
   );
 }

@@ -1,22 +1,96 @@
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
-  firstName: { type: String, required: true },                 // 1: First Name
-  lastName: { type: String, required: true },                  // 2: Last Name
-  primaryEmail: { type: String, required: true, unique: true }, // 3: Primary Email
-  secondaryEmail: { type: String },                            // 4: Secondary Email
-  fatherName: { type: String },                                // 5: Father Name
-  phone: { type: String },                                     // 6: Phone
-  emergencyContact: { type: String },                          // 7: Emergency Contact
-  emergencyRelation: { type: String },                         // 8: Emergency Contact relation
-  cnic: { type: String },                                      // 9: CNIC
-  role: { type: mongoose.Schema.Types.ObjectId, ref: "Role", required: true }, // 10: Role
-  medicalCondition: { type: String },                          // 11: Medical Condition
-  jd: { type: String },                                        // 12: JD (Job Description)
-  exp: { type: String },                                       // 13: Exp (Experience)
-  password: { type: String },
-  isActive: { type: Boolean, default: true },
-  created_at: { type: Date, default: Date.now },
+  firstName: { 
+    type: String, 
+    required: true, 
+    minlength: 2, 
+    maxlength: 50 
+  }, // 1: First Name
+
+  lastName: { 
+    type: String, 
+    required: true, 
+    minlength: 2, 
+    maxlength: 50 
+  }, // 2: Last Name
+
+  primaryEmail: { 
+    type: String, 
+    required: true, 
+    unique: true, 
+    maxlength: 100 
+  }, // 3: Primary Email
+
+  secondaryEmail: { 
+    type: String, 
+    maxlength: 100 
+  }, // 4: Secondary Email
+
+  fatherName: { 
+    type: String, 
+    maxlength: 100 
+  }, // 5: Father Name
+
+  phone: { 
+    type: String, 
+    minlength: 10, 
+    maxlength: 15 
+  }, // 6: Phone
+
+  emergencyContact: { 
+    type: String, 
+    minlength: 10, 
+    maxlength: 15 
+  }, // 7: Emergency Contact
+
+  emergencyRelation: { 
+    type: String, 
+    maxlength: 50 
+  }, // 8: Emergency Contact Relation
+
+  cnic: { 
+    type: String, 
+    minlength: 13, 
+    maxlength: 15 
+  }, // 9: CNIC (13 digits typically)
+
+  role: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Role", 
+    required: true 
+  }, // 10: Role Reference
+
+  medicalCondition: { 
+    type: String, 
+    maxlength: 200 
+  }, // 11: Medical Condition
+
+  jd: { 
+    type: String, 
+    maxlength: 1000 
+  }, // 12: JD (Job Description)
+
+  exp: { 
+    type: String, 
+    maxlength: 500 
+  }, // 13: Experience
+
+  password: { 
+    type: String, 
+    minlength: 8, 
+    maxlength: 128 
+  },
+
+  isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+
+  created_at: { 
+    type: Date, 
+    default: Date.now 
+  },
 });
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);

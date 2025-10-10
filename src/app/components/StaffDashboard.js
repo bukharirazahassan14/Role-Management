@@ -35,13 +35,6 @@ const STATS_DATA = {
   attendancePercentage: 100,
 };
 
-const KPI_BREAKDOWN_DATA = [
-  { program: "Client Satisfaction", score: 4.8, target: 5.0 },
-  { program: "Project Completion", score: 92, target: 100 },
-  { program: "Bug Fix Efficiency", score: 96, target: 100 },
-  { program: "Feature Delivery", score: 4.3, target: 5.0 },
-  { program: "Team Collaboration", score: 4.1, target: 5.0 },
-];
 
 const NOTIFICATIONS = [
   // Example data — leave this empty `[]` to test the empty state
@@ -388,7 +381,8 @@ const MonthPerformanceChart = ({ monthlyAverages }) => {
                 </div>
 
                 {/* Performance Bar */}
-                <div className="flex-grow bg-gray-200 rounded-full h-3 overflow-hidden border border-gray-300/40 relative">
+                {/* 💡 CHANGE: Reduced bar height from h-3 to h-2 */}
+                <div className="flex-grow bg-gray-200 rounded-full h-2 overflow-hidden border border-gray-300/40 relative">
                   <div
                     className="h-full rounded-full transition-all duration-700 ease-out shadow-md shadow-black/10"
                     style={{
@@ -634,7 +628,7 @@ export default function StaffDashboard() {
                 progressColor="#16a34a"
               />
               <StatCard
-                title={`Week ${staffData.currentWeekNumber} Score Rating`}
+                title={`Current Week Score Rating`}
                 value={staffData.currentWeekRating.toFixed(2)}
                 unit="/5"
                 icon={TrendingUp}

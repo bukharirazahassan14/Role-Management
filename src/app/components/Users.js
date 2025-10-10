@@ -13,6 +13,9 @@ import {
   List,
   LayoutGrid,
   UserCircle2,
+  Mail,
+  Calendar,
+  Check,
 } from "lucide-react"; // icons
 
 import useIsMobile from "../hooks/useIsMobile"; // adjust path if needed
@@ -25,7 +28,6 @@ export default function Users() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [viewDrawerOpen, setViewDrawerOpen] = useState(false); // view user drawer
   const [selectedUser, setSelectedUser] = useState(null);
   const [fileFrameUser, setFileFrameUser] = useState(null);
   const [currentUserRole, setCurrentUserRole] = useState(null);
@@ -77,6 +79,15 @@ export default function Users() {
       return null;
     }
   }
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+
+    // If Staff or Temp Staff → force card view
+    if (role === "Staff" || role === "Temp Staff") {
+      setViewMode("card");
+    }
+  }, []);
 
   // ✅ Token validation on component mount
   useEffect(() => {
@@ -211,8 +222,8 @@ export default function Users() {
     }
   };
 
-   useEffect(() => {
-    if (didFetch.current) return;        // ✅ avoid duplicate calls
+  useEffect(() => {
+    if (didFetch.current) return; // ✅ avoid duplicate calls
     didFetch.current = true;
 
     async function fetchUsers() {
@@ -223,11 +234,7 @@ export default function Users() {
         setCurrentUserRole(role);
 
         let res;
-        if (
-          role === "Super Admin" ||
-          role === "Management" ||
-          role === "HR"
-        ) {
+        if (role === "Super Admin" || role === "Management" || role === "HR") {
           // ✅ Fetch ALL users
           res = await fetch("/api/users");
         } else if (loginID) {
@@ -243,7 +250,6 @@ export default function Users() {
         } else if (data && typeof data === "object") {
           setUsers([data]);
         }
-
       } catch (err) {
         console.error("Error fetching users:", err);
       } finally {
@@ -264,6 +270,7 @@ export default function Users() {
     fetchUsers();
     fetchRoles();
   }, []);
+
   const handleRoleChange = async (userId, roleId) => {
     try {
       const res = await fetch(`/api/users/${userId}/role`, {
@@ -293,18 +300,7 @@ export default function Users() {
 
   // 👁️ Fetch + Open View Drawer
   const handleViewUser = async (user) => {
-    try {
-      const res = await fetch(`/api/users/${user.id}`);
-      if (!res.ok) throw new Error("Failed to fetch user details");
-      const data = await res.json();
-      setSelectedUser(data); // full details
-      setViewDrawerOpen(true);
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Failed to load user details");
-      setSuccess(false);
-      setTimeout(() => setMessage(""), 3000);
-    }
+    router.push(`/main/UserProfile?userID=${user.id}`);
   };
 
   if (loading) return <div className="p-8">Loading users...</div>;
@@ -473,7 +469,7 @@ export default function Users() {
           <button
             onClick={() => {
               setDrawerOpen(false);
-              setSelectedUser(null); // reset when closing
+              setSelectedUser(null);
             }}
             className="hover:bg-white/20 p-2 rounded-full transition"
           >
@@ -495,6 +491,8 @@ export default function Users() {
                   name="firstName"
                   type="text"
                   required
+                  minLength={2}
+                  maxLength={50}
                   defaultValue={selectedUser?.firstName || ""}
                   className="form-input"
                 />
@@ -508,6 +506,8 @@ export default function Users() {
                   name="lastName"
                   type="text"
                   required
+                  minLength={2}
+                  maxLength={50}
                   defaultValue={selectedUser?.lastName || ""}
                   className="form-input"
                 />
@@ -524,6 +524,7 @@ export default function Users() {
                 name="primaryEmail"
                 type="email"
                 required
+                maxLength={100}
                 defaultValue={selectedUser?.primaryEmail || ""}
                 className="form-input"
               />
@@ -536,12 +537,13 @@ export default function Users() {
                 id="secondaryEmail"
                 name="secondaryEmail"
                 type="email"
+                maxLength={100}
                 defaultValue={selectedUser?.secondaryEmail || ""}
                 className="form-input"
               />
             </div>
 
-            {/* Password with Reset Toggle */}
+            {/* Password */}
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-600">
@@ -551,6 +553,8 @@ export default function Users() {
                   id="password"
                   name="password"
                   type="password"
+                  minLength={8}
+                  maxLength={128}
                   className="form-input"
                   placeholder="••••••••"
                 />
@@ -566,6 +570,7 @@ export default function Users() {
                 id="fatherName"
                 name="fatherName"
                 type="text"
+                maxLength={100}
                 defaultValue={selectedUser?.fatherName || ""}
                 className="form-input"
               />
@@ -581,6 +586,8 @@ export default function Users() {
                   id="phone"
                   name="phone"
                   type="text"
+                  minLength={10}
+                  maxLength={15}
                   defaultValue={selectedUser?.phone || ""}
                   className="form-input"
                   placeholder="03XXXXXXXXX"
@@ -594,6 +601,8 @@ export default function Users() {
                   id="cnic"
                   name="cnic"
                   type="text"
+                  minLength={13}
+                  maxLength={15}
                   defaultValue={selectedUser?.cnic || ""}
                   className="form-input"
                   placeholder="XXXXX-XXXXXXX-X"
@@ -611,6 +620,8 @@ export default function Users() {
                   id="emergencyContact"
                   name="emergencyContact"
                   type="text"
+                  minLength={10}
+                  maxLength={15}
                   defaultValue={selectedUser?.emergencyContact || ""}
                   className="form-input"
                 />
@@ -623,6 +634,7 @@ export default function Users() {
                   id="emergencyRelation"
                   name="emergencyRelation"
                   type="text"
+                  maxLength={50}
                   defaultValue={selectedUser?.emergencyRelation || ""}
                   className="form-input"
                   placeholder="Brother, Sister, etc."
@@ -650,7 +662,6 @@ export default function Users() {
               >
                 {roles
                   .filter((role) => {
-                    // ✅ Only include "Super Admin" if it's already the user's role
                     if (role.name === "Super Admin") {
                       return (
                         roles.find(
@@ -679,6 +690,7 @@ export default function Users() {
                 id="medicalCondition"
                 name="medicalCondition"
                 type="text"
+                maxLength={200}
                 defaultValue={selectedUser?.medicalCondition || ""}
                 className="form-input"
               />
@@ -694,6 +706,7 @@ export default function Users() {
                 name="jd"
                 className="form-input min-h-24"
                 placeholder="Responsibilities, duties, etc."
+                maxLength={1000}
                 defaultValue={selectedUser?.jd || ""}
               />
             </div>
@@ -707,6 +720,7 @@ export default function Users() {
                 id="exp"
                 name="exp"
                 type="text"
+                maxLength={500}
                 defaultValue={selectedUser?.exp || ""}
                 className="form-input"
                 placeholder="e.g., 3 years"
@@ -728,11 +742,11 @@ export default function Users() {
                   type="checkbox"
                   id="isActive"
                   name="isActive"
-                  checked={!!userFormData.isActive} // always boolean
+                  checked={!!userFormData.isActive}
                   onChange={(e) =>
                     setUserFormData({
                       ...userFormData,
-                      isActive: e.target.checked, // toggle on/off
+                      isActive: e.target.checked,
                     })
                   }
                   className="sr-only peer"
@@ -753,174 +767,58 @@ export default function Users() {
         </div>
       </div>
 
-      {/* 👁️ View Drawer */}
-      <div
-        className={`fixed top-0 right-0 h-full w-[34rem] bg-gray-50 shadow-2xl transform transition-transform duration-300 z-50 ${
-          viewDrawerOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b bg-indigo-900 text-white rounded-tr-2xl">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Glasses className="w-5 h-5" /> View User
-          </h2>
-          <button
-            onClick={() => setViewDrawerOpen(false)}
-            className="hover:text-gray-200"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-4 overflow-y-auto h-[calc(100%-60px)] space-y-6">
-          {selectedUser ? (
-            <div className="space-y-6">
-              {/* Profile Card */}
-              <div className="bg-white shadow rounded-xl p-4 flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-2xl font-bold">
-                  {selectedUser.firstName?.[0]}
-                  {selectedUser.lastName?.[0]}
-                </div>
-                <h3 className="mt-3 text-lg font-semibold text-gray-800">
-                  {selectedUser.firstName} {selectedUser.lastName}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {selectedUser.role?.name || "No Role"}
-                </p>
-              </div>
-
-              {/* Details Grid */}
-              <div className="bg-white shadow rounded-xl p-4 space-y-4">
-                <h4 className="font-semibold text-gray-700 border-b pb-2">
-                  Contact Info
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-                  <p className="break-words">
-                    <span className="font-medium">Primary Email:</span>
-                    <br />
-                    {selectedUser.primaryEmail}
-                  </p>
-                  <p className="break-words">
-                    <span className="font-medium">Secondary Email:</span>
-                    <br />
-                    {selectedUser.secondaryEmail || "-"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Phone:</span>
-                    <br />
-                    {selectedUser.phone || "-"}
-                  </p>
-                  <p>
-                    <span className="font-medium">CNIC:</span>
-                    <br />
-                    {selectedUser.cnic || "-"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Emergency Section */}
-              <div className="bg-white shadow rounded-xl p-4 space-y-4">
-                <h4 className="font-semibold text-gray-700 border-b pb-2">
-                  Emergency
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-                  <p>
-                    <span className="font-medium">Contact:</span>
-                    <br />
-                    {selectedUser.emergencyContact || "-"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Relation:</span>
-                    <br />
-                    {selectedUser.emergencyRelation || "-"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Job Info */}
-              <div className="bg-white shadow rounded-xl p-4 space-y-4">
-                <h4 className="font-semibold text-gray-700 border-b pb-2">
-                  Job Info
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-                  <p>
-                    <span className="font-medium">Medical Condition:</span>
-                    <br />
-                    {selectedUser.medicalCondition || "-"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Job Description:</span>
-                    <br />
-                    {selectedUser.jd || "-"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Experience:</span>
-                    <br />
-                    {selectedUser.exp || "-"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Created At:</span>
-                    <br />
-                    {new Date(selectedUser.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
+      {/* 🔍 Search Box (Visible only for Super Admin, HR, Management) */}
+      {(currentUserRole === "Super Admin" ||
+        currentUserRole === "HR" ||
+        currentUserRole === "Management") && (
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-end flex-1 ml-4">
+            <div className="relative w-full max-w-sm">
+              <input
+                type="text"
+                placeholder="Search by name, email, or role..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg 
+           bg-white shadow-sm
+           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+           text-base placeholder-gray-400 transition"
+              />
+              {/* Bigger blue icon aligned vertically */}
+              <Glasses className="absolute left-3 top-2.5 w-7 h-7 text-blue-500" />
             </div>
-          ) : (
-            <p className="text-center text-gray-500">Loading user details...</p>
-          )}
-        </div>
-      </div>
 
-      <div className="flex items-center justify-between p-4">
-        {/* 🔍 Search Box */}
-        <div className="flex items-center justify-end flex-1 ml-4">
-          <div className="relative w-full max-w-sm">
-            <input
-              type="text"
-              placeholder="Search by name, email, or role..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg 
-             bg-white shadow-sm
-             focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
-             text-base placeholder-gray-400 transition"
-            />
-            {/* Bigger blue icon aligned vertically */}
-            <Glasses className="absolute left-3 top-2.5 w-7 h-7 text-blue-500" />
+            {/* Toggle Buttons (hidden on mobile) */}
+            {!isMobile && (
+              <div className="flex gap-2 ml-4">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded-lg border transition ${
+                    viewMode === "list"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-200 text-gray-700"
+                  }`}
+                  title="List View"
+                >
+                  <List className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={() => setViewMode("card")}
+                  className={`p-2 rounded-lg border transition ${
+                    viewMode === "card"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-200 text-gray-700"
+                  }`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="w-5 h-5" />
+                </button>
+              </div>
+            )}
           </div>
-
-          {/* Toggle Buttons (hidden on mobile) */}
-          {!isMobile && (
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg border transition ${
-                  viewMode === "list"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                title="List View"
-              >
-                <List className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => setViewMode("card")}
-                className={`p-2 rounded-lg border transition ${
-                  viewMode === "card"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-                title="Card View"
-              >
-                <LayoutGrid className="w-5 h-5" />
-              </button>
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
       {viewMode === "list" && !isMobile ? (
         // ✅ Main Table View
@@ -1146,13 +1044,12 @@ export default function Users() {
             </tbody>
           </table>
         </div>
-
       ) : (
         // ✅ Card View
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {currentUsers
             .filter((user) => {
-              // If logged in user is Staff or Temp Staff
+              // Filtering logic remains UNCHANGED
               if (
                 currentUserRole === "Staff" ||
                 currentUserRole === "Temp Staff"
@@ -1168,56 +1065,95 @@ export default function Users() {
             .map((user) => (
               <div
                 key={user.id}
-                className="relative bg-white border border-gray-100 shadow-sm hover:shadow-lg transition rounded-2xl p-6 group"
+                // PREMIUM STYLING: Subtle gradient background, deeper shadow on hover
+                className="relative bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-xl rounded-2xl p-6 group transition duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
               >
-                {/* Profile Avatar */}
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                    {user.firstName?.[0]}
-                    {user.lastName?.[0]}
+                {/* --- Header: Avatar, Name, and Role --- */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    {/* Profile Avatar */}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-indigo-600 to-pink-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg ring-4 ring-indigo-100">
+                      {user.firstName?.[0]}
+                      {user.lastName?.[0]}
+                    </div>
+
+                    <div>
+                      <h3 className="font-extrabold text-gray-900 text-xl tracking-tight group-hover:text-indigo-700 transition">
+                        {user.fullName || `${user.firstName} ${user.lastName}`}
+                      </h3>
+                      {/* Role Badge (Slightly darker for contrast) */}
+                      <p className="text-sm font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                        {user.role?.name || "No Role"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg group-hover:text-indigo-600 transition">
-                      {user.fullName || `${user.firstName} ${user.lastName}`}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {user.role?.name || "No Role"}
-                    </p>
-                  </div>
+
+                  {/* Empty div for layout symmetry */}
+                  <div className="w-10 h-10"></div>
                 </div>
 
-                {/* User Info */}
-                <div className="mt-5 space-y-3 text-sm text-gray-600">
-                  <p className="flex justify-between">
-                    <span className="font-medium">📧 Email:</span>
-                    <span>{user.email || "-"}</span>
+                {/* --- STYLIZED DIVIDER --- */}
+                <div className="mt-6">
+                  <div className="w-12 h-0.5 bg-indigo-400 rounded-full mx-auto group-hover:w-full transition-all duration-500"></div>
+                </div>
+
+                {/* --- User Info (Data Section) --- */}
+                <div className="mt-4 space-y-3 text-sm text-gray-700">
+                  {/* Email */}
+                  <p className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-semibold text-gray-600">
+                      <Mail className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                      Email:
+                    </span>
+                    <span className="truncate max-w-[60%]">
+                      {user.email || "-"}
+                    </span>
                   </p>
-                  <p className="flex justify-between">
-                    <span className="font-medium">📅 Created:</span>
+
+                  {/* Created Date */}
+                  <p className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-semibold text-gray-600">
+                      <Calendar className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                      Joined:
+                    </span>
                     <span>{new Date(user.createdAt).toLocaleDateString()}</span>
                   </p>
-                  <p className="flex justify-between">
-                    <span className="font-medium">✅ Active:</span>
-                    <span>{user.isActive ? "Yes" : "No"}</span>
+
+                  {/* Active Status (Circle Indicator) */}
+                  <p className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 font-semibold text-gray-600">
+                      <Check className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                      Active:
+                    </span>
+                    {/* The Circle Indicator */}
+                    <span
+                      className={`w-3 h-3 rounded-full shadow-inner ${
+                        user.isActive ? "bg-green-500" : "bg-red-500"
+                      }`}
+                      title={user.isActive ? "Currently Active" : "Inactive"}
+                    ></span>
                   </p>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="absolute top-4 right-4 flex gap-3 opacity-0 group-hover:opacity-100 transition">
+                {/* --- Action Buttons (Now Visible by default, Enhanced Hover) --- */}
+                <div className="absolute top-4 right-4 flex gap-2 transition-all duration-300">
+                  {/* View Button (Icon is indigo by default) */}
                   <button
                     onClick={() => handleViewUser(user)}
-                    className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                    title="View"
+                    className="p-2 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition shadow-lg"
+                    title="View Details"
                   >
                     <Glasses className="w-5 h-5" />
                   </button>
+
+                  {/* Edit Button (Role Restricted) */}
                   {(currentUserRole === "Super Admin" ||
                     currentUserRole === "HR" ||
                     currentUserRole === "Management") && (
                     <button
                       onClick={() => handleEditUser(user)}
-                      className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                      title="Edit"
+                      className="p-2 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition shadow-lg"
+                      title="Edit User"
                     >
                       <Edit className="w-5 h-5" />
                     </button>
@@ -1226,59 +1162,67 @@ export default function Users() {
               </div>
             ))}
 
-          {/* ➕ Add New User Card */}
-          <div
-            onClick={handleAddUser}
-            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition"
-          >
-            <Plus className="w-12 h-12 text-indigo-600" />
-            <span className="mt-3 text-indigo-600 font-medium text-lg">
-              Add New User
-            </span>
-          </div>
+          {/* ➕ Add New User Card (Modernized & Role Restricted) */}
+          {currentUserRole !== "Staff" && currentUserRole !== "Temp Staff" && (
+            <div
+              onClick={handleAddUser}
+              className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer transition duration-300 h-full 
+                 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-inner"
+            >
+              <Plus className="w-14 h-14 text-indigo-600/80" />
+              <span className="mt-4 text-indigo-700 font-bold text-lg">
+                Add New User
+              </span>
+              <p className="text-sm text-gray-500 mt-1">Management Access</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ✅ Pagination + Info (all on right side) */}
-      <div className="flex justify-end items-center mt-4 space-x-4">
-        <p className="text-sm text-gray-500">
-          Showing {indexOfFirstUser + 1} -{" "}
-          {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
-          {filteredUsers.length}
-        </p>
+      {/* ✅ Pagination + Info (visible only for Super Admin, HR, or Management) */}
+      {(currentUserRole === "Super Admin" ||
+        currentUserRole === "HR" ||
+        currentUserRole === "Management") && (
+        <div className="flex justify-end items-center mt-4 space-x-4">
+          <p className="text-sm text-gray-500">
+            Showing {indexOfFirstUser + 1} -{" "}
+            {Math.min(indexOfLastUser, filteredUsers.length)} of{" "}
+            {filteredUsers.length}
+          </p>
 
-        <div className="flex space-x-2">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
-          >
-            Prev
-          </button>
-
-          {[...Array(totalPages)].map((_, idx) => (
+          <div className="flex space-x-2">
             <button
-              key={idx}
-              onClick={() => handlePageChange(idx + 1)}
-              className={`px-3 py-1 border rounded-md text-sm transition ${
-                currentPage === idx + 1
-                  ? "bg-indigo-500 text-white border-indigo-500"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
             >
-              {idx + 1}
+              Prev
             </button>
-          ))}
 
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
-          >
-            Next
-          </button>
+            {[...Array(totalPages)].map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => handlePageChange(idx + 1)}
+                className={`px-3 py-1 border rounded-md text-sm transition ${
+                  currentPage === idx + 1
+                    ? "bg-indigo-500 text-white border-indigo-500"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {idx + 1}
+              </button>
+            ))}
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ✅ Floating Center Frame */}
       {fileFrameUser && (
@@ -1380,42 +1324,41 @@ export default function Users() {
                   className="w-full sm:flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
                 />
                 <button
-  onClick={handleUpload}
-  disabled={
-    !(
-      currentUserRole === "Super Admin" ||
-      (currentUserRole === "Management" &&
-        fileFrameUser?.role?.name !== "Super Admin") ||
-      (currentUserRole === "HR" &&
-        fileFrameUser?.role?.name !== "Super Admin" &&
-        fileFrameUser?.role?.name !== "Management")
-    )
-  }
-  className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
-    currentUserRole === "Super Admin" ||
-    (currentUserRole === "Management" &&
-      fileFrameUser?.role?.name !== "Super Admin") ||
-    (currentUserRole === "HR" &&
-      fileFrameUser?.role?.name !== "Super Admin" &&
-      fileFrameUser?.role?.name !== "Management")
-      ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-      : "bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed"
-  }`}
-  title={
-    currentUserRole === "Super Admin" ||
-    (currentUserRole === "Management" &&
-      fileFrameUser?.role?.name !== "Super Admin") ||
-    (currentUserRole === "HR" &&
-      fileFrameUser?.role?.name !== "Super Admin" &&
-      fileFrameUser?.role?.name !== "Management")
-      ? "Upload File"
-      : "You cannot upload for this user"
-  }
->
-  <Upload className="w-4 h-4" />
-  <span>Upload</span>
-</button>
-
+                  onClick={handleUpload}
+                  disabled={
+                    !(
+                      currentUserRole === "Super Admin" ||
+                      (currentUserRole === "Management" &&
+                        fileFrameUser?.role?.name !== "Super Admin") ||
+                      (currentUserRole === "HR" &&
+                        fileFrameUser?.role?.name !== "Super Admin" &&
+                        fileFrameUser?.role?.name !== "Management")
+                    )
+                  }
+                  className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
+                    currentUserRole === "Super Admin" ||
+                    (currentUserRole === "Management" &&
+                      fileFrameUser?.role?.name !== "Super Admin") ||
+                    (currentUserRole === "HR" &&
+                      fileFrameUser?.role?.name !== "Super Admin" &&
+                      fileFrameUser?.role?.name !== "Management")
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                      : "bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed"
+                  }`}
+                  title={
+                    currentUserRole === "Super Admin" ||
+                    (currentUserRole === "Management" &&
+                      fileFrameUser?.role?.name !== "Super Admin") ||
+                    (currentUserRole === "HR" &&
+                      fileFrameUser?.role?.name !== "Super Admin" &&
+                      fileFrameUser?.role?.name !== "Management")
+                      ? "Upload File"
+                      : "You cannot upload for this user"
+                  }
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Upload</span>
+                </button>
               </div>
             </div>
           </div>
