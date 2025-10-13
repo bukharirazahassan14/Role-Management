@@ -27,6 +27,14 @@ export async function GET(req) {
         },
       },
       { $unwind: { path: "$roleInfo", preserveNullAndEmptyArrays: true } },
+
+         // ✅ Role filtering added here
+      {
+        $match: {
+          "roleInfo.name": { $in: ["HR", "Staff", "Temp Staff"] },
+        },
+      },
+      
       {
         $project: {
           _id: 1,

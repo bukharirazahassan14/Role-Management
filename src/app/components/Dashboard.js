@@ -131,6 +131,7 @@ export default function Dashboard() {
   const didFetch = useRef(false);
   const [teamMembers, setTeamMembers] = useState([]);
 
+
   // Months
   const months = [
     "Jan",
@@ -157,7 +158,8 @@ export default function Dashboard() {
   const [SerSelectedYear, setSerSelectedYear] = useState(
     new Date().getFullYear()
   );
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const currentMonth = new Date().getMonth() + 1;
+  const [selectedMonth, setSelectedMonth] = useState([currentMonth]);
 
   /* ---------------- API Fetch: Team Members ---------------- */
   useEffect(() => {
@@ -181,38 +183,7 @@ export default function Dashboard() {
         console.error("Error fetching team members:", error);
 
         // Fallback Mock Data for dev visibility if API fails
-        const fallbackData = [
-          {
-            id: 1,
-            name: "Sarah Miller",
-            email: "sarah.m@example.com",
-            role: "Manager",
-          },
-          {
-            id: 2,
-            name: "John Smith",
-            email: "john.s@example.com",
-            role: "Developer",
-          },
-          {
-            id: 3,
-            name: "Emily Chen",
-            email: "emily.c@example.com",
-            role: "Designer",
-          },
-          {
-            id: 4,
-            name: "David Lee",
-            email: "david.l@example.com",
-            role: "HR",
-          },
-          {
-            id: 5,
-            name: "Jane Doe",
-            email: "jane.d@example.com",
-            role: "Analyst",
-          },
-        ];
+
         setTeamMembers(fallbackData);
       }
     };
@@ -364,50 +335,31 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchMonthlyPerformance = async () => {
       try {
+        // Always ensure at least one month is selected
+        const validMonths =
+          selectedMonth.length > 0 ? selectedMonth : [currentMonth];
+        const monthsParam = validMonths.join(",");
+       
+
         const res = await fetch(
-          `/api/weeklyevaluation/performance/monthly?year=${SerSelectedYear}&month=${selectedMonth}`
+          `/api/weeklyevaluation/performance/monthly?year=${SerSelectedYear}&months=${monthsParam}`
         );
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json(); // Await the JSON parsing
 
-        // ✅ Sort by avgWeightedRating in descending order
+        const data = await res.json();
         const sortedData = [...data].sort(
           (a, b) => b.avgWeightedRating - a.avgWeightedRating
         );
-
         setMonthlyPerformance(sortedData);
+       
       } catch (err) {
         console.error("Monthly performance fetch error:", err);
-        // Fallback Mock Data
-        setMonthlyPerformance([
-          {
-            fullName: "Sarah Miller",
-            roleName: "Manager",
-            avgWeightedRating: 4.8,
-          },
-          {
-            fullName: "John Smith",
-            roleName: "Developer",
-            avgWeightedRating: 3.5,
-          },
-          {
-            fullName: "Emily Chen",
-            roleName: "Designer",
-            avgWeightedRating: 2.1,
-          },
-          { fullName: "David Lee", roleName: "HR", avgWeightedRating: 4.1 },
-          {
-            fullName: "Alex Smith",
-            roleName: "Analyst",
-            avgWeightedRating: 3.9,
-          },
-        ]);
       }
     };
 
     fetchMonthlyPerformance();
-  }, [SerSelectedYear, selectedMonth]);
+  }, [SerSelectedYear, selectedMonth, currentMonth]);
 
   /* ---------------- Derived Stats ---------------- */
   const stats = useMemo(
@@ -448,6 +400,7 @@ export default function Dashboard() {
     name: u.fullName,
     email: u.roleName,
     avg: Number(u.avgWeightedRating ?? 0),
+    act: u.Action
   }));
 
   // CALCULATE MONTHLY AVERAGE
@@ -661,18 +614,37 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* 2. Month Buttons (Slightly larger, non-wrapping) */}
+              {/* 2. Month Buttons (Multi-select) */}
               <div className="flex gap-1 flex-nowrap">
                 {months.map((month, idx) => {
                   const monthNumber = idx + 1;
-                  const isSelected = selectedMonth === monthNumber;
+                  const isSelected = selectedMonth.includes(monthNumber);
 
                   return (
                     <button
                       key={month}
                       onClick={() => {
-                        setSelectedMonth(monthNumber);
-                        SerNotifyChange(SerSelectedYear, monthNumber);
+                        setSelectedMonth((prev) => {
+                          let next;
+
+                          if (prev.includes(monthNumber)) {
+                            // Remove month if it's already selected
+                            next = prev.filter((m) => m !== monthNumber);
+                          } else {
+                            // Add new month
+                            next = [...prev, monthNumber];
+                          }
+
+                          // ✅ Prevent empty selection — revert to default month
+                          if (next.length === 0) {
+                            next = [currentMonth];
+                          }
+
+                          // 🔔 Notify parent/state
+                          SerNotifyChange(SerSelectedYear, next);
+
+                          return next;
+                        });
                       }}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300 flex-shrink-0 ${
                         isSelected
@@ -741,7 +713,7 @@ export default function Dashboard() {
                       <span
                         className={`text-xs font-semibold w-8 text-right ${colorClass}`}
                       >
-                        {user.avg.toFixed(1)}
+                        {user.avg.toFixed(2)}
                       </span>
                       <span
                         className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm ${
@@ -750,6 +722,15 @@ export default function Dashboard() {
                       >
                         {performance || "Poor"}
                       </span>
+                      <span
+                        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm ${
+                          badgeColors[performance] || badgeColors.Poor
+                        } flex-shrink-0 min-w-[70px] justify-center text-center`}
+                      >
+                          {user.act || "-"}
+                      </span>
+
+
                     </div>
                   </div>
                 );
@@ -763,22 +744,22 @@ export default function Dashboard() {
                 w-28 h-28 rounded-full flex flex-col items-center justify-center 
                 bg-gradient-to-br ${monthlyBgColor} shadow-xl ${monthlyRingColor} ring-4 ring-white z-10`}
           >
-            <p className="text-white text-xs font-medium -mt-2">Monthly Avg.</p>
+            <p className="text-white text-xs font-medium -mt-2">Overall Avg.</p>
             <p className="text-white text-3xl font-extrabold">
-              {monthlyAverage.toFixed(1)}
+              {monthlyAverage.toFixed(2)}
             </p>
             <p className="text-white text-sm font-bold">
               {monthlyPerformanceText}
             </p>
+           
           </div>
         </div>
-        
         {/* Card 3: Evaluation Programs Weightage (4/12 width) */}
         {/* Note: If you want Card 3 to match the new, shorter height, you will need to adjust its content height (h-40) and padding (p-6) as well. */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 lg:col-span-1">
           <h3 className="text-xl font-extrabold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center space-x-2">
             <PieChartIcon className="h-5 w-5 text-indigo-600" />
-            <span>Evaluation Programs Weightage</span>
+            <span>Key performance indicators (KPIs)</span>
           </h3>
 
           {/* Pie Chart Area (Centered) */}

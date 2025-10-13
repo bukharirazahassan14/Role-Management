@@ -274,8 +274,8 @@ export default function EmployeeWeeklyEvaluation() {
       return; // wait for state update before fetching
     }
 
-    fetchEvaluations();
-  }, [startDate, endDate, fetchEvaluations]);
+    //fetchEvaluations();
+  }, [startDate, endDate]);
 
   const fetchEvaluationPrograms = async () => {
     try {
@@ -300,7 +300,8 @@ export default function EmployeeWeeklyEvaluation() {
     didFetch.current = true;
 
     fetchEvaluationPrograms();
-  }, []);
+    fetchEvaluations();
+  }, [fetchEvaluations]);
 
   useEffect(() => {
     if (SerSelectedYear && SerSelectedMonth) {
@@ -318,15 +319,14 @@ export default function EmployeeWeeklyEvaluation() {
     const newScores = [...evaluationScores];
     const numericScore = parseFloat(score) || 0;
 
-    // Correct calculation as a number
-    const weightedRating =
-      Math.round((numericScore * weightage * 10) / 100) / 10;
+    // Correct calculation with 2 decimal places
+    const weightedRating = ((numericScore * weightage) / 100).toFixed(2);
 
     newScores[index] = {
       _id: progId,
       score: numericScore,
       weightage,
-      weightedRating, // keep as number
+      weightedRating: parseFloat(weightedRating), // store as number, not string
     };
 
     setEvaluationScores(newScores);
@@ -488,7 +488,7 @@ export default function EmployeeWeeklyEvaluation() {
 
   const indexOfLast = currentPage * rowsPerPage;
   const indexOfFirst = indexOfLast - rowsPerPage;
-  const current = filtered.slice(indexOfFirst, indexOfLast);
+  const currentEvaluations = evaluations.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
 
   const handlePageChange = (page) => {
@@ -545,12 +545,11 @@ export default function EmployeeWeeklyEvaluation() {
       }
 
       const data = await res.json();
-      console.log("✅ Saved Evaluation:", data);
 
       await fetchEvaluations(); // refresh list
 
       // 🎉 Success feedback
-      handleCloseDrawer();
+      //handleCloseDrawer();
       setMessage(
         `✅ Evaluation ${
           editingEvaluation ? "updated" : "submitted"
@@ -648,7 +647,6 @@ export default function EmployeeWeeklyEvaluation() {
       if (!res.ok) throw new Error("Failed to delete evaluation");
 
       const data = await res.json();
-      console.log("Deleted Evaluation:", data);
 
       // ✅ Show success message
       setMessage("✅ Last evaluation deleted successfully");
@@ -677,19 +675,6 @@ export default function EmployeeWeeklyEvaluation() {
 
   return (
     <div className="p-8 w-full">
-      {/* ✅ Toast */}
-      {message && (
-        <div className="fixed top-5 right-5 z-50">
-          <div
-            className={`px-4 py-2 rounded shadow-lg text-white ${
-              success ? "bg-green-500" : "bg-red-500"
-            }`}
-          >
-            {message}
-          </div>
-        </div>
-      )}
-
       {/* ✅ Right Drawer (Modern + Complete with Evaluation Programs Table) */}
       <div
         className={`fixed top-0 right-0 h-full 
@@ -699,6 +684,18 @@ export default function EmployeeWeeklyEvaluation() {
     z-50 rounded-l-2xl 
     ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
       >
+        {/* ✅ Toast */}
+        {message && (
+          <div className="fixed top-5 right-5 z-50">
+            <div
+              className={`px-4 py-2 rounded shadow-lg text-white ${
+                success ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              {message}
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -928,7 +925,7 @@ export default function EmployeeWeeklyEvaluation() {
                               (sum, s) => sum + (s.weightedRating || 0),
                               0
                             )
-                            .toFixed(1)}
+                            .toFixed(2)}
                         </td>
                       </tr>
                     </tbody>
@@ -1166,39 +1163,37 @@ export default function EmployeeWeeklyEvaluation() {
       {/* ✅ Table view */}
       {viewMode === "list" && !isMobile ? (
         <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
-          <table className="w-full table-fixed text-left">
+          <table className="w-full table-fixed text-left border-collapse">
             <thead className="bg-indigo-900 text-white">
               <tr>
-                <th className="px-4 py-3 w-2/12 text-center"></th>
-                <th className="px-4 py-3 w-2/12">Name</th>
-                <th className="px-4 py-3 w-2/12">Weeks</th>
-                <th className="px-4 py-3 w-2/12">Start Date</th>
-                <th className="px-4 py-3 w-2/12">End Date</th>
-                <th className="px-4 py-3 w-1/12 text-right">Score</th>
-                <th className="px-4 py-3 w-2/12 text-right">AVG Rating</th>
-                <th className="px-4 py-3 w-2/12 text-center">Performance</th>
-                <th className="px-4 py-3 w-1/12 text-center">Action</th>
+                <th className="px-4 py-3 text-center w-[14%]"></th>
+                <th className="px-4 py-3 text-left w-[16%]">Name</th>
+                <th className="px-4 py-3 text-center w-[10%]">Weeks</th>
+                <th className="px-4 py-3 text-center w-[15%]">Start Date</th>
+                <th className="px-4 py-3 text-center w-[15%]">End Date</th>
+                <th className="px-4 py-3 text-right w-[10%]">AVG Rating</th>
+                <th className="px-4 py-3 text-center w-[12%]">Performance</th>
+                <th className="px-4 py-3 text-center w-[10%]">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {/* ✅ Check for empty evaluations OR single empty record */}
               {evaluations.length === 0 ||
               (evaluations.length === 1 &&
                 (!evaluations[0].weekNumbers ||
                   evaluations[0].weekNumbers.length === 0)) ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={8}
                     className="text-center py-6 text-gray-500 font-medium"
                   >
                     No records found
                   </td>
                 </tr>
               ) : (
-                evaluations
+                currentEvaluations
+                  // ✅ Use filter instead of map for role-based visibility
                   .filter((ev) => {
-                    // If logged in user is Staff or Temp Staff
                     if (
                       currentUserRole === "Staff" ||
                       currentUserRole === "Temp Staff"
@@ -1209,12 +1204,11 @@ export default function EmployeeWeeklyEvaluation() {
                         ev.roleName !== "HR"
                       );
                     }
-                    return true; // Other roles see everything
+                    return true;
                   })
                   .map((ev) => {
                     let performance = ev.performance || "";
                     let colorClass = "text-gray-500 font-medium";
-
                     if (performance === "Poor")
                       colorClass = "text-red-600 font-semibold";
                     else if (performance === "Partial")
@@ -1228,9 +1222,8 @@ export default function EmployeeWeeklyEvaluation() {
 
                     return (
                       <tr key={ev._id} className="hover:bg-indigo-50 border-b">
-                        {/* View & Edit Buttons */}
                         <td className="px-4 py-4 text-center align-middle">
-                          <div className="flex justify-center items-center gap-6">
+                          <div className="flex justify-center items-center gap-4">
                             <button
                               onClick={() => handleViewEvaluation(ev._id)}
                               className="text-indigo-600 hover:text-indigo-900 transition"
@@ -1265,25 +1258,22 @@ export default function EmployeeWeeklyEvaluation() {
                           </div>
                         </td>
 
-                        {/* Name */}
                         <td className="px-4 py-4 truncate">
                           {ev.fullName || ""}
                         </td>
 
-                        {/* Weeks */}
                         <td className="px-4 py-4 truncate">
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 justify-center">
                             {[1, 2, 3, 4].map((week) => {
                               const isActive = ev.weekNumbers?.includes(week);
                               return (
                                 <span
                                   key={week}
-                                  className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition
-                              ${
-                                isActive
-                                  ? "bg-indigo-600 text-white shadow-md"
-                                  : "bg-gray-200 text-gray-400"
-                              }`}
+                                  className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition ${
+                                    isActive
+                                      ? "bg-indigo-600 text-white shadow-md"
+                                      : "bg-gray-200 text-gray-400"
+                                  }`}
                                   title={`Week ${week}`}
                                 >
                                   {week}
@@ -1293,8 +1283,7 @@ export default function EmployeeWeeklyEvaluation() {
                           </div>
                         </td>
 
-                        {/* Start Date */}
-                        <td className="px-4 py-4 truncate">
+                        <td className="px-4 py-4 truncate text-center">
                           {ev.weekStart
                             ? new Date(ev.weekStart).toLocaleDateString(
                                 "en-US",
@@ -1307,8 +1296,7 @@ export default function EmployeeWeeklyEvaluation() {
                             : ""}
                         </td>
 
-                        {/* End Date */}
-                        <td className="px-4 py-4 truncate">
+                        <td className="px-4 py-4 truncate text-center">
                           {ev.weekEnd
                             ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
                                 day: "2-digit",
@@ -1318,26 +1306,18 @@ export default function EmployeeWeeklyEvaluation() {
                             : ""}
                         </td>
 
-                        {/* Score */}
-                        <td className="px-4 py-4 truncate text-right">
-                          {ev.totalScoreSum > 0 ? ev.totalScoreSum : ""}
-                        </td>
-
-                        {/* AVG Rating */}
                         <td className="px-4 py-4 truncate text-right">
                           {ev.avgWeightedRating > 0
                             ? ev.avgWeightedRating.toFixed(2)
                             : ""}
                         </td>
 
-                        {/* Performance */}
                         <td
                           className={`px-4 py-4 truncate text-center ${colorClass}`}
                         >
                           {performance || ""}
                         </td>
 
-                        {/* Delete Button */}
                         <td className="px-4 py-4 text-center">
                           {(currentUserRole === "Super Admin" ||
                             currentUserRole === "HR" ||
@@ -1361,26 +1341,22 @@ export default function EmployeeWeeklyEvaluation() {
       ) : (
         // Modern Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {evaluations.map((ev) => {
-            // ✅ Use API fields
+          {currentEvaluations.map((ev) => {
             const score = ev.totalScoreSum || 0;
             const weighted = ev.totalWeightedRatingSum || 0;
 
-            // ✅ Performance badge
             let performance = ev.performance || "N/A";
             let badgeClass = "bg-gray-200 text-gray-600";
-
-            if (performance === "Poor") {
+            if (performance === "Poor")
               badgeClass = "bg-red-200/80 text-red-900";
-            } else if (performance === "Partial") {
+            else if (performance === "Partial")
               badgeClass = "bg-orange-200/80 text-orange-900";
-            } else if (performance === "Normal") {
+            else if (performance === "Normal")
               badgeClass = "bg-yellow-200/80 text-yellow-900";
-            } else if (performance === "Good") {
+            else if (performance === "Good")
               badgeClass = "bg-green-200/80 text-green-900";
-            } else if (performance === "Excellent") {
+            else if (performance === "Excellent")
               badgeClass = "bg-blue-200/80 text-blue-900";
-            }
 
             return (
               <div
@@ -1491,13 +1467,17 @@ export default function EmployeeWeeklyEvaluation() {
                 {/* Actions */}
                 <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                   {/* Add Record */}
-                  <button
-                    onClick={() => handleAddUser(ev._id)}
-                    className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
-                    title="Add Record"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                  {(currentUserRole === "Super Admin" ||
+                    currentUserRole === "HR" ||
+                    currentUserRole === "Management") && (
+                    <button
+                      onClick={() => handleAddUser(ev._id)}
+                      className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
+                      title="Add Record"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  )}
 
                   {/* Edit (restricted roles) */}
                   {(currentUserRole === "Super Admin" ||
@@ -1540,42 +1520,50 @@ export default function EmployeeWeeklyEvaluation() {
         </div>
       )}
 
-      {/* ✅ Pagination */}
-      <div className="flex justify-end items-center mt-4 space-x-4">
-        <p className="text-sm text-gray-500">
-          Showing {indexOfFirst + 1} - {Math.min(indexOfLast, filtered.length)}{" "}
-          of {filtered.length}
-        </p>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
-          >
-            Prev
-          </button>
-          {[...Array(totalPages)].map((_, idx) => (
+      {/* ✅ Pagination Controls */}
+      {evaluations.length >= 10 && (
+        <div className="flex justify-end items-center mt-6 space-x-4">
+          <p className="text-sm text-gray-500">
+            Showing {indexOfFirst + 1} -{" "}
+            {Math.min(indexOfLast, evaluations.length)} of {evaluations.length}
+          </p>
+
+          <div className="flex space-x-2">
+            {/* Previous Button */}
             <button
-              key={idx}
-              onClick={() => handlePageChange(idx + 1)}
-              className={`px-3 py-1 border rounded-md text-sm ${
-                currentPage === idx + 1
-                  ? "bg-indigo-500 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
             >
-              {idx + 1}
+              Prev
             </button>
-          ))}
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
-          >
-            Next
-          </button>
+
+            {/* Page Numbers */}
+            {[...Array(totalPages)].map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => handlePageChange(idx + 1)}
+                className={`px-3 py-1 border rounded-md text-sm ${
+                  currentPage === idx + 1
+                    ? "bg-indigo-500 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {idx + 1}
+              </button>
+            ))}
+
+            {/* Next Button */}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -23,9 +23,9 @@ export default function Sidebar() {
     setUserRole(role);
   }, []);
 
-  // Dynamically build nav items based on user role
+ // Dynamically build nav items based on user role
   const navItems = useMemo(() => {
-    const items = [
+    const baseItems = [ // Renamed 'items' to 'baseItems' for clarity
       {
         name: "Dashboard",
         href: "/main/dashboard",
@@ -48,16 +48,19 @@ export default function Sidebar() {
       },
     ];
 
-    // If user is Staff or Temp Staff -> remove "Roles" and rename "Evaluation" to "Report"
-    if (userRole === "Staff" || userRole === "Temp Staff") {
-      return items
-        .filter((item) => item.name !== "Roles")
-        .map((item) =>
-          item.name === "Evaluation" ? { ...item, name: "Report" } : item
-        );
-    }
+    let finalItems = baseItems;
 
-    return items;
+    // 1. For Staff/Temp Staff, filter out "Roles"
+    if (userRole === "Staff" || userRole === "Temp Staff") {
+      finalItems = baseItems.filter((item) => item.name !== "Roles");
+    } 
+    // For other roles, finalItems remains baseItems (Roles is included)
+
+    // 2. Rename "Evaluation" to "Report" for ALL roles
+    return finalItems.map((item) =>
+      item.name === "Evaluation" ? { ...item, name: "Report" } : item
+    );
+    
   }, [userRole]);
 
   const sidebarWidth = isCollapsed ? "w-20" : "w-40";
@@ -96,7 +99,7 @@ export default function Sidebar() {
                 w-full flex items-center 
                 ${isCollapsed ? "justify-center space-x-0 p-3" : "space-x-2 px-3 py-2"} 
                 rounded-xl font-semibold transition-all duration-300
-                text-xs
+                text-xm
                 ${
                   isActive
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700 ring-1 ring-white/50"

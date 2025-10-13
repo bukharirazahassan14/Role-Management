@@ -18,6 +18,7 @@ import {
   BarChart3,
   Star,
   CheckCircle,
+  ShieldCheck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -378,7 +379,7 @@ export default function LoginPage() {
         {/* Lock Icon */}
         <div className="flex justify-center mb-6">
           <div className="bg-indigo-100 p-4 rounded-full shadow-md">
-            <Lock className="h-10 w-10 text-indigo-600" />
+            <ShieldCheck className="h-10 w-10 text-indigo-600" />
           </div>
         </div>
 

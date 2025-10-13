@@ -1,44 +1,57 @@
-///api/weeklyevaluation/performance/monthly/route.js
-
 import connectToDB from "@/lib/mongodb";
 import User from "@/models/User";
-import WeeklyEvaluation from "@/models/WeeklyEvaluation";
 
 export async function GET(req) {
   try {
     await connectToDB();
-
     const { searchParams } = new URL(req.url);
-    const year = parseInt(searchParams.get("year"));
-    const month = parseInt(searchParams.get("month"));
 
-    // support multiple weeks e.g. week=1,2,3,4
-    const weekParam = searchParams.get("week");
+    const year = parseInt(searchParams.get("year"), 10);
+    const monthParam =
+      searchParams.get("months") ?? searchParams.get("month") ?? null;
+    const weekParam =
+      searchParams.get("weeks") ?? searchParams.get("week") ?? null;
+
+    const months =
+      monthParam && monthParam.trim().length > 0
+        ? monthParam
+            .split(",")
+            .map((m) => parseInt(m.trim(), 10))
+            .filter((m) => !isNaN(m) && m >= 1 && m <= 12)
+        : [];
+
     const weeks =
       weekParam && weekParam.trim().length > 0
-        ? weekParam.split(",").map((w) => parseInt(w.trim()))
+        ? weekParam
+            .split(",")
+            .map((w) => parseInt(w.trim(), 10))
+            .filter((w) => !isNaN(w))
         : null;
 
-    if (!year || !month) {
+    if (!year || months.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Year and month are required" }),
+        JSON.stringify({ error: "Year and at least one month are required" }),
         { status: 400 }
       );
     }
 
-    // calculate start and end of month
-    const startOfMonth = new Date(year, month - 1, 1);
-    const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+    // Date ranges per selected month
+    const monthDateRanges = months.map((m) => ({
+      start: new Date(year, m - 1, 1),
+      end: new Date(year, m, 0, 23, 59, 59),
+    }));
 
-    // build match condition
-    const matchCondition = {
-      weekEnd: { $gte: startOfMonth, $lte: endOfMonth },
-    };
+    const monthConditions = monthDateRanges.map((r) => ({
+      weekEnd: { $gte: r.start, $lte: r.end },
+    }));
+
+    const matchCondition = { $or: monthConditions };
     if (weeks && weeks.length > 0) {
       matchCondition.weekNumber = { $in: weeks };
     }
 
     const results = await User.aggregate([
+      // --- Get Role Info ---
       {
         $lookup: {
           from: "roles",
@@ -48,6 +61,14 @@ export async function GET(req) {
         },
       },
       { $unwind: { path: "$roleInfo", preserveNullAndEmptyArrays: true } },
+
+      // ✅ Only HR, Staff, Temp Staff users
+      {
+        $match: {
+          "roleInfo.name": { $in: ["HR", "Staff", "Temp Staff"] },
+        },
+      },
+
       {
         $project: {
           _id: 1,
@@ -55,6 +76,8 @@ export async function GET(req) {
           roleName: "$roleInfo.name",
         },
       },
+
+      // --- Get Evaluations ---
       {
         $lookup: {
           from: "weeklyevaluations",
@@ -66,27 +89,57 @@ export async function GET(req) {
                 ...matchCondition,
               },
             },
+            // Group by month to collect week numbers and stats
+            {
+              $group: {
+                _id: { month: { $month: "$weekEnd" } },
+                weekNumbers: { $push: "$weekNumber" },
+                totalWeightedRatingMonth: { $sum: "$totalWeightedRating" },
+                totalScoreMonth: { $sum: "$totalScore" },
+                weeksCountMonth: { $sum: 1 },
+                minWeekStart: { $min: "$weekStart" },
+                maxWeekEnd: { $max: "$weekEnd" },
+              },
+            },
+            // Then group all months back together
             {
               $group: {
                 _id: null,
-                weekNumbers: { $push: "$weekNumber" },
-                weeksCount: { $sum: 1 },
-                latestWeekStart: { $min: "$weekStart" },
-                latestWeekEnd: { $max: "$weekEnd" },
-                totalScoreSum: { $sum: "$totalScore" },
-                totalWeightedRatingSum: { $sum: "$totalWeightedRating" },
+                activeMonthsCount: { $sum: 1 },
+                weekNumbers: { $push: "$weekNumbers" }, // temporary nested
+                totalWeightedRatingSum: { $sum: "$totalWeightedRatingMonth" },
+                totalScoreSum: { $sum: "$totalScoreMonth" },
+                latestWeekStart: { $min: "$minWeekStart" },
+                latestWeekEnd: { $max: "$maxWeekEnd" },
               },
             },
+            // ✅ Flatten weekNumbers
             {
               $addFields: {
-                avgWeightedRating: {
-                  $cond: {
-                    if: { $eq: ["$weeksCount", 0] },
-                    then: 0,
-                    else: {
-                      $divide: ["$totalWeightedRatingSum", 4],
-                    },
+                weekNumbers: {
+                  $reduce: {
+                    input: "$weekNumbers",
+                    initialValue: [],
+                    in: { $concatArrays: ["$$value", "$$this"] },
                   },
+                },
+              },
+            },
+            // ✅ Compute averages and divisor
+            {
+              $addFields: {
+                divisor: { $multiply: ["$activeMonthsCount", 4] },
+                avgWeightedRating: {
+                  $cond: [
+                    { $eq: ["$activeMonthsCount", 0] },
+                    0,
+                    {
+                      $divide: [
+                        "$totalWeightedRatingSum",
+                        { $multiply: ["$activeMonthsCount", 4] },
+                      ],
+                    },
+                  ],
                 },
               },
             },
@@ -94,7 +147,10 @@ export async function GET(req) {
           as: "evaluations",
         },
       },
+
       { $unwind: { path: "$evaluations", preserveNullAndEmptyArrays: true } },
+
+      // --- Final Projection ---
       {
         $project: {
           _id: 1,
@@ -103,6 +159,7 @@ export async function GET(req) {
           weekNumbers: { $ifNull: ["$evaluations.weekNumbers", []] },
           weekStart: "$evaluations.latestWeekStart",
           weekEnd: "$evaluations.latestWeekEnd",
+          activeMonthsCount: { $ifNull: ["$evaluations.activeMonthsCount", 0] },
           totalScoreSum: { $ifNull: ["$evaluations.totalScoreSum", 0] },
           totalWeightedRatingSum: {
             $ifNull: ["$evaluations.totalWeightedRatingSum", 0],
@@ -110,12 +167,7 @@ export async function GET(req) {
           avgWeightedRating: { $ifNull: ["$evaluations.avgWeightedRating", 0] },
           performance: {
             $cond: {
-              if: {
-                $eq: [
-                  { $size: { $ifNull: ["$evaluations.weekNumbers", []] } },
-                  0,
-                ],
-              },
+              if: { $lte: ["$evaluations.avgWeightedRating", 0] },
               then: "",
               else: {
                 $switch: {
@@ -146,6 +198,36 @@ export async function GET(req) {
               },
             },
           },
+
+           // ✅ Added Action logic
+          Action: {
+            $switch: {
+              branches: [
+                {
+                  case: { $lte: ["$evaluations.avgWeightedRating", 1] },
+                  then: "Urgent Meeting",
+                },
+                {
+                  case: { $lte: ["$evaluations.avgWeightedRating", 2] },
+                  then: "Hr Meeting",
+                },
+                {
+                  case: { $lte: ["$evaluations.avgWeightedRating", 3] },
+                  then: "Motivate",
+                },
+                {
+                  case: { $lte: ["$evaluations.avgWeightedRating", 4] },
+                  then: "Nothing",
+                },
+                {
+                  case: { $lte: ["$evaluations.avgWeightedRating", 5] },
+                  then: "Bonus",
+                },
+              ],
+              default: "None",
+            },
+          },
+
         },
       },
     ]);
