@@ -36,6 +36,9 @@ export default function EmployeeWeeklyEvaluation() {
   const [viewMode, setViewMode] = useState("list");
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
@@ -79,6 +82,22 @@ export default function EmployeeWeeklyEvaluation() {
   ];
 
   const SerWeeks = [1, 2, 3, 4];
+
+    // ✅ Initialize date range on first load
+  useEffect(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const format = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+
+    setStartDate(format(firstDay));
+    setEndDate(format(lastDay));
+    setShowDateFilter(false);
+  }, []); // run only once
 
   //search>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -152,9 +171,7 @@ export default function EmployeeWeeklyEvaluation() {
     }
   }
 
-  const [showDateFilter, setShowDateFilter] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  
 
   // 🔄 Fetch users when drawer opens
   useEffect(() => {
@@ -199,8 +216,10 @@ export default function EmployeeWeeklyEvaluation() {
         endDate,
       });
 
+      console.log("query.toString()..........",query.toString());
+      
       let res;
-
+      
       // ✅ Check role
       if (role === "Super Admin" || role === "Management" || role === "HR") {
         // 👉 All users
@@ -230,21 +249,7 @@ export default function EmployeeWeeklyEvaluation() {
     }
   }, [startDate, endDate]);
 
-  // ✅ Initialize date range on first load
-  useEffect(() => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    const format = (d) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-        d.getDate()
-      ).padStart(2, "0")}`;
-
-    setStartDate(format(firstDay));
-    setEndDate(format(lastDay));
-    setShowDateFilter(false);
-  }, []); // run only once
 
   // ✅ Fetch evaluations when startDate and endDate are ready
   useEffect(() => {
@@ -294,14 +299,30 @@ export default function EmployeeWeeklyEvaluation() {
     }
   };
 
-  // Fetch programs once
   useEffect(() => {
-    if (didFetch.current) return;
-    didFetch.current = true;
+  if (didFetch.current) return;
+  didFetch.current = true;
 
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const format = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+
+  setStartDate(format(firstDay));
+  setEndDate(format(lastDay));
+}, []);
+
+
+useEffect(() => {
+  if (startDate && endDate) {
     fetchEvaluationPrograms();
     fetchEvaluations();
-  }, [fetchEvaluations]);
+  }
+}, [startDate, endDate, fetchEvaluations]);
 
   useEffect(() => {
     if (SerSelectedYear && SerSelectedMonth) {

@@ -744,7 +744,7 @@ export default function Dashboard() {
                 w-28 h-28 rounded-full flex flex-col items-center justify-center 
                 bg-gradient-to-br ${monthlyBgColor} shadow-xl ${monthlyRingColor} ring-4 ring-white z-10`}
           >
-            <p className="text-white text-xs font-medium -mt-2">Overall Avg.</p>
+            <p className="text-white text-xs font-medium -mt-2">Team Avg.</p>
             <p className="text-white text-3xl font-extrabold">
               {monthlyAverage.toFixed(2)}
             </p>

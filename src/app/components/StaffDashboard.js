@@ -277,7 +277,7 @@ const ScoreSummaryCard = ({ currentScore, maxScore, performance }) => {
   const STROKE = 10;
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl">
+    <div className="bg-white p-10 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl">
       {/* Header */}
       <div className="flex items-start justify-between w-full mb-4">
         <div className="flex items-center space-x-2">
@@ -303,14 +303,14 @@ const ScoreSummaryCard = ({ currentScore, maxScore, performance }) => {
         <ProgressRing radius={R} stroke={STROKE} progress={percentage} />
         <span className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-extrabold text-white leading-none">
-            {Math.round(percentage)}%
+           {currentScore.toFixed(2)}
           </span>
           {/* ✅ Performance label */}
           <span
             className="text-xs font-semibold mt-1"
             style={{ color: ringColor }}
           >
-            {performance}
+           
           </span>
         </span>
       </div>
@@ -318,15 +318,9 @@ const ScoreSummaryCard = ({ currentScore, maxScore, performance }) => {
       {/* Scores */}
       <div className="flex flex-col items-center w-full">
         <p className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 leading-none">
-          {currentScore.toFixed(2)}
+           {performance}
         </p>
-        <p className="text-sm font-medium text-gray-500 mt-1">
-          of{" "}
-          <span className="font-semibold text-gray-600">
-            {maxScore.toFixed(0)}
-          </span>{" "}
-          total
-        </p>
+       
       </div>
     </div>
   );
@@ -574,8 +568,7 @@ export default function StaffDashboard() {
     )
       .then((res) => res.json())
       .then((data) => {
-        console.log("📊 Staff Dashboard Data:", data);
-        setStaffData(data);
+       setStaffData(data);
       })
       .catch((err) => console.error("❌ API call failed:", err));
   }, []);

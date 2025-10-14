@@ -20,6 +20,33 @@ import {
 
 import useIsMobile from "../hooks/useIsMobile"; // adjust path if needed
 
+const Image = ({ src, alt, width, height, className, onError }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img 
+        src={src} 
+        alt={alt} 
+        width={width} 
+        height={height} 
+        className={className} 
+        onError={onError} 
+        style={{ objectFit: 'cover' }} 
+    />
+);
+// -------------------------------------------
+
+
+// --- Image Helpers (Required Constants and Functions) ---
+const DEFAULT_AVATAR = "/avatar.png";
+
+const getUserImagePath = (userId) => {
+  return `/uploads/profiles/${userId}.png`;
+};
+
+const handleImageError = (e) => {
+    e.target.onerror = null; 
+    e.target.src = DEFAULT_AVATAR; 
+};
+
 export default function Users() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
@@ -822,7 +849,7 @@ export default function Users() {
 
       {viewMode === "list" && !isMobile ? (
         // ✅ Main Table View
-        <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
+ <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
           <table className="w-full text-left">
             <thead className="bg-indigo-900 text-white">
               <tr>
@@ -833,6 +860,7 @@ export default function Users() {
                     <button
                       onClick={handleAddUser}
                       className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
+                      title="Add User"
                     >
                       <Plus className="w-5 h-5" />
                     </button>
@@ -847,7 +875,8 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {currentUsers
+              {/* Ensure currentUsers is defined and an array */}
+              {Array.isArray(currentUsers) && currentUsers
                 .filter((user) => {
                   // If logged in user is Staff or Temp Staff
                   if (
@@ -917,8 +946,21 @@ export default function Users() {
                       </div>
                     </td>
 
-                    <td className="px-8 py-4">{user.fullName || ""}</td>
-                    <td className="px-6 py-4">{user.email || "-"}</td>
+                    {/* NAME + AVATAR TD */}
+                    <td className="px-8 py-4 font-medium text-gray-900">
+                        <div className="flex items-center space-x-3">
+                            <Image
+                                src={getUserImagePath(user.id)}
+                                alt={`${user.fullName} Avatar`}
+                                width={32}
+                                height={32}
+                                className="w-8 h-8 rounded-full object-cover shadow-sm border border-gray-200"
+                                onError={handleImageError} 
+                            />
+                            <span>{user.fullName || ""}</span>
+                        </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">{user.email || "-"}</td>
                     <td className="px-3 py-4">
                       <select
                         value={user.role?._id || ""}
@@ -935,7 +977,8 @@ export default function Users() {
                         }
                         className="w-52 px-3 py-2 border border-white rounded-lg bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                       >
-                        {roles
+                        {/* Ensure roles is an array */}
+                        {Array.isArray(roles) && roles
                           .filter((role) => {
                             if (
                               currentUserRole === "Staff" ||
@@ -971,7 +1014,7 @@ export default function Users() {
                       </select>
                     </td>
 
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-gray-500">
                       {user.createdAt
                         ? new Date(user.createdAt).toLocaleDateString()
                         : "-"}
@@ -1003,6 +1046,7 @@ export default function Users() {
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
                               user.isActive ? "bg-indigo-500" : "bg-gray-300"
                             }`}
+                            title={`Toggle active status for ${user.fullName}`}
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
@@ -1032,6 +1076,7 @@ export default function Users() {
                       <button
                         onClick={() => handleOpenFrame(user)}
                         className="relative inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 transition"
+                        title={`View ${fileCounts[user.id] ?? 0} attached files`}
                       >
                         <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                           {fileCounts[user.id] ?? 0}

@@ -18,11 +18,11 @@ async function seed() {
 
   // Create roles
   const roles = await Role.insertMany([
-    { name: "Super Admin", description: "Has full access to the system" },
-    { name: "Management", description: "Manages overall operations" },
-    { name: "HR", description: "Handles employee management" },
-    { name: "Staff", description: "General staff role" },
-    { name: "Temp Staff", description: "Temporary staff with limited access" },
+    { name: "Super Admin", description: "Super Admin" },
+    { name: "Management", description: "Management" },
+    { name: "HR", description: "HR" },
+    { name: "Staff", description: "Team" },
+    { name: "Temp Staff", description: "Associate" },
   ]);
 
   const roleMap = {};
