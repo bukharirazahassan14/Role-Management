@@ -36,7 +36,7 @@ export default function EmployeeWeeklyEvaluation() {
   const [viewMode, setViewMode] = useState("list");
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showDateFilter, setShowDateFilter] = useState(false);
+
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedWeek, setSelectedWeek] = useState(null);
@@ -83,21 +83,7 @@ export default function EmployeeWeeklyEvaluation() {
 
   const SerWeeks = [1, 2, 3, 4];
 
-  // ✅ Initialize date range on first load
-  useEffect(() => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const format = (d) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-        d.getDate()
-      ).padStart(2, "0")}`;
-
-    setStartDate(format(firstDay));
-    setEndDate(format(lastDay));
-    setShowDateFilter(false);
-  }, []); // run only once
+  
 
   //search>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -231,7 +217,7 @@ export default function EmployeeWeeklyEvaluation() {
       }
 
       const data = await res.json();
-      console.log('data>>>>>',data);
+      console.log("data>>>>>", data);
 
       if (Array.isArray(data)) {
         setEvaluations(data);
@@ -246,35 +232,7 @@ export default function EmployeeWeeklyEvaluation() {
     }
   }, [startDate, endDate]);
 
-  // ✅ Fetch evaluations when startDate and endDate are ready
-  useEffect(() => {
-    if (!startDate || !endDate) return; // wait until both dates are set
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    // ✅ If months don't match, fix endDate to the last day of startDate's month
-    if (
-      start.getMonth() !== end.getMonth() ||
-      start.getFullYear() !== end.getFullYear()
-    ) {
-      const lastDayOfMonth = new Date(
-        start.getFullYear(),
-        start.getMonth() + 1,
-        0
-      );
-
-      const format = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${String(d.getDate()).padStart(2, "0")}`;
-
-      setEndDate(format(lastDayOfMonth));
-      return; // wait for state update before fetching
-    }
-
-  }, [startDate, endDate]);
 
   const fetchEvaluationPrograms = async () => {
     try {
@@ -317,16 +275,7 @@ export default function EmployeeWeeklyEvaluation() {
     }
   }, [startDate, endDate, fetchEvaluations]);
 
-  useEffect(() => {
-    if (SerSelectedYear && SerSelectedMonth) {
-      const newDate = new Date(SerSelectedYear, SerSelectedMonth - 1, 1);
-      // ✅ format as yyyy-mm-dd in PKT (no UTC shift)
-      const formatted = newDate.toLocaleDateString("en-CA", {
-        timeZone: "Asia/Karachi",
-      });
-      setStartDate(formatted);
-    }
-  }, [SerSelectedYear, SerSelectedMonth]);
+  
 
   // Handle score input + calculate weighted rating
   const handleScoreChange = (index, score, weightage, progId) => {
@@ -982,149 +931,101 @@ export default function EmployeeWeeklyEvaluation() {
       </div>
 
       {/* 🔍 Search & Toggle */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between p-2">
         {/* LEFT: Calendar Toggle Button */}
         <div className="flex items-center">
-          <button
-            onClick={() => setShowDateFilter((prev) => !prev)}
-            className={`p-3 rounded-lg border bg-white shadow-sm transition ${
-              showDateFilter
-                ? "border-indigo-500 bg-indigo-50 text-indigo-600"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-            title="Filter by Date"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
-
           {/* Filters aligned right next to calendar button */}
           <div className="flex items-center gap-2 ml-2">
-            {showDateFilter ? (
-              <div className="flex items-center gap-2">
-                {/* Start Date */}
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="px-3 py-2 border border-gray-200 rounded-lg 
-              bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
-              focus:border-indigo-500 text-sm transition"
-                />
-
-                <ArrowRight className="w-5 h-5 text-gray-500" />
-
-                {/* End Date */}
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  min={`${new Date(startDate).getFullYear()}-${String(
-                    new Date(startDate).getMonth() + 1
-                  ).padStart(2, "0")}-01`}
-                  max={`${new Date(startDate).getFullYear()}-${String(
-                    new Date(startDate).getMonth() + 1
-                  ).padStart(2, "0")}-${new Date(
-                    new Date(startDate).getFullYear(),
-                    new Date(startDate).getMonth() + 1,
-                    0
-                  ).getDate()}`}
-                  className="px-3 py-2 border border-gray-200 rounded-lg 
-              bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 
-              focus:border-indigo-500 text-sm transition"
-                />
+            <div className="flex items-center gap-2">
+              {/* Year dropdown */}
+              <div className="relative">
+                <select
+                  value={SerSelectedYear}
+                  onChange={(e) => {
+                    const SerYear = Number(e.target.value);
+                    setSerSelectedYear(SerYear);
+                    SerNotifyChange(
+                      SerYear,
+                      SerSelectedMonth,
+                      SerSelectedWeeks
+                    );
+                  }}
+                  className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {SerYears.map((SerY) => (
+                    <option key={SerY} value={SerY}>
+                      {SerY}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                  ▾
+                </span>
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                {/* Year dropdown */}
-                <div className="relative">
-                  <select
-                    value={SerSelectedYear}
-                    onChange={(e) => {
-                      const SerYear = Number(e.target.value);
-                      setSerSelectedYear(SerYear);
-                      SerNotifyChange(
-                        SerYear,
-                        SerSelectedMonth,
-                        SerSelectedWeeks
-                      );
-                    }}
-                    className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {SerYears.map((SerY) => (
-                      <option key={SerY} value={SerY}>
-                        {SerY}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
-                    ▾
-                  </span>
-                </div>
 
-                {/* Month dropdown */}
-                <div className="relative">
-                  <select
-                    value={SerSelectedMonth}
-                    onChange={(e) => {
-                      const SerMonth = Number(e.target.value);
-                      setSerSelectedMonth(SerMonth);
-                      SerNotifyChange(
-                        SerSelectedYear,
-                        SerMonth,
-                        SerSelectedWeeks
-                      );
-                    }}
-                    className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {SerMonths.map((SerM) => (
-                      <option key={SerM.SerValue} value={SerM.SerValue}>
-                        {SerM.SerLabel}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
-                    ▾
-                  </span>
-                </div>
+              {/* Month dropdown */}
+              <div className="relative">
+                <select
+                  value={SerSelectedMonth}
+                  onChange={(e) => {
+                    const SerMonth = Number(e.target.value);
+                    setSerSelectedMonth(SerMonth);
+                    SerNotifyChange(
+                      SerSelectedYear,
+                      SerMonth,
+                      SerSelectedWeeks
+                    );
+                  }}
+                  className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {SerMonths.map((SerM) => (
+                    <option key={SerM.SerValue} value={SerM.SerValue}>
+                      {SerM.SerLabel}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                  ▾
+                </span>
+              </div>
 
-                {/* Weeks */}
-                <div className="flex items-center gap-1">
-                  {SerWeeks.map((SerW) => {
-                    const SerActive = SerSelectedWeeks.includes(SerW);
-                    return (
-                      <button
-                        key={SerW}
-                        type="button"
-                        onClick={() => {
-                          let SerNewWeeks;
-                          if (SerActive) {
-                            SerNewWeeks = SerSelectedWeeks.filter(
-                              (w) => w !== SerW
-                            );
-                          } else {
-                            SerNewWeeks = [...SerSelectedWeeks, SerW];
-                          }
-                          setSerSelectedWeeks(SerNewWeeks);
-                          SerNotifyChange(
-                            SerSelectedYear,
-                            SerSelectedMonth,
-                            SerNewWeeks
+              {/* Weeks */}
+              <div className="flex items-center gap-1">
+                {SerWeeks.map((SerW) => {
+                  const SerActive = SerSelectedWeeks.includes(SerW);
+                  return (
+                    <button
+                      key={SerW}
+                      type="button"
+                      onClick={() => {
+                        let SerNewWeeks;
+                        if (SerActive) {
+                          SerNewWeeks = SerSelectedWeeks.filter(
+                            (w) => w !== SerW
                           );
-                        }}
-                        className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition
+                        } else {
+                          SerNewWeeks = [...SerSelectedWeeks, SerW];
+                        }
+                        setSerSelectedWeeks(SerNewWeeks);
+                        SerNotifyChange(
+                          SerSelectedYear,
+                          SerSelectedMonth,
+                          SerNewWeeks
+                        );
+                      }}
+                      className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition
                     ${
                       SerActive
                         ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-md"
                         : "bg-white border border-gray-200 text-gray-700 hover:shadow"
                     }`}
-                      >
-                        {SerW}
-                      </button>
-                    );
-                  })}
-                </div>
+                    >
+                      {SerW}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
