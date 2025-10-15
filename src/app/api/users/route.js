@@ -13,9 +13,15 @@ export async function GET(req) {
 
     const formatted = users.map((u) => ({
       id: u._id.toString(),
-      fullName: `${u.firstName} ${u.lastName}`, // concatenate firstName + lastName
-      email: u.primaryEmail, // use primaryEmail
-      role: u.role ? { _id: u.role._id.toString(), name: u.role.name } : null, // return role as object
+      fullName: `${u.firstName} ${u.lastName}`,
+      email: u.primaryEmail,
+      role: u.role
+        ? {
+            _id: u.role._id.toString(),
+            name: u.role.name,
+            description: u.role.description || null, // ✅ include role description
+          }
+        : null,
       createdAt: u.created_at,
       isActive: u.isActive,
     }));

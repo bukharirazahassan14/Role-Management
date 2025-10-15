@@ -34,6 +34,7 @@ export async function GET(req) {
     const formatted = roles.map(r => ({
       _id: r._id.toString(),
       name: r.name,
+      description: r.description,
       count: countsMap[r._id.toString()] || 0 // show 0 if no active user
     }));
 

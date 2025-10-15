@@ -14,6 +14,7 @@ import {
   PieChart as PieChartIcon,
   Bell, // Added Bell icon
 } from "lucide-react";
+
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 /* ---------------- Modern Toast ---------------- */
@@ -131,7 +132,6 @@ export default function Dashboard() {
   const didFetch = useRef(false);
   const [teamMembers, setTeamMembers] = useState([]);
 
-
   // Months
   const months = [
     "Jan",
@@ -158,6 +158,7 @@ export default function Dashboard() {
   const [SerSelectedYear, setSerSelectedYear] = useState(
     new Date().getFullYear()
   );
+  
   const currentMonth = new Date().getMonth() + 1;
   const [selectedMonth, setSelectedMonth] = useState([currentMonth]);
 
@@ -169,21 +170,17 @@ export default function Dashboard() {
         if (!res.ok) throw new Error("Failed to fetch users");
 
         const data = await res.json();
-
         // Map API data to match our display needs
         const formatted = data.map((u) => ({
           id: u.id,
           name: u.fullName,
           email: u.email,
-          role: u.role ? u.role.name : "No Role",
+          role: u.role ? u.role.description : "No Role",
         }));
 
         setTeamMembers(formatted);
       } catch (error) {
         console.error("Error fetching team members:", error);
-
-        // Fallback Mock Data for dev visibility if API fails
-
         setTeamMembers(fallbackData);
       }
     };
@@ -263,15 +260,15 @@ export default function Dashboard() {
     // --- Authentication placeholder logic (kept as is) ---
     const token = localStorage.getItem("token");
     if (!token) {
-      // router.replace("/login");
-      // return;
+       router.replace("/login");
+       return;
     }
     // Mock token payload parsing for non-login related data
     const payload = parseJwt(token || "a.eyJleHAiOjI1Mzk3MDYxOTk3MjB9.c");
     if (!payload || payload.exp < Math.floor(Date.now() / 1000)) {
-      // localStorage.removeItem("token");
-      // router.replace("/login");
-      // return;
+       localStorage.removeItem("token");
+       router.replace("/login");
+       return;
     }
 
     const fetchNotifications = async () => {
@@ -314,16 +311,6 @@ export default function Dashboard() {
         }
       } catch (err) {
         console.error("Role stats fetch error:", err);
-        // Mock Role Stats for consistency if API fails
-        setRoleStats({
-          roles: [
-            { _id: "1", name: "Super Admin", count: 2 },
-            { _id: "2", name: "Manager", count: 8 },
-            { _id: "3", name: "HR Specialist", count: 4 },
-            { _id: "4", name: "Developer", count: 15 },
-          ],
-          totalCount: 29,
-        });
       }
     };
 
@@ -339,7 +326,6 @@ export default function Dashboard() {
         const validMonths =
           selectedMonth.length > 0 ? selectedMonth : [currentMonth];
         const monthsParam = validMonths.join(",");
-       
 
         const res = await fetch(
           `/api/weeklyevaluation/performance/monthly?year=${SerSelectedYear}&months=${monthsParam}`
@@ -352,7 +338,6 @@ export default function Dashboard() {
           (a, b) => b.avgWeightedRating - a.avgWeightedRating
         );
         setMonthlyPerformance(sortedData);
-       
       } catch (err) {
         console.error("Monthly performance fetch error:", err);
       }
@@ -398,9 +383,10 @@ export default function Dashboard() {
   // ✅ Safely map performance data
   const performanceData = monthlyPerformance.map((u) => ({
     name: u.fullName,
-    email: u.roleName,
+    roleName: u.roleName,
+    roleDescription: u.roleDescription,
     avg: Number(u.avgWeightedRating ?? 0),
-    act: u.Action
+    act: u.Action,
   }));
 
   // CALCULATE MONTHLY AVERAGE
@@ -437,7 +423,6 @@ export default function Dashboard() {
       </div>
 
       {/* ---------- Row 1: Key Metrics (3 columns) ---------- */}
-      {/* This row maintains 3 equal columns (1/3, 1/3, 1/3) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Card 1: Team Members List (4/12 width) */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 lg:col-span-1">
@@ -467,16 +452,7 @@ export default function Dashboard() {
                 </p>
               </div>
             )}
-            {teamMembers.length > 5 && (
-              <div className="text-center pt-2">
-                <button
-                  onClick={() => router.push("/main/TeamList")}
-                  className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition duration-150"
-                >
-                  View All ({teamMembers.length})
-                </button>
-              </div>
-            )}
+            
           </div>
         </div>
 
@@ -506,7 +482,7 @@ export default function Dashboard() {
                 <div className="flex items-center space-x-3">
                   <s.icon className="h-4 w-4" style={{ color: s.hexCode }} />
                   <span className="text-sm font-medium text-gray-700 truncate">
-                    {s.name}
+                    {s.description}
                   </span>
                 </div>
                 <span className="text-sm font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-lg">
@@ -697,7 +673,7 @@ export default function Dashboard() {
                           {user.name}
                         </p>
                         <p className="text-[11px] text-gray-500">
-                          {user.email}
+                          {user.roleDescription}
                         </p>
                       </div>
                     </div>
@@ -727,10 +703,8 @@ export default function Dashboard() {
                           badgeColors[performance] || badgeColors.Poor
                         } flex-shrink-0 min-w-[70px] justify-center text-center`}
                       >
-                          {user.act || "-"}
+                        {user.act || "-"}
                       </span>
-
-
                     </div>
                   </div>
                 );
@@ -751,7 +725,6 @@ export default function Dashboard() {
             <p className="text-white text-sm font-bold">
               {monthlyPerformanceText}
             </p>
-           
           </div>
         </div>
         {/* Card 3: Evaluation Programs Weightage (4/12 width) */}

@@ -21,19 +21,18 @@ import {
 import useIsMobile from "../hooks/useIsMobile"; // adjust path if needed
 
 const Image = ({ src, alt, width, height, className, onError }) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img 
-        src={src} 
-        alt={alt} 
-        width={width} 
-        height={height} 
-        className={className} 
-        onError={onError} 
-        style={{ objectFit: 'cover' }} 
-    />
+  // eslint-disable-next-line @next/next/no-img-element
+  <img
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    className={className}
+    onError={onError}
+    style={{ objectFit: "cover" }}
+  />
 );
 // -------------------------------------------
-
 
 // --- Image Helpers (Required Constants and Functions) ---
 const DEFAULT_AVATAR = "/avatar.png";
@@ -43,8 +42,8 @@ const getUserImagePath = (userId) => {
 };
 
 const handleImageError = (e) => {
-    e.target.onerror = null; 
-    e.target.src = DEFAULT_AVATAR; 
+  e.target.onerror = null;
+  e.target.src = DEFAULT_AVATAR;
 };
 
 export default function Users() {
@@ -68,7 +67,7 @@ export default function Users() {
   const [fileCounts, setFileCounts] = useState({});
 
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10; // change number of rows per page
+  const usersPerPage = 5; // change number of rows per page
 
   const [userFormData, setUserFormData] = useState({
     firstName: "",
@@ -297,33 +296,6 @@ export default function Users() {
     fetchUsers();
     fetchRoles();
   }, []);
-
-  const handleRoleChange = async (userId, roleId) => {
-    try {
-      const res = await fetch(`/api/users/${userId}/role`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roleId }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update role");
-
-      const data = await res.json();
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, role: data.user.role } : u))
-      );
-
-      setMessage("✅ Role updated successfully!");
-      setSuccess(true);
-
-      setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Failed to update role");
-      setSuccess(false);
-      setTimeout(() => setMessage(""), 3000);
-    }
-  };
 
   // 👁️ Fetch + Open View Drawer
   const handleViewUser = async (user) => {
@@ -848,218 +820,133 @@ export default function Users() {
       )}
 
       {viewMode === "list" && !isMobile ? (
-        // ✅ Main Table View
- <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
-          <table className="w-full text-left">
-            <thead className="bg-indigo-900 text-white">
-              <tr>
-                <th className="px-6 py-3 w-28 text-center">
-                  {(currentUserRole === "Super Admin" ||
-                    currentUserRole === "HR" ||
-                    currentUserRole === "Management") && (
+
+// ✅ Main Table View
+<div className="relative">
+  <div className="overflow-x-auto bg-gradient-to-br from-gray-50 to-white p-4 rounded-3xl shadow-xl border border-gray-100">
+    <table className="w-full border-separate border-spacing-y-2">
+      <thead className="bg-indigo-900 text-white text-xs uppercase tracking-wider rounded-xl">
+        <tr className="rounded-lg overflow-hidden">
+          <th className="px-6 py-4 text-center w-28 rounded-l-xl"></th>
+          <th className="px-6 py-4 text-left font-semibold">Name</th>
+          <th className="px-6 py-4 text-left font-semibold">Email</th>
+          <th className="px-6 py-4 text-left font-semibold">Role</th>
+          <th className="px-6 py-4 text-left font-semibold">Created</th>
+          <th className="px-6 py-4 text-center font-semibold">Active</th>
+          <th className="px-6 py-4 text-center font-semibold rounded-r-xl">Files</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {Array.isArray(currentUsers) &&
+          currentUsers
+            .filter((user) => {
+              if (currentUserRole === "Staff" || currentUserRole === "Temp Staff") {
+                return (
+                  user.role?.name !== "Super Admin" &&
+                  user.role?.name !== "Management" &&
+                  user.role?.name !== "HR"
+                );
+              }
+              return true;
+            })
+            .map((user) => (
+              <tr
+                key={user.id}
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              >
+                {/* Actions */}
+                <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
+                  <div className="flex justify-center items-center gap-4">
                     <button
-                      onClick={handleAddUser}
-                      className="bg-white text-indigo-900 rounded-full p-2 shadow hover:bg-gray-100 transition"
-                      title="Add User"
+                      onClick={() => handleViewUser(user)}
+                      className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                      title="View User"
                     >
-                      <Plus className="w-5 h-5" />
+                      <Glasses className="w-6 h-6" />
                     </button>
-                  )}
-                </th>
-                <th className="px-6 py-3">Name</th>
-                <th className="px-6 py-3">Email</th>
-                <th className="px-6 py-3">Role</th>
-                <th className="px-6 py-3">Created At</th>
-                <th className="px-6 py-3 text-center">Active</th>
-                <th className="px-6 py-3 text-center">Attached File</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Ensure currentUsers is defined and an array */}
-              {Array.isArray(currentUsers) && currentUsers
-                .filter((user) => {
-                  // If logged in user is Staff or Temp Staff
-                  if (
-                    currentUserRole === "Staff" ||
-                    currentUserRole === "Temp Staff"
-                  ) {
-                    return (
-                      user.role?.name !== "Super Admin" &&
-                      user.role?.name !== "Management" &&
-                      user.role?.name !== "HR"
-                    );
-                  }
-                  return true; // other roles see everything
-                })
-                .map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-indigo-50 transition border-b last:border-none"
-                  >
-                    <td className="px-4 py-4 text-center align-middle">
-                      <div className="flex justify-center items-center gap-6">
-                        {/* View Button */}
-                        <button
-                          onClick={() => handleViewUser(user)}
-                          className="text-indigo-600 hover:text-indigo-900 transition"
-                          title="View User"
-                        >
-                          <Glasses className="w-6 h-6" />
-                        </button>
-
-                        {/* Edit Button */}
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          className={`text-indigo-600 transition ${
-                            currentUserRole === "Super Admin" ||
-                            (currentUserRole === "Management" &&
-                              user.role?.name !== "Super Admin") ||
-                            (currentUserRole === "HR" &&
-                              user.role?.name !== "Super Admin" &&
-                              user.role?.name !== "Management")
-                              ? "hover:text-indigo-900 cursor-pointer"
-                              : "opacity-50 cursor-not-allowed"
-                          }`}
-                          title={
-                            currentUserRole === "Super Admin" ||
-                            (currentUserRole === "Management" &&
-                              user.role?.name !== "Super Admin") ||
-                            (currentUserRole === "HR" &&
-                              user.role?.name !== "Super Admin" &&
-                              user.role?.name !== "Management")
-                              ? "Edit User"
-                              : "You cannot edit this user"
-                          }
-                          disabled={
-                            !(
-                              currentUserRole === "Super Admin" ||
-                              (currentUserRole === "Management" &&
-                                user.role?.name !== "Super Admin") ||
-                              (currentUserRole === "HR" &&
-                                user.role?.name !== "Super Admin" &&
-                                user.role?.name !== "Management")
-                            )
-                          }
-                        >
-                          <Edit className="w-6 h-6" />
-                        </button>
-                      </div>
-                    </td>
-
-                    {/* NAME + AVATAR TD */}
-                    <td className="px-8 py-4 font-medium text-gray-900">
-                        <div className="flex items-center space-x-3">
-                            <Image
-                                src={getUserImagePath(user.id)}
-                                alt={`${user.fullName} Avatar`}
-                                width={32}
-                                height={32}
-                                className="w-8 h-8 rounded-full object-cover shadow-sm border border-gray-200"
-                                onError={handleImageError} 
-                            />
-                            <span>{user.fullName || ""}</span>
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">{user.email || "-"}</td>
-                    <td className="px-3 py-4">
-                      <select
-                        value={user.role?._id || ""}
-                        disabled={
-                          currentUserRole === "Staff" ||
-                          currentUserRole === "Temp Staff" ||
-                          ((currentUserRole === "Super Admin" ||
-                            currentUserRole === "Management" ||
-                            currentUserRole === "HR") &&
-                            user.role?.name === "Super Admin")
-                        }
-                        onChange={(e) =>
-                          handleRoleChange(user.id, e.target.value)
-                        }
-                        className="w-52 px-3 py-2 border border-white rounded-lg bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-                      >
-                        {/* Ensure roles is an array */}
-                        {Array.isArray(roles) && roles
-                          .filter((role) => {
-                            if (
-                              currentUserRole === "Staff" ||
-                              currentUserRole === "Temp Staff"
-                            ) {
-                              return true;
-                            }
-
-                            if (
-                              (currentUserRole === "Management" ||
-                                currentUserRole === "HR") &&
-                              role.name === "Super Admin" &&
-                              user.role?.name !== "Super Admin"
-                            ) {
-                              return false;
-                            }
-
-                            if (
-                              currentUserRole === "Super Admin" &&
-                              role.name === "Super Admin" &&
-                              user.role?.name !== "Super Admin"
-                            ) {
-                              return false;
-                            }
-
-                            return true;
-                          })
-                          .map((role) => (
-                            <option key={role._id} value={role._id}>
-                              {role.name}
-                            </option>
-                          ))}
-                      </select>
-                    </td>
-
-                    <td className="px-6 py-4 text-gray-500">
-                      {user.createdAt
-                        ? new Date(user.createdAt).toLocaleDateString()
-                        : "-"}
-                    </td>
-
-                    {/* Active Toggle Switch */}
-                    <td className="px-6 py-4 text-center">
-                      {currentUserRole === "Super Admin" ? (
-                        user.role === "Super Admin" ||
-                        user.role?.name === "Super Admin" ? (
-                          <span
-                            className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
-                              user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                                user.isActive
-                                  ? "translate-x-6"
-                                  : "translate-x-1"
-                              }`}
-                            />
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              handleToggleActive(user.id, !user.isActive)
-                            }
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                              user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                            }`}
-                            title={`Toggle active status for ${user.fullName}`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                                user.isActive
-                                  ? "translate-x-6"
-                                  : "translate-x-1"
-                              }`}
-                            />
-                          </button>
+                    <button
+                      onClick={() => handleEditUser(user)}
+                      className={`transition-all ${
+                        currentUserRole === "Super Admin" ||
+                        (currentUserRole === "Management" &&
+                          user.role?.name !== "Super Admin") ||
+                        (currentUserRole === "HR" &&
+                          user.role?.name !== "Super Admin" &&
+                          user.role?.name !== "Management")
+                          ? "text-indigo-600 hover:text-indigo-900 hover:scale-110"
+                          : "opacity-40 cursor-not-allowed"
+                      }`}
+                      title={
+                        currentUserRole === "Super Admin" ||
+                        (currentUserRole === "Management" &&
+                          user.role?.name !== "Super Admin") ||
+                        (currentUserRole === "HR" &&
+                          user.role?.name !== "Super Admin" &&
+                          user.role?.name !== "Management")
+                          ? "Edit User"
+                          : "Not allowed"
+                      }
+                      disabled={
+                        !(
+                          currentUserRole === "Super Admin" ||
+                          (currentUserRole === "Management" &&
+                            user.role?.name !== "Super Admin") ||
+                          (currentUserRole === "HR" &&
+                            user.role?.name !== "Super Admin" &&
+                            user.role?.name !== "Management")
                         )
-                      ) : (
-                        <span
-                          className={`inline-flex h-6 w-11 items-center rounded-full ${
+                      }
+                    >
+                      <Edit className="w-6 h-6" />
+                    </button>
+                  </div>
+                </td>
+
+                {/* Avatar & Name */}
+                <td className="px-8 py-5">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Image
+                        src={getUserImagePath(user.id)}
+                        alt={`${user.fullName} Avatar`}
+                        width={60}
+                        height={60}
+                        className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 shadow-sm hover:scale-105 transition-transform"
+                        onError={handleImageError}
+                      />
+                      <span
+                        className={`absolute bottom-0 right-0 block w-3 h-3 rounded-full ring-2 ring-white ${
+                          user.isActive ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">
+                        {user.fullName || "-"}
+                      </div>
+                      <div className="text-gray-500 text-xs font-medium mt-1">
+                        {user.role?.description || "-"}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                <td className="px-6 py-5 text-gray-700 text-sm">{user.email}</td>
+                <td className="px-6 py-5 text-gray-700 text-sm">
+                  {user.role?.description || "-"}
+                </td>
+                <td className="px-6 py-5 text-gray-500 text-sm">
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
+                </td>
+
+                {/* Active toggle */}
+                <td className="px-6 py-5 text-center">
+                  <div className="flex justify-center">
+                    {currentUserRole === "Super Admin" ? (
+                      user.role?.name === "Super Admin" ? (
+                        <div
+                          className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
                             user.isActive ? "bg-indigo-500" : "bg-gray-300"
                           }`}
                         >
@@ -1068,27 +955,70 @@ export default function Users() {
                               user.isActive ? "translate-x-6" : "translate-x-1"
                             }`}
                           />
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleOpenFrame(user)}
-                        className="relative inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 transition"
-                        title={`View ${fileCounts[user.id] ?? 0} attached files`}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleActive(user.id, !user.isActive)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
+                            user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                              user.isActive ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      )
+                    ) : (
+                      <div
+                        className={`inline-flex h-6 w-11 items-center rounded-full ${
+                          user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                        }`}
                       >
-                        <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                          {fileCounts[user.id] ?? 0}
-                        </span>
-                        <FileText className="w-6 h-6" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                            user.isActive ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </td>
+
+                {/* File Attachments */}
+                <td className="px-6 py-5 text-center rounded-r-2xl">
+                  <button
+                    onClick={() => handleOpenFrame(user)}
+                    className="relative text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                    title={`View ${fileCounts[user.id] ?? 0} files`}
+                  >
+                    <FileText className="w-6 h-6" />
+                    <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow">
+                      {fileCounts[user.id] ?? 0}
+                    </span>
+                  </button>
+                </td>
+              </tr>
+            ))}
+      </tbody>
+    </table>
+  </div>
+
+  {/* ✅ Floating Add Button */}
+  {(currentUserRole === "Super Admin" ||
+    currentUserRole === "HR" ||
+    currentUserRole === "Management") && (
+    <button
+      onClick={handleAddUser}
+      title="Add New User"
+      className="fixed bottom-8 right-8 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-full w-16 h-16 shadow-2xl flex items-center justify-center hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300 animate-pulse"
+    >
+      <Plus className="w-8 h-8" />
+    </button>
+  )}
+</div>
+
       ) : (
         // ✅ Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -1116,19 +1046,23 @@ export default function Users() {
                 {/* --- Header: Avatar, Name, and Role --- */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    {/* Profile Avatar */}
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-indigo-600 to-pink-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg ring-4 ring-indigo-100">
-                      {user.firstName?.[0]}
-                      {user.lastName?.[0]}
-                    </div>
+                    {/* ✅ Profile Avatar - Now showing large image instead of initials */}
+                    <Image
+                      src={getUserImagePath(user.id)}
+                      alt={`${user.fullName} Avatar`}
+                      width={64}
+                      height={64}
+                      className="w-16 h-16 rounded-full object-cover shadow-md border border-gray-200 hover:scale-105 transition-transform duration-300"
+                      onError={handleImageError}
+                    />
 
                     <div>
                       <h3 className="font-extrabold text-gray-900 text-xl tracking-tight group-hover:text-indigo-700 transition">
                         {user.fullName || `${user.firstName} ${user.lastName}`}
                       </h3>
-                      {/* Role Badge (Slightly darker for contrast) */}
+                      {/* ✅ Role Description Badge (replaces role name) */}
                       <p className="text-sm font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                        {user.role?.name || "No Role"}
+                        {user.role?.description || "No Description"}
                       </p>
                     </div>
                   </div>
@@ -1182,7 +1116,7 @@ export default function Users() {
 
                 {/* --- Action Buttons (Now Visible by default, Enhanced Hover) --- */}
                 <div className="absolute top-4 right-4 flex gap-2 transition-all duration-300">
-                  {/* View Button (Icon is indigo by default) */}
+                  {/* View Button */}
                   <button
                     onClick={() => handleViewUser(user)}
                     className="p-2 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition shadow-lg"
@@ -1212,7 +1146,7 @@ export default function Users() {
             <div
               onClick={handleAddUser}
               className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer transition duration-300 h-full 
-                 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-inner"
+         hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-inner"
             >
               <Plus className="w-14 h-14 text-indigo-600/80" />
               <span className="mt-4 text-indigo-700 font-bold text-lg">

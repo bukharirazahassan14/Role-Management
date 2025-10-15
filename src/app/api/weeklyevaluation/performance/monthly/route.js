@@ -74,6 +74,7 @@ export async function GET(req) {
           _id: 1,
           fullName: { $concat: ["$firstName", " ", "$lastName"] },
           roleName: "$roleInfo.name",
+          roleDescription: "$roleInfo.description",
         },
       },
 
@@ -156,6 +157,7 @@ export async function GET(req) {
           _id: 1,
           fullName: 1,
           roleName: 1,
+          roleDescription: 1,
           weekNumbers: { $ifNull: ["$evaluations.weekNumbers", []] },
           weekStart: "$evaluations.latestWeekStart",
           weekEnd: "$evaluations.latestWeekEnd",

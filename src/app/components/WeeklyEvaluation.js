@@ -83,7 +83,7 @@ export default function EmployeeWeeklyEvaluation() {
 
   const SerWeeks = [1, 2, 3, 4];
 
-    // ✅ Initialize date range on first load
+  // ✅ Initialize date range on first load
   useEffect(() => {
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -171,8 +171,6 @@ export default function EmployeeWeeklyEvaluation() {
     }
   }
 
-  
-
   // 🔄 Fetch users when drawer opens
   useEffect(() => {
     if (!drawerOpen) return;
@@ -216,10 +214,8 @@ export default function EmployeeWeeklyEvaluation() {
         endDate,
       });
 
-      console.log("query.toString()..........",query.toString());
-      
       let res;
-      
+
       // ✅ Check role
       if (role === "Super Admin" || role === "Management" || role === "HR") {
         // 👉 All users
@@ -235,6 +231,7 @@ export default function EmployeeWeeklyEvaluation() {
       }
 
       const data = await res.json();
+      console.log('data>>>>>',data);
 
       if (Array.isArray(data)) {
         setEvaluations(data);
@@ -248,8 +245,6 @@ export default function EmployeeWeeklyEvaluation() {
       setLoading(false);
     }
   }, [startDate, endDate]);
-
-
 
   // ✅ Fetch evaluations when startDate and endDate are ready
   useEffect(() => {
@@ -279,7 +274,6 @@ export default function EmployeeWeeklyEvaluation() {
       return; // wait for state update before fetching
     }
 
-    //fetchEvaluations();
   }, [startDate, endDate]);
 
   const fetchEvaluationPrograms = async () => {
@@ -300,29 +294,28 @@ export default function EmployeeWeeklyEvaluation() {
   };
 
   useEffect(() => {
-  if (didFetch.current) return;
-  didFetch.current = true;
+    if (didFetch.current) return;
+    didFetch.current = true;
 
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const format = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate()
-    ).padStart(2, "0")}`;
+    const format = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
 
-  setStartDate(format(firstDay));
-  setEndDate(format(lastDay));
-}, []);
+    setStartDate(format(firstDay));
+    setEndDate(format(lastDay));
+  }, []);
 
-
-useEffect(() => {
-  if (startDate && endDate) {
-    fetchEvaluationPrograms();
-    fetchEvaluations();
-  }
-}, [startDate, endDate, fetchEvaluations]);
+  useEffect(() => {
+    if (startDate && endDate) {
+      fetchEvaluationPrograms();
+      fetchEvaluations();
+    }
+  }, [startDate, endDate, fetchEvaluations]);
 
   useEffect(() => {
     if (SerSelectedYear && SerSelectedMonth) {
@@ -1183,18 +1176,20 @@ useEffect(() => {
 
       {/* ✅ Table view */}
       {viewMode === "list" && !isMobile ? (
-        <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
-          <table className="w-full table-fixed text-left border-collapse">
-            <thead className="bg-indigo-900 text-white">
+        <div className="overflow-x-auto bg-gradient-to-br from-gray-50 to-white p-4 rounded-3xl shadow-xl border border-gray-100">
+          <table className="w-full border-separate border-spacing-y-2">
+            <thead className="bg-indigo-900 text-white text-xs uppercase tracking-wider rounded-xl">
               <tr>
-                <th className="px-4 py-3 text-center w-[14%]"></th>
-                <th className="px-4 py-3 text-left w-[16%]">Name</th>
-                <th className="px-4 py-3 text-center w-[10%]">Weeks</th>
-                <th className="px-4 py-3 text-center w-[15%]">Start Date</th>
-                <th className="px-4 py-3 text-center w-[15%]">End Date</th>
-                <th className="px-4 py-3 text-right w-[10%]">AVG Rating</th>
-                <th className="px-4 py-3 text-center w-[12%]">Performance</th>
-                <th className="px-4 py-3 text-center w-[10%]">Action</th>
+                <th className="px-4 py-4 text-center w-[14%] rounded-l-xl"></th>
+                <th className="px-4 py-4 text-left w-[18%]">Name</th>
+                <th className="px-4 py-4 text-center w-[10%]">Weeks</th>
+                <th className="px-4 py-4 text-center w-[15%]">Start Date</th>
+                <th className="px-4 py-4 text-center w-[15%]">End Date</th>
+                <th className="px-4 py-4 text-right w-[10%]">AVG Rating</th>
+                <th className="px-4 py-4 text-center w-[12%]">Performance</th>
+                <th className="px-4 py-4 text-center w-[10%] rounded-r-xl">
+                  Action
+                </th>
               </tr>
             </thead>
 
@@ -1206,14 +1201,13 @@ useEffect(() => {
                 <tr>
                   <td
                     colSpan={8}
-                    className="text-center py-6 text-gray-500 font-medium"
+                    className="text-center py-8 text-gray-500 font-medium bg-white/80 backdrop-blur-sm rounded-2xl shadow-inner"
                   >
                     No records found
                   </td>
                 </tr>
               ) : (
                 currentEvaluations
-                  // ✅ Use filter instead of map for role-based visibility
                   .filter((ev) => {
                     if (
                       currentUserRole === "Staff" ||
@@ -1229,7 +1223,7 @@ useEffect(() => {
                   })
                   .map((ev) => {
                     let performance = ev.performance || "";
-                    let colorClass = "text-gray-500 font-medium";
+                    let colorClass = "text-gray-600 font-medium";
                     if (performance === "Poor")
                       colorClass = "text-red-600 font-semibold";
                     else if (performance === "Partial")
@@ -1242,12 +1236,16 @@ useEffect(() => {
                       colorClass = "text-blue-600 font-semibold";
 
                     return (
-                      <tr key={ev._id} className="hover:bg-indigo-50 border-b">
-                        <td className="px-4 py-4 text-center align-middle">
+                      <tr
+                        key={ev._id}
+                        className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                      >
+                        {/* Action buttons */}
+                        <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
                           <div className="flex justify-center items-center gap-4">
                             <button
                               onClick={() => handleViewEvaluation(ev._id)}
-                              className="text-indigo-600 hover:text-indigo-900 transition"
+                              className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
                               title="View Evaluation"
                             >
                               <Glasses className="w-6 h-6" />
@@ -1258,7 +1256,7 @@ useEffect(() => {
                               currentUserRole === "Management") && (
                               <button
                                 onClick={() => handleEditEvaluation(ev._id)}
-                                className="text-indigo-600 hover:text-indigo-900 transition"
+                                className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
                                 title="Edit Evaluation"
                               >
                                 <Edit className="w-6 h-6" />
@@ -1270,7 +1268,7 @@ useEffect(() => {
                               currentUserRole === "Management") && (
                               <button
                                 onClick={() => handleAddUser(ev._id)}
-                                className="text-indigo-600 hover:text-indigo-900 transition"
+                                className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
                                 title="Add New Record"
                               >
                                 <FilePlus className="w-6 h-6" />
@@ -1279,11 +1277,18 @@ useEffect(() => {
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 truncate">
-                          {ev.fullName || ""}
+                        {/* Name */}
+                        <td className="px-6 py-5 text-gray-900 font-semibold truncate text-base">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                              {ev.fullName ? ev.fullName[0] : "?"}
+                            </div>
+                            <span>{ev.fullName || ""}</span>
+                          </div>
                         </td>
 
-                        <td className="px-4 py-4 truncate">
+                        {/* Weeks */}
+                        <td className="px-4 py-5 text-center">
                           <div className="flex gap-1 justify-center">
                             {[1, 2, 3, 4].map((week) => {
                               const isActive = ev.weekNumbers?.includes(week);
@@ -1304,7 +1309,8 @@ useEffect(() => {
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 truncate text-center">
+                        {/* Start Date */}
+                        <td className="px-4 py-5 text-center text-gray-700 text-sm">
                           {ev.weekStart
                             ? new Date(ev.weekStart).toLocaleDateString(
                                 "en-US",
@@ -1317,7 +1323,8 @@ useEffect(() => {
                             : ""}
                         </td>
 
-                        <td className="px-4 py-4 truncate text-center">
+                        {/* End Date */}
+                        <td className="px-4 py-5 text-center text-gray-700 text-sm">
                           {ev.weekEnd
                             ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
                                 day: "2-digit",
@@ -1327,25 +1334,28 @@ useEffect(() => {
                             : ""}
                         </td>
 
-                        <td className="px-4 py-4 truncate text-right">
+                        {/* AVG Rating */}
+                        <td className="px-4 py-5 text-right font-semibold text-gray-800">
                           {ev.avgWeightedRating > 0
                             ? ev.avgWeightedRating.toFixed(2)
-                            : ""}
+                            : "-"}
                         </td>
 
+                        {/* Performance */}
                         <td
-                          className={`px-4 py-4 truncate text-center ${colorClass}`}
+                          className={`px-4 py-5 text-center ${colorClass} text-sm font-semibold`}
                         >
                           {performance || ""}
                         </td>
 
-                        <td className="px-4 py-4 text-center">
+                        {/* Delete */}
+                        <td className="px-4 py-5 text-center rounded-r-2xl">
                           {(currentUserRole === "Super Admin" ||
                             currentUserRole === "HR" ||
                             currentUserRole === "Management") && (
                             <button
                               onClick={() => handleDeleteEvaluation(ev._id)}
-                              className="text-red-600 hover:text-red-800 transition"
+                              className="text-red-600 hover:text-red-800 hover:scale-110 transition-all"
                               title="Delete Evaluation"
                             >
                               <Trash2 className="w-6 h-6" />

@@ -18,11 +18,17 @@ export async function GET(req, context) {
       });
     }
 
-    const formatted = {
+       const formatted = {
       id: u._id.toString(),
       fullName: `${u.firstName} ${u.lastName}`,
       email: u.primaryEmail,
-      role: u.role ? { _id: u.role._id.toString(), name: u.role.name } : null,
+      role: u.role
+        ? {
+            _id: u.role._id.toString(),
+            name: u.role.name,
+            description: u.role.description || null, // ✅ include description
+          }
+        : null,
       createdAt: u.created_at,
       isActive: u.isActive,
     };

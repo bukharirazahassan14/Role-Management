@@ -290,6 +290,7 @@ export async function GET(req) {
           primaryEmail: 1,
           fullName: { $concat: ["$firstName", " ", "$lastName"] },
           roleName: "$roleInfo.name",
+          roleDesc: "$roleInfo.description",
           currentWeekNumber: "$currentEvaluation.weekNumber",
           currentWeekRating: "$currentEvaluation.totalWeightedRating",
           currentMonthAvg: 1,

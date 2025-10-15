@@ -28,13 +28,37 @@ import {
   Bell,
 } from "lucide-react";
 
+const Image = ({ src, alt, width, height, className, onError }) => (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    className={className}
+    onError={onError}
+    style={{ objectFit: "cover" }}
+  />
+);
+
+// --- Image Helpers (Required Constants and Functions) ---
+const DEFAULT_AVATAR = "/avatar.png";
+
+const getUserImagePath = (userId) => {
+  return `/uploads/profiles/${userId}.png`;
+};
+
+const handleImageError = (e) => {
+  e.target.onerror = null;
+  e.target.src = DEFAULT_AVATAR;
+};
+
 // --- 2. MOCK & STATIC DATA ---
 const STATS_DATA = {
   leaveBalance: 12,
   totalLeaveDays: 12,
   attendancePercentage: 100,
 };
-
 
 const NOTIFICATIONS = [
   // Example data — leave this empty `[]` to test the empty state
@@ -128,9 +152,16 @@ const StatCard = ({
 // --- User Profile Card Component ---
 const ProfileCard = ({ user }) => {
   const router = useRouter();
+  const [loginID, setLoginID] = useState(null);
+
+  useEffect(() => {
+    const storedID = localStorage.getItem("loginID");
+    if (storedID) {
+      setLoginID(storedID);
+    }
+  }, []);
 
   const handleArrowClick = () => {
-    const loginID = localStorage.getItem("loginID");
     if (loginID) {
       router.push(`/main/UserProfile?userID=${loginID}`);
     } else {
@@ -139,12 +170,25 @@ const ProfileCard = ({ user }) => {
   };
 
   return (
-    <div className="bg-white p-6 h-75 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02] hover:shadow-3xl">
+    <div className="bg-white p-4 h-80 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02] hover:shadow-3xl">
       {/* 1. Header: Avatar and Animated Arrow */}
       <div className="flex items-center justify-between w-full mb-6">
         {/* Avatar */}
-        <div className="relative p-4 bg-indigo-100 rounded-full inline-flex items-center justify-center shadow-lg">
-          <User className="h-8 w-8 text-indigo-600" />
+        <div className="relative">
+          {loginID ? (
+            <Image
+              src={getUserImagePath(loginID)}
+              alt="Profile Image"
+              width={90}
+              height={90}
+              className="rounded-full border-4 border-indigo-200 shadow-inner"
+              onError={handleImageError}
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center">
+              <User className="h-10 w-10 text-indigo-600" />
+            </div>
+          )}
         </div>
 
         {/* Animated Arrow */}
@@ -164,17 +208,12 @@ const ProfileCard = ({ user }) => {
 
         {/* Role with Caption + Icon */}
         <div className="flex items-center gap-2">
-          {/* Role Icon */}
           <div className="p-2 bg-purple-100 rounded-full shadow-sm">
             <Briefcase className="h-5 w-5 text-purple-600" />
           </div>
-
-          {/* Role Caption */}
-          <div>
-            <p className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
-              {user.role}
-            </p>
-          </div>
+          <p className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
+            {user.role}
+          </p>
         </div>
       </div>
 
@@ -277,7 +316,7 @@ const ScoreSummaryCard = ({ currentScore, maxScore, performance }) => {
   const STROKE = 10;
 
   return (
-    <div className="bg-white p-10 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl">
+    <div className="bg-white p-10 h-80 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.03] hover:shadow-3xl">
       {/* Header */}
       <div className="flex items-start justify-between w-full mb-4">
         <div className="flex items-center space-x-2">
@@ -303,24 +342,21 @@ const ScoreSummaryCard = ({ currentScore, maxScore, performance }) => {
         <ProgressRing radius={R} stroke={STROKE} progress={percentage} />
         <span className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-extrabold text-white leading-none">
-           {currentScore.toFixed(2)}
+            {currentScore.toFixed(2)}
           </span>
           {/* ✅ Performance label */}
           <span
             className="text-xs font-semibold mt-1"
             style={{ color: ringColor }}
-          >
-           
-          </span>
+          ></span>
         </span>
       </div>
 
       {/* Scores */}
       <div className="flex flex-col items-center w-full">
         <p className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 leading-none">
-           {performance}
+          {performance}
         </p>
-       
       </div>
     </div>
   );
@@ -488,7 +524,7 @@ const KpiBreakdownCard = ({ data, staffData }) => {
 
 // --- Notifications Card Component ---
 const NotificationCard = ({ notifications }) => (
-  <div className="bg-white p-4 rounded-3xl shadow-2xl border-t-4 border-indigo-500 transition-all duration-300 hover:shadow-3xl">
+  <div className="bg-white p-4 h-80 rounded-3xl shadow-2xl border-t-4 border-indigo-500 transition-all duration-300 hover:shadow-3xl">
     {/* Header */}
     <h2 className="text-xl font-extrabold text-gray-900 mb-4 flex items-center gap-3 border-b pb-3 border-gray-100">
       <BellRing className="h-6 w-6 text-indigo-600" />
@@ -568,7 +604,7 @@ export default function StaffDashboard() {
     )
       .then((res) => res.json())
       .then((data) => {
-       setStaffData(data);
+        setStaffData(data);
       })
       .catch((err) => console.error("❌ API call failed:", err));
   }, []);
@@ -595,7 +631,7 @@ export default function StaffDashboard() {
               user={{
                 name: staffData.fullName,
                 email: staffData.primaryEmail,
-                role: staffData.roleName,
+                role: staffData.roleDesc,
               }}
             />
             {/* Stats */}

@@ -193,6 +193,31 @@ const MonthlyRatingPieChart = ({ monthlyRatings = [], selectedYear }) => {
 // --- UserProfile Page ---
 const availableYears = [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
 
+const Image = ({ src, alt, width, height, className, onError }) => (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img
+    src={src}
+    alt={alt}
+    width={width}
+    height={height}
+    className={className}
+    onError={onError}
+    style={{ objectFit: "cover" }}
+  />
+);
+
+// --- Image Helpers (Required Constants and Functions) ---
+const DEFAULT_AVATAR = "/avatar.png";
+
+const getUserImagePath = (userId) => {
+  return `/uploads/profiles/${userId}.png`;
+};
+
+const handleImageError = (e) => {
+  e.target.onerror = null;
+  e.target.src = DEFAULT_AVATAR;
+};
+
 export default function UserProfile({ searchParams }) {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -381,30 +406,41 @@ export default function UserProfile({ searchParams }) {
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
       {/* Top Section */}
       <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
-        <div className="flex items-center space-x-6">
-          <div className="w-24 h-24 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-4xl font-bold border-4 border-indigo-200 shadow-inner">
-            {user.firstName?.charAt(0)}
-          </div>
-          <div>
-            <h1 className="text-4xl font-extrabold text-gray-900">
-              {user.firstName} {user.lastName}
-            </h1>
-            <p className="mt-2 text-lg text-gray-600 flex items-center">
-              <Briefcase className="w-5 h-5 mr-2 text-indigo-500" />
-              <span className="font-semibold">{user.role?.name || "Role Not Defined"}</span>
-            </p>
-          </div>
-        </div>
-        <span
-          className={`px-4 py-1.5 rounded-full text-sm font-semibold tracking-wider shadow-md ${
-            user.isActive
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-red-50 text-red-700 border border-red-200"
-          }`}
-        >
-          {user.isActive ? "ACTIVE" : "INACTIVE"}
-        </span>
-      </div>
+  <div className="flex items-center space-x-6">
+    {/* ✅ User Image (with graceful fallback) */}
+    <div className="relative">
+      <Image
+        src={getUserImagePath(user._id)}
+        alt={`${user.firstName} ${user.lastName} Avatar`}
+        width={96}
+        height={96}
+        className="w-24 h-24 rounded-full object-cover border-4 border-indigo-200 shadow-md hover:scale-105 transition-transform duration-300"
+        onError={handleImageError}
+      />
+    </div>
+
+    <div>
+      <h1 className="text-4xl font-extrabold text-gray-900">
+        {user.firstName} {user.lastName}
+      </h1>
+      <p className="mt-2 text-lg text-gray-600 flex items-center">
+        <Briefcase className="w-5 h-5 mr-2 text-indigo-500" />
+        <span className="font-semibold">{user.role?.description || "Role Not Defined"}</span>
+      </p>
+    </div>
+  </div>
+
+  <span
+    className={`px-4 py-1.5 rounded-full text-sm font-semibold tracking-wider shadow-md ${
+      user.isActive
+        ? "bg-green-50 text-green-700 border border-green-200"
+        : "bg-red-50 text-red-700 border border-red-200"
+    }`}
+  >
+    {user.isActive ? "ACTIVE" : "INACTIVE"}
+  </span>
+</div>
+
 
       {/* Middle Info - Grouped and Cleaned */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

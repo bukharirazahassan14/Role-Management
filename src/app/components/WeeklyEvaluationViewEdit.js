@@ -41,6 +41,31 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
     "Dec",
   ];
 
+  const Image = ({ src, alt, width, height, className, onError }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+      onError={onError}
+      style={{ objectFit: "cover" }}
+    />
+  );
+
+  // --- Image Helpers (Required Constants and Functions) ---
+  const DEFAULT_AVATAR = "/avatar.png";
+
+  const getUserImagePath = (userId) => {
+    return `/uploads/profiles/${userId}.png`;
+  };
+
+  const handleImageError = (e) => {
+    e.target.onerror = null;
+    e.target.src = DEFAULT_AVATAR;
+  };
+
   const toggleMonth = (monthNumber) => {
     setSelectedMonths(
       (prev) =>
@@ -368,9 +393,21 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
         {user && (
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition">
             <div className="flex items-center space-x-5">
-              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                {user.firstName[0]}
-              </div>
+              {/* Avatar or Image */}
+              {userId ? (
+                <Image
+                  src={getUserImagePath(userId)}
+                  alt="User Avatar"
+                  className="h-16 w-16 rounded-2xl border-2 border-indigo-200 shadow-md"
+                  onError={handleImageError}
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                  {user.firstName[0]}
+                </div>
+              )}
+
+              {/* User Info */}
               <div>
                 <p className="text-lg font-semibold text-gray-900">
                   {user.firstName} {user.lastName}
