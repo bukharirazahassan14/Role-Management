@@ -37,8 +37,6 @@ export default function EmployeeWeeklyEvaluation() {
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
@@ -83,12 +81,58 @@ export default function EmployeeWeeklyEvaluation() {
 
   const SerWeeks = [1, 2, 3, 4];
 
-  
+  // 🔑 decode JWT
+  function parseJwt(token) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  }
+
+  // 🔄 Fetch users when drawer opens
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch("/api/users/basic"); // replace with your API
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        console.error("❌ Failed to fetch users:", err);
+      }
+    };
+    fetchUsers();
+  }, [drawerOpen]);
+
+  // ✅ Token validation
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    const payload = parseJwt(token);
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload || payload.exp < now) {
+      localStorage.removeItem("token");
+      router.replace("/login");
+    }
+  }, [router]);
 
   //search>>>>>>>>>>>>>>>>>>>>>>>>>
-
   const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
     try {
+      console.log("SerNotifyChange");
       // ✅ Get role & userID
       const role = localStorage.getItem("userRole");
       const userId = localStorage.getItem("loginID");
@@ -140,100 +184,6 @@ export default function EmployeeWeeklyEvaluation() {
     }
   };
 
-  // 🔑 decode JWT
-  function parseJwt(token) {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
-      );
-      return JSON.parse(jsonPayload);
-    } catch {
-      return null;
-    }
-  }
-
-  // 🔄 Fetch users when drawer opens
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch("/api/users/basic"); // replace with your API
-        const data = await res.json();
-        setUsers(data);
-      } catch (err) {
-        console.error("❌ Failed to fetch users:", err);
-      }
-    };
-    fetchUsers();
-  }, [drawerOpen]);
-
-  // ✅ Token validation
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-
-    const payload = parseJwt(token);
-    const now = Math.floor(Date.now() / 1000);
-    if (!payload || payload.exp < now) {
-      localStorage.removeItem("token");
-      router.replace("/login");
-    }
-  }, [router]);
-
-  const fetchEvaluations = useCallback(async () => {
-    try {
-      const role = localStorage.getItem("userRole");
-      const loginID = localStorage.getItem("loginID"); // ✅ logged-in user ID
-      setCurrentUserRole(role);
-
-      // ✅ Build query params
-      const query = new URLSearchParams({
-        startDate,
-        endDate,
-      });
-
-      let res;
-
-      // ✅ Check role
-      if (role === "Super Admin" || role === "Management" || role === "HR") {
-        // 👉 All users
-        res = await fetch(
-          `/api/weeklyevaluation/performance?${query.toString()}`
-        );
-      } else {
-        // 👉 Single user
-        query.append("userId", loginID); // ✅ include userId
-        res = await fetch(
-          `/api/weeklyevaluation/performance/userperformance?${query.toString()}`
-        );
-      }
-
-      const data = await res.json();
-      console.log("data>>>>>", data);
-
-      if (Array.isArray(data)) {
-        setEvaluations(data);
-      } else {
-        console.error("Unexpected API response:", data);
-        setEvaluations([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch evaluations:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [startDate, endDate]);
-
-
-
   const fetchEvaluationPrograms = async () => {
     try {
       const res = await fetch("/api/weeklyevaluation/evaluationprograms");
@@ -255,45 +205,33 @@ export default function EmployeeWeeklyEvaluation() {
     if (didFetch.current) return;
     didFetch.current = true;
 
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const fetchInitialData = async () => {
+      setLoading(true); // ✅ start loading
 
-    const format = (d) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-        d.getDate()
-      ).padStart(2, "0")}`;
+      try {
+        const role = localStorage.getItem("userRole");
+        const loginID = localStorage.getItem("loginID");
+        setCurrentUserRole(role);
 
-    setStartDate(format(firstDay));
-    setEndDate(format(lastDay));
-  }, []);
-
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchEvaluationPrograms();
-      fetchEvaluations();
-    }
-  }, [startDate, endDate, fetchEvaluations]);
-
-  
-
-  // Handle score input + calculate weighted rating
-  const handleScoreChange = (index, score, weightage, progId) => {
-    const newScores = [...evaluationScores];
-    const numericScore = parseFloat(score) || 0;
-
-    // Correct calculation with 2 decimal places
-    const weightedRating = ((numericScore * weightage) / 100).toFixed(2);
-
-    newScores[index] = {
-      _id: progId,
-      score: numericScore,
-      weightage,
-      weightedRating: parseFloat(weightedRating), // store as number, not string
+        // ✅ Call SerNotifyChange with default values
+        await SerNotifyChange(
+          SerSelectedYear,
+          SerSelectedMonth,
+          SerSelectedWeeks
+        );
+      } catch (error) {
+        console.error("Error during initial data fetch:", error);
+      } finally {
+        setLoading(false); // ✅ stop loading
+      }
     };
 
-    setEvaluationScores(newScores);
-  };
+    fetchInitialData();
+  });
+
+  useEffect(() => {
+    fetchEvaluationPrograms();
+  }, []);
 
   if (loading) return <div className="p-8">Loading evaluations...</div>;
 
@@ -334,9 +272,8 @@ export default function EmployeeWeeklyEvaluation() {
 
   const handleAddUser = async (userId) => {
     try {
-      const currentDate = new Date(startDate);
-      const currentyear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth() + 1; // JS months are 0-based
+      const currentyear = SerSelectedYear;
+      const currentMonth = SerSelectedMonth;
 
       // ✅ Fetch user's evaluation data for this month
       const res = await fetch(
@@ -346,13 +283,13 @@ export default function EmployeeWeeklyEvaluation() {
       const existingWeeks = data?.uniqueWeeks || [];
       const weekCount = data?.weekCount || 0;
 
-      // ✅ If all 4 weeks are already evaluated
       if (weekCount === 4) {
         setMessage(
           "🎉 This month's evaluation has been completed. Congratulations!"
         );
+        handleCloseDrawer();
         setSuccess(true);
-        setTimeout(() => setMessage(""), 4000); // auto-hide after 4s
+        setTimeout(() => setMessage(""), 4000);
         return;
       }
 
@@ -366,10 +303,9 @@ export default function EmployeeWeeklyEvaluation() {
         existingWeeks.length > 0 ? Math.max(...existingWeeks) + 1 : 1;
       setSelectedWeek(defaultWeek);
 
-      // ✅ Calculate weekStart and weekEnd based on startDate
-      const baseDate = new Date(startDate);
-      const year = baseDate.getFullYear();
-      const month = baseDate.getMonth();
+      // ✅ Calculate week start/end
+      const year = currentyear;
+      const month = currentMonth - 1; // JS month is 0-based
       const lastDayOfMonth = new Date(year, month + 1, 0);
       const totalDays = lastDayOfMonth.getDate();
       const daysPerWeek = Math.ceil(totalDays / 4);
@@ -380,10 +316,9 @@ export default function EmployeeWeeklyEvaluation() {
 
       setWeekStart(formatDatePKT(start));
       setWeekEnd(formatDatePKT(end));
-
-      // Save selected user
       setSelectedUserId(userId);
       setEditingEvaluation(null);
+      setMessage("");
     } catch (err) {
       console.error("Error fetching user evaluations:", err);
       setMessage("⚠️ Failed to fetch evaluations.");
@@ -509,10 +444,14 @@ export default function EmployeeWeeklyEvaluation() {
 
       const data = await res.json();
 
-      await fetchEvaluations(); // refresh list
+      await SerNotifyChange(
+        SerSelectedYear,
+        SerSelectedMonth,
+        SerSelectedWeeks
+      );
 
-      // 🎉 Success feedback
-      //handleCloseDrawer();
+      await handleAddUser(payload.userId);
+
       setMessage(
         `✅ Evaluation ${
           editingEvaluation ? "updated" : "submitted"
@@ -526,6 +465,24 @@ export default function EmployeeWeeklyEvaluation() {
     } finally {
       setTimeout(() => setMessage(""), 3000);
     }
+  };
+
+  // Handle score input + calculate weighted rating
+  const handleScoreChange = (index, score, weightage, progId) => {
+    const newScores = [...evaluationScores];
+    const numericScore = parseFloat(score) || 0;
+
+    // Correct calculation with 2 decimal places
+    const weightedRating = ((numericScore * weightage) / 100).toFixed(2);
+
+    newScores[index] = {
+      _id: progId,
+      score: numericScore,
+      weightage,
+      weightedRating: parseFloat(weightedRating), // store as number, not string
+    };
+
+    setEvaluationScores(newScores);
   };
 
   // ✅ Function to handle editing an evaluation
@@ -568,6 +525,7 @@ export default function EmployeeWeeklyEvaluation() {
 
       setEditingEvaluation(data);
       setDrawerOpen(true);
+      setMessage("");
     } catch (error) {
       console.error("Error in handleEditEvaluation:", error);
     }
@@ -607,16 +565,37 @@ export default function EmployeeWeeklyEvaluation() {
         method: "DELETE",
       });
 
-      if (!res.ok) throw new Error("Failed to delete evaluation");
+      if (!res.ok) {
+        let message = "❌ Failed to delete evaluation. Please try again.";
+
+        try {
+          // Try to parse server message (if JSON)
+          const errorData = await res.json();
+          if (errorData?.message) message = `⚠️ ${errorData.message}`;
+        } catch {
+          // fallback if not valid JSON
+          const text = await res.text();
+          if (text) message = `⚠️ ${text}`;
+        }
+
+        setMessage(message);
+        setSuccess(false);
+        setTimeout(() => setMessage(""), 4000);
+        return;
+      }
 
       const data = await res.json();
 
       // ✅ Show success message
       setMessage("✅ Last evaluation deleted successfully");
       setSuccess(true);
-
+      setTimeout(() => setMessage(""), 3000);
       // ✅ Refresh list
-      await fetchEvaluations();
+      await SerNotifyChange(
+        SerSelectedYear,
+        SerSelectedMonth,
+        SerSelectedWeeks
+      );
     } catch (error) {
       console.error("Error deleting evaluation:", error);
       setMessage("❌ Failed to delete evaluation. Please try again.");
@@ -638,6 +617,18 @@ export default function EmployeeWeeklyEvaluation() {
 
   return (
     <div className="p-8 w-full">
+      {/* ✅ Toast */}
+      {message && (
+        <div className="fixed top-5 right-5 z-50">
+          <div
+            className={`px-4 py-2 rounded shadow-lg text-white ${
+              success ? "bg-green-500" : "bg-red-500"
+            }`}
+          >
+            {message}
+          </div>
+        </div>
+      )}
       {/* ✅ Right Drawer (Modern + Complete with Evaluation Programs Table) */}
       <div
         className={`fixed top-0 right-0 h-full 

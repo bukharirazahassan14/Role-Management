@@ -4,14 +4,12 @@ const UserSchema = new mongoose.Schema({
   firstName: { 
     type: String, 
     required: true, 
-    minlength: 2, 
     maxlength: 50 
   }, // 1: First Name
 
   lastName: { 
     type: String, 
     required: true, 
-    minlength: 2, 
     maxlength: 50 
   }, // 2: Last Name
 
@@ -34,13 +32,11 @@ const UserSchema = new mongoose.Schema({
 
   phone: { 
     type: String, 
-    minlength: 10, 
     maxlength: 15 
   }, // 6: Phone
 
   emergencyContact: { 
     type: String, 
-    minlength: 10, 
     maxlength: 15 
   }, // 7: Emergency Contact
 
@@ -51,7 +47,6 @@ const UserSchema = new mongoose.Schema({
 
   cnic: { 
     type: String, 
-    minlength: 13, 
     maxlength: 15 
   }, // 9: CNIC (13 digits typically)
 
@@ -78,7 +73,6 @@ const UserSchema = new mongoose.Schema({
 
   password: { 
     type: String, 
-    minlength: 8, 
     maxlength: 128 
   },
 

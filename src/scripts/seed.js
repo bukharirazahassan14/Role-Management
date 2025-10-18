@@ -2,8 +2,9 @@ import connectToDB from "../lib/mongodb.js";
 import User from "../models/User.js";
 import Role from "../models/Role.js";
 import UserAttachedFile from "../models/UserAttachedFile.js";
-import EvaluationProgram from "../models/EvaluationProgram.js"; 
-import WeeklyEvaluation from "../models/WeeklyEvaluation.js"; 
+import EvaluationProgram from "../models/EvaluationProgram.js";
+import WeeklyEvaluation from "../models/WeeklyEvaluation.js";
+import AccessControlForm from "../models/accesscontrolform.js";
 import bcrypt from "bcryptjs";
 
 async function seed() {
@@ -15,6 +16,7 @@ async function seed() {
   await UserAttachedFile.deleteMany({});
   await EvaluationProgram.deleteMany({});
   await WeeklyEvaluation.deleteMany({});
+  await AccessControlForm.deleteMany({});
 
   // Create roles
   const roles = await Role.insertMany([
@@ -78,38 +80,6 @@ async function seed() {
       isActive: true,
       created_at: new Date(),
     },
-    {
-      firstName: "Hassan",
-      lastName: "Raza",
-      primaryEmail: "hraza@greyloops.com",
-      fatherName: "Sajad Hussain Bukhari",
-      phone: "5555555555",
-      emergencyContact: "6666666666",
-      emergencyRelation: "Mother",
-      cnic: "33333-3333333-3",
-      role: roleMap["Staff"],
-      jd: "Execute assigned tasks",
-      exp: "2 years",
-      password: await bcrypt.hash("123456", 10),
-      isActive: true,
-      created_at: new Date(),
-    },
-    {
-      firstName: "Shanzay",
-      lastName: "Noor",
-      primaryEmail: "shanzay@greyloops.com",
-      fatherName: "John Temp",
-      phone: "7777777777",
-      emergencyContact: "8888888888",
-      emergencyRelation: "Friend",
-      cnic: "44444-4444444-4",
-      role: roleMap["Temp Staff"],
-      jd: "Temporary staff responsibilities",
-      exp: "1 year",
-      password: await bcrypt.hash("123456", 10),
-      isActive: true,
-      created_at: new Date(),
-    },
   ]);
 
   // Evaluation Programs (KPIs)
@@ -143,6 +113,26 @@ async function seed() {
       Description:
         "Measures teamwork, participation in discussions, and clarity of communication.",
       Weightage: 15,
+    },
+  ]);
+
+  // ✅ Insert Access Control Forms
+  await AccessControlForm.insertMany([
+    {
+      name: "Dashboard",
+      description: "Access to main analytics and performance dashboards.",
+    },
+    {
+      name: "Roles",
+      description: "Manage and assign different system roles.",
+    },
+    {
+      name: "Profile",
+      description: "View and update user profile information.",
+    },
+    {
+      name: "Report",
+      description: "Generate and view detailed system reports.",
     },
   ]);
 

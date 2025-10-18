@@ -87,9 +87,6 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
         if (!res.ok) {
           if (res.status === 404) {
             console.warn("❌ No records found, week not selected:", weeksArray);
-            alert(
-              "No records found for selected week(s): " + weeksArray.join(",")
-            );
             return;
           } else {
             const errorData = await res.json();

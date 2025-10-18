@@ -158,7 +158,7 @@ export default function Dashboard() {
   const [SerSelectedYear, setSerSelectedYear] = useState(
     new Date().getFullYear()
   );
-  
+
   const currentMonth = new Date().getMonth() + 1;
   const [selectedMonth, setSelectedMonth] = useState([currentMonth]);
 
@@ -260,15 +260,15 @@ export default function Dashboard() {
     // --- Authentication placeholder logic (kept as is) ---
     const token = localStorage.getItem("token");
     if (!token) {
-       router.replace("/login");
-       return;
+      router.replace("/login");
+      return;
     }
     // Mock token payload parsing for non-login related data
     const payload = parseJwt(token || "a.eyJleHAiOjI1Mzk3MDYxOTk3MjB9.c");
     if (!payload || payload.exp < Math.floor(Date.now() / 1000)) {
-       localStorage.removeItem("token");
-       router.replace("/login");
-       return;
+      localStorage.removeItem("token");
+      router.replace("/login");
+      return;
     }
 
     const fetchNotifications = async () => {
@@ -403,15 +403,34 @@ export default function Dashboard() {
     ringColor: monthlyRingColor,
   } = getPerformanceStyles(monthlyAverage);
 
-  /* ---------------- Evaluation Programs ---------------- */
-  const evaluationPrograms = [
-    { name: "Task Deliverability", weightage: 30 },
-    { name: "Reliability & Accountability", weightage: 20 },
-    { name: "Efficiency & Problem Solving", weightage: 20 },
-    { name: "Growth & Learning", weightage: 15 },
-    { name: "Communication & Collaboration", weightage: 15 },
-  ];
   const COLORS = ["#4f46e5", "#10b981", "#f59e0b", "#ec4899", "#06b6d4"];
+
+  const [evaluationPrograms, setEvaluationPrograms] = useState([]);
+  // ✅ Fetch evaluation programs
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const res = await fetch("/api/weeklyevaluation/evaluationprograms");
+        if (!res.ok) throw new Error("Failed to fetch programs");
+        const data = await res.json();
+
+        // 🧩 Transform API data into the same structure as your static array
+        const formattedData = data.map((item) => ({
+          name: item.Name,
+          weightage: item.Weightage,
+          description: item.Description, // optional if you need it
+          id: item._id,
+        }));
+
+        setEvaluationPrograms(formattedData);
+        console.log("✅ Loaded Programs:", formattedData);
+      } catch (err) {
+        console.error("❌ Error fetching programs:", err);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
 
   /* ---------------- JSX ---------------- */
   return (
@@ -452,7 +471,6 @@ export default function Dashboard() {
                 </p>
               </div>
             )}
-            
           </div>
         </div>
 
@@ -540,12 +558,8 @@ export default function Dashboard() {
       {/* ---------- Row 2: Performance Metrics (2/3 width) and Notifications (1/3 width) ---------- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
         {" "}
-        {/* Add relative here for absolute positioning */}
         {/* Card 4: Performance Card (2/3 width) */}
-        {/* 1. REDUCED CARD PADDING from p-6 to p-4 */}
         <div className="relative bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-4 border border-gray-100 md:col-span-2">
-          {/* Header and Controls within the Card */}
-          {/* 2. REDUCED HEADER MARGIN/PADDING from mb-5 pb-4 to mb-4 pb-3 */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 pb-3 border-b border-gray-100">
             {/* Title */}
             <div className="flex items-center space-x-4">
@@ -728,7 +742,6 @@ export default function Dashboard() {
           </div>
         </div>
         {/* Card 3: Evaluation Programs Weightage (4/12 width) */}
-        {/* Note: If you want Card 3 to match the new, shorter height, you will need to adjust its content height (h-40) and padding (p-6) as well. */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 lg:col-span-1">
           <h3 className="text-xl font-extrabold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center space-x-2">
             <PieChartIcon className="h-5 w-5 text-indigo-600" />

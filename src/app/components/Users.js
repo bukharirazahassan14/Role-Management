@@ -490,7 +490,6 @@ export default function Users() {
                   name="firstName"
                   type="text"
                   required
-                  minLength={2}
                   maxLength={50}
                   defaultValue={selectedUser?.firstName || ""}
                   className="form-input"
@@ -505,7 +504,6 @@ export default function Users() {
                   name="lastName"
                   type="text"
                   required
-                  minLength={2}
                   maxLength={50}
                   defaultValue={selectedUser?.lastName || ""}
                   className="form-input"
@@ -552,7 +550,6 @@ export default function Users() {
                   id="password"
                   name="password"
                   type="password"
-                  minLength={8}
                   maxLength={128}
                   className="form-input"
                   placeholder="••••••••"
@@ -585,7 +582,6 @@ export default function Users() {
                   id="phone"
                   name="phone"
                   type="text"
-                  minLength={10}
                   maxLength={15}
                   defaultValue={selectedUser?.phone || ""}
                   className="form-input"
@@ -600,7 +596,6 @@ export default function Users() {
                   id="cnic"
                   name="cnic"
                   type="text"
-                  minLength={13}
                   maxLength={15}
                   defaultValue={selectedUser?.cnic || ""}
                   className="form-input"
@@ -619,7 +614,6 @@ export default function Users() {
                   id="emergencyContact"
                   name="emergencyContact"
                   type="text"
-                  minLength={10}
                   maxLength={15}
                   defaultValue={selectedUser?.emergencyContact || ""}
                   className="form-input"
@@ -674,7 +668,7 @@ export default function Users() {
                   })
                   .map((role) => (
                     <option key={role._id} value={role._id}>
-                      {role.name}
+                      {role.description}
                     </option>
                   ))}
               </select>
@@ -820,205 +814,228 @@ export default function Users() {
       )}
 
       {viewMode === "list" && !isMobile ? (
+        // ✅ Main Table View
+        <div className="relative">
+          <div className="overflow-x-auto bg-gradient-to-br from-gray-50 to-white p-4 rounded-3xl shadow-xl border border-gray-100">
+            <table className="w-full border-separate border-spacing-y-2">
+              <thead className="bg-indigo-900 text-white text-xs uppercase tracking-wider rounded-xl">
+                <tr className="rounded-lg overflow-hidden">
+                  <th className="px-6 py-4 text-center w-28 rounded-l-xl"></th>
+                  <th className="px-6 py-4 text-left font-semibold">Name</th>
+                  <th className="px-6 py-4 text-left font-semibold">Email</th>
+                  <th className="px-6 py-4 text-left font-semibold">Role</th>
+                  <th className="px-6 py-4 text-left font-semibold">Created</th>
+                  <th className="px-6 py-4 text-center font-semibold">
+                    Active
+                  </th>
+                  <th className="px-6 py-4 text-center font-semibold rounded-r-xl">
+                    Files
+                  </th>
+                </tr>
+              </thead>
 
-// ✅ Main Table View
-<div className="relative">
-  <div className="overflow-x-auto bg-gradient-to-br from-gray-50 to-white p-4 rounded-3xl shadow-xl border border-gray-100">
-    <table className="w-full border-separate border-spacing-y-2">
-      <thead className="bg-indigo-900 text-white text-xs uppercase tracking-wider rounded-xl">
-        <tr className="rounded-lg overflow-hidden">
-          <th className="px-6 py-4 text-center w-28 rounded-l-xl"></th>
-          <th className="px-6 py-4 text-left font-semibold">Name</th>
-          <th className="px-6 py-4 text-left font-semibold">Email</th>
-          <th className="px-6 py-4 text-left font-semibold">Role</th>
-          <th className="px-6 py-4 text-left font-semibold">Created</th>
-          <th className="px-6 py-4 text-center font-semibold">Active</th>
-          <th className="px-6 py-4 text-center font-semibold rounded-r-xl">Files</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {Array.isArray(currentUsers) &&
-          currentUsers
-            .filter((user) => {
-              if (currentUserRole === "Staff" || currentUserRole === "Temp Staff") {
-                return (
-                  user.role?.name !== "Super Admin" &&
-                  user.role?.name !== "Management" &&
-                  user.role?.name !== "HR"
-                );
-              }
-              return true;
-            })
-            .map((user) => (
-              <tr
-                key={user.id}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-              >
-                {/* Actions */}
-                <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
-                  <div className="flex justify-center items-center gap-4">
-                    <button
-                      onClick={() => handleViewUser(user)}
-                      className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
-                      title="View User"
-                    >
-                      <Glasses className="w-6 h-6" />
-                    </button>
-                    <button
-                      onClick={() => handleEditUser(user)}
-                      className={`transition-all ${
-                        currentUserRole === "Super Admin" ||
-                        (currentUserRole === "Management" &&
-                          user.role?.name !== "Super Admin") ||
-                        (currentUserRole === "HR" &&
+              <tbody>
+                {Array.isArray(currentUsers) &&
+                  currentUsers
+                    .filter((user) => {
+                      if (
+                        currentUserRole === "Staff" ||
+                        currentUserRole === "Temp Staff"
+                      ) {
+                        return (
                           user.role?.name !== "Super Admin" &&
-                          user.role?.name !== "Management")
-                          ? "text-indigo-600 hover:text-indigo-900 hover:scale-110"
-                          : "opacity-40 cursor-not-allowed"
-                      }`}
-                      title={
-                        currentUserRole === "Super Admin" ||
-                        (currentUserRole === "Management" &&
-                          user.role?.name !== "Super Admin") ||
-                        (currentUserRole === "HR" &&
-                          user.role?.name !== "Super Admin" &&
-                          user.role?.name !== "Management")
-                          ? "Edit User"
-                          : "Not allowed"
+                          user.role?.name !== "Management" &&
+                          user.role?.name !== "HR"
+                        );
                       }
-                      disabled={
-                        !(
-                          currentUserRole === "Super Admin" ||
-                          (currentUserRole === "Management" &&
-                            user.role?.name !== "Super Admin") ||
-                          (currentUserRole === "HR" &&
-                            user.role?.name !== "Super Admin" &&
-                            user.role?.name !== "Management")
-                        )
-                      }
-                    >
-                      <Edit className="w-6 h-6" />
-                    </button>
-                  </div>
-                </td>
-
-                {/* Avatar & Name */}
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <Image
-                        src={getUserImagePath(user.id)}
-                        alt={`${user.fullName} Avatar`}
-                        width={60}
-                        height={60}
-                        className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 shadow-sm hover:scale-105 transition-transform"
-                        onError={handleImageError}
-                      />
-                      <span
-                        className={`absolute bottom-0 right-0 block w-3 h-3 rounded-full ring-2 ring-white ${
-                          user.isActive ? "bg-green-500" : "bg-gray-400"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm">
-                        {user.fullName || "-"}
-                      </div>
-                      <div className="text-gray-500 text-xs font-medium mt-1">
-                        {user.role?.description || "-"}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-
-                <td className="px-6 py-5 text-gray-700 text-sm">{user.email}</td>
-                <td className="px-6 py-5 text-gray-700 text-sm">
-                  {user.role?.description || "-"}
-                </td>
-                <td className="px-6 py-5 text-gray-500 text-sm">
-                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
-                </td>
-
-                {/* Active toggle */}
-                <td className="px-6 py-5 text-center">
-                  <div className="flex justify-center">
-                    {currentUserRole === "Super Admin" ? (
-                      user.role?.name === "Super Admin" ? (
-                        <div
-                          className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
-                            user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                              user.isActive ? "translate-x-6" : "translate-x-1"
-                            }`}
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleToggleActive(user.id, !user.isActive)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
-                            user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                              user.isActive ? "translate-x-6" : "translate-x-1"
-                            }`}
-                          />
-                        </button>
-                      )
-                    ) : (
-                      <div
-                        className={`inline-flex h-6 w-11 items-center rounded-full ${
-                          user.isActive ? "bg-indigo-500" : "bg-gray-300"
-                        }`}
+                      return true;
+                    })
+                    .map((user) => (
+                      <tr
+                        key={user.id}
+                        className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                       >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                            user.isActive ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </td>
+                        {/* Actions */}
+                        <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
+                          <div className="flex justify-center items-center gap-4">
+                            <button
+                              onClick={() => handleViewUser(user)}
+                              className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                              title="View User"
+                            >
+                              <Glasses className="w-6 h-6" />
+                            </button>
+                            <button
+                              onClick={() => handleEditUser(user)}
+                              className={`transition-all ${
+                                currentUserRole === "Super Admin" ||
+                                (currentUserRole === "Management" &&
+                                  user.role?.name !== "Super Admin") ||
+                                (currentUserRole === "HR" &&
+                                  user.role?.name !== "Super Admin" &&
+                                  user.role?.name !== "Management")
+                                  ? "text-indigo-600 hover:text-indigo-900 hover:scale-110"
+                                  : "opacity-40 cursor-not-allowed"
+                              }`}
+                              title={
+                                currentUserRole === "Super Admin" ||
+                                (currentUserRole === "Management" &&
+                                  user.role?.name !== "Super Admin") ||
+                                (currentUserRole === "HR" &&
+                                  user.role?.name !== "Super Admin" &&
+                                  user.role?.name !== "Management")
+                                  ? "Edit User"
+                                  : "Not allowed"
+                              }
+                              disabled={
+                                !(
+                                  currentUserRole === "Super Admin" ||
+                                  (currentUserRole === "Management" &&
+                                    user.role?.name !== "Super Admin") ||
+                                  (currentUserRole === "HR" &&
+                                    user.role?.name !== "Super Admin" &&
+                                    user.role?.name !== "Management")
+                                )
+                              }
+                            >
+                              <Edit className="w-6 h-6" />
+                            </button>
+                          </div>
+                        </td>
 
-                {/* File Attachments */}
-                <td className="px-6 py-5 text-center rounded-r-2xl">
-                  <button
-                    onClick={() => handleOpenFrame(user)}
-                    className="relative text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
-                    title={`View ${fileCounts[user.id] ?? 0} files`}
-                  >
-                    <FileText className="w-6 h-6" />
-                    <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow">
-                      {fileCounts[user.id] ?? 0}
-                    </span>
-                  </button>
-                </td>
-              </tr>
-            ))}
-      </tbody>
-    </table>
-  </div>
+                        {/* Avatar & Name */}
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <Image
+                                src={getUserImagePath(user.id)}
+                                alt={`${user.fullName} Avatar`}
+                                width={60}
+                                height={60}
+                                className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 shadow-sm hover:scale-105 transition-transform"
+                                onError={handleImageError}
+                              />
+                              <span
+                                className={`absolute bottom-0 right-0 block w-3 h-3 rounded-full ring-2 ring-white ${
+                                  user.isActive ? "bg-green-500" : "bg-gray-400"
+                                }`}
+                              />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900 text-sm">
+                                {user.fullName || "-"}
+                              </div>
+                              <div className="text-gray-500 text-xs font-medium mt-1">
+                                {user.role?.description || "-"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
 
-  {/* ✅ Floating Add Button */}
-  {(currentUserRole === "Super Admin" ||
-    currentUserRole === "HR" ||
-    currentUserRole === "Management") && (
-    <button
-      onClick={handleAddUser}
-      title="Add New User"
-      className="fixed bottom-8 right-8 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-full w-16 h-16 shadow-2xl flex items-center justify-center hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300 animate-pulse"
-    >
-      <Plus className="w-8 h-8" />
-    </button>
-  )}
-</div>
+                        <td className="px-6 py-5 text-gray-700 text-sm">
+                          {user.email}
+                        </td>
+                        <td className="px-6 py-5 text-gray-700 text-sm">
+                          {user.role?.description || "-"}
+                        </td>
+                        <td className="px-6 py-5 text-gray-500 text-sm">
+                          {user.createdAt
+                            ? new Date(user.createdAt).toLocaleDateString()
+                            : "-"}
+                        </td>
 
+                        {/* Active toggle */}
+                        <td className="px-6 py-5 text-center">
+                          <div className="flex justify-center">
+                            {currentUserRole === "Super Admin" ? (
+                              user.role?.name === "Super Admin" ? (
+                                <div
+                                  className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
+                                    user.isActive
+                                      ? "bg-indigo-500"
+                                      : "bg-gray-300"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                                      user.isActive
+                                        ? "translate-x-6"
+                                        : "translate-x-1"
+                                    }`}
+                                  />
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    handleToggleActive(user.id, !user.isActive)
+                                  }
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
+                                    user.isActive
+                                      ? "bg-indigo-500"
+                                      : "bg-gray-300"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                                      user.isActive
+                                        ? "translate-x-6"
+                                        : "translate-x-1"
+                                    }`}
+                                  />
+                                </button>
+                              )
+                            ) : (
+                              <div
+                                className={`inline-flex h-6 w-11 items-center rounded-full ${
+                                  user.isActive
+                                    ? "bg-indigo-500"
+                                    : "bg-gray-300"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                                    user.isActive
+                                      ? "translate-x-6"
+                                      : "translate-x-1"
+                                  }`}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* File Attachments */}
+                        <td className="px-6 py-5 text-center rounded-r-2xl">
+                          <button
+                            onClick={() => handleOpenFrame(user)}
+                            className="relative text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                            title={`View ${fileCounts[user.id] ?? 0} files`}
+                          >
+                            <FileText className="w-6 h-6" />
+                            <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow">
+                              {fileCounts[user.id] ?? 0}
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ✅ Floating Add Button */}
+          {(currentUserRole === "Super Admin" ||
+            currentUserRole === "HR" ||
+            currentUserRole === "Management") && (
+            <button
+              onClick={handleAddUser}
+              title="Add New User"
+              className="fixed bottom-8 right-8 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-full w-16 h-16 shadow-2xl flex items-center justify-center hover:scale-110 hover:shadow-indigo-500/40 transition-all duration-300 animate-pulse"
+            >
+              <Plus className="w-8 h-8" />
+            </button>
+          )}
+        </div>
       ) : (
         // ✅ Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

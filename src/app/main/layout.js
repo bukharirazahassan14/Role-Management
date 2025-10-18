@@ -37,6 +37,8 @@ export default function MainLayout({ children }) {
     ? "Evaluation Overview"
     : pathname.includes("/EvaluationPrograms")
     ? "Evaluation Programs"
+     : pathname.includes("/UserAccessControl")
+    ? "User Access Control"
     : pathname.includes("/UserProfile")
     ? isStaff
       ? "My Profile"

@@ -658,7 +658,7 @@ export default function StaffDashboard() {
               />
               <StatCard
                 title={`Current Week Score Rating`}
-                value={staffData.currentWeekRating.toFixed(2)}
+                value={(staffData?.currentWeekRating ?? 0).toFixed(2)}
                 unit="/5"
                 icon={TrendingUp}
                 iconBg="bg-orange-500"

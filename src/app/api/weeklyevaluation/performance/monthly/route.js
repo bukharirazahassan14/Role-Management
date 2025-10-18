@@ -50,6 +50,9 @@ export async function GET(req) {
       matchCondition.weekNumber = { $in: weeks };
     }
 
+    // ✅ Determine latest month end (for user created_at filter)
+    const lastMonthEnd = monthDateRanges[monthDateRanges.length - 1].end;
+
     const results = await User.aggregate([
       // --- Get Role Info ---
       {
@@ -66,6 +69,12 @@ export async function GET(req) {
       {
         $match: {
           "roleInfo.name": { $in: ["HR", "Staff", "Temp Staff"] },
+          // ✅ Always take the latest selected month’s end date
+          created_at: {
+            $lte: new Date(
+              Math.max(...monthDateRanges.map((r) => r.end.getTime()))
+            ),
+          },
         },
       },
 
@@ -107,7 +116,7 @@ export async function GET(req) {
               $group: {
                 _id: null,
                 activeMonthsCount: { $sum: 1 },
-                weekNumbers: { $push: "$weekNumbers" }, // temporary nested
+                weekNumbers: { $push: "$weekNumbers" },
                 totalWeightedRatingSum: { $sum: "$totalWeightedRatingMonth" },
                 totalScoreSum: { $sum: "$totalScoreMonth" },
                 latestWeekStart: { $min: "$minWeekStart" },
@@ -201,7 +210,7 @@ export async function GET(req) {
             },
           },
 
-           // ✅ Added Action logic
+          // ✅ Added Action logic
           Action: {
             $switch: {
               branches: [
@@ -229,7 +238,6 @@ export async function GET(req) {
               default: "None",
             },
           },
-
         },
       },
     ]);
