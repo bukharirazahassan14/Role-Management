@@ -31,8 +31,6 @@ export default function EmployeeWeeklyEvaluation() {
   const [success, setSuccess] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState(null);
   const didFetch = useRef(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
   const [viewMode, setViewMode] = useState("list");
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -47,6 +45,8 @@ export default function EmployeeWeeklyEvaluation() {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [editingEvaluation, setEditingEvaluation] = useState(null);
   const [takenWeeks, setTakenWeeks] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   //Search>>>>>>>>>>>>>>>>>>>>>>>>>
   const [SerSelectedYear, setSerSelectedYear] = useState(
@@ -101,6 +101,7 @@ export default function EmployeeWeeklyEvaluation() {
   // 🔄 Fetch users when drawer opens
   useEffect(() => {
     if (!drawerOpen) return;
+    
     const fetchUsers = async () => {
       try {
         const res = await fetch("/api/users/basic"); // replace with your API
@@ -233,42 +234,32 @@ export default function EmployeeWeeklyEvaluation() {
     fetchEvaluationPrograms();
   }, []);
 
-  if (loading) return <div className="p-8">Loading evaluations...</div>;
+if (loading)
+  return (
+    <div className="flex flex-col items-center justify-center h-96 space-y-4">
+      <div className="flex space-x-2">
+        <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"></div>
+        <div
+          className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
+          style={{ animationDelay: "0.2s" }}
+        ></div>
+        <div
+          className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
+          style={{ animationDelay: "0.4s" }}
+        ></div>
+      </div>
+      <p className="text-indigo-600 text-lg font-medium animate-pulse">
+        Fetching evaluations...
+      </p>
+    </div>
+  );
+
 
   const formatDatePKT = (date) => {
     return date.toLocaleDateString("en-CA", {
       timeZone: "Asia/Karachi", // Force PKT
     }); // gives yyyy-mm-dd
   };
-
-  // Always parse yyyy-mm-dd as local PKT date (ignores timezone shift)
-  const parseDatePKT = (dateStr) => {
-    if (!dateStr) return null;
-    const [year, month, day] = dateStr.split("-").map(Number);
-    return new Date(year, month - 1, day); // 👈 no UTC conversion
-  };
-
-  // 🔍 Search + Date Filter
-  const filtered = evaluations.filter((ev) => {
-    // 📅 Date filtering (PKT-safe) → always active if start/end set
-    let matchesDate = true;
-    if (startDate || endDate) {
-      const evStart = ev.weekStart
-        ? parseDatePKT(ev.weekStart.split("T")[0])
-        : null;
-      const evEnd = ev.weekEnd ? parseDatePKT(ev.weekEnd.split("T")[0]) : null;
-
-      const filterStart = startDate ? parseDatePKT(startDate) : null;
-      const filterEnd = endDate ? parseDatePKT(endDate) : null;
-
-      if (filterStart && evEnd)
-        matchesDate = matchesDate && evEnd >= filterStart;
-      if (filterEnd && evStart)
-        matchesDate = matchesDate && evStart <= filterEnd;
-    }
-
-    return matchesDate;
-  });
 
   const handleAddUser = async (userId) => {
     try {
@@ -384,15 +375,6 @@ export default function EmployeeWeeklyEvaluation() {
     setWeekEnd(formatDatePKT(end));
   };
 
-  const indexOfLast = currentPage * rowsPerPage;
-  const indexOfFirst = indexOfLast - rowsPerPage;
-  const currentEvaluations = evaluations.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filtered.length / rowsPerPage);
-
-  const handlePageChange = (page) => {
-    if (page > 0 && page <= totalPages) setCurrentPage(page);
-  };
-
   const totalScore = evaluationScores.reduce(
     (sum, s) => sum + Number(s?.score || 0),
     0
@@ -404,7 +386,9 @@ export default function EmployeeWeeklyEvaluation() {
 
   const handleSubmit = async (payload) => {
     try {
-      // ✅ Validate before sending
+       
+      setIsSubmitting(true);
+
       if (!payload.userId) {
         setMessage("❌ Please select a user");
         setSuccess(false);
@@ -463,6 +447,7 @@ export default function EmployeeWeeklyEvaluation() {
       setMessage("❌ Failed to submit evaluation");
       setSuccess(false);
     } finally {
+        setIsSubmitting(false);
       setTimeout(() => setMessage(""), 3000);
     }
   };
@@ -912,6 +897,7 @@ export default function EmployeeWeeklyEvaluation() {
             {
               <button
                 type="submit"
+                 disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
               >
                 💾 {editingEvaluation ? "Update Record" : "Save Record"}
@@ -1099,7 +1085,7 @@ export default function EmployeeWeeklyEvaluation() {
                   </td>
                 </tr>
               ) : (
-                currentEvaluations
+                evaluations
                   .filter((ev) => {
                     if (
                       currentUserRole === "Staff" ||
@@ -1264,7 +1250,7 @@ export default function EmployeeWeeklyEvaluation() {
       ) : (
         // Modern Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {currentEvaluations.map((ev) => {
+          {evaluations.map((ev) => {
             const score = ev.totalScoreSum || 0;
             const weighted = ev.totalWeightedRatingSum || 0;
 
@@ -1440,51 +1426,6 @@ export default function EmployeeWeeklyEvaluation() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* ✅ Pagination Controls */}
-      {evaluations.length >= 10 && (
-        <div className="flex justify-end items-center mt-6 space-x-4">
-          <p className="text-sm text-gray-500">
-            Showing {indexOfFirst + 1} -{" "}
-            {Math.min(indexOfLast, evaluations.length)} of {evaluations.length}
-          </p>
-
-          <div className="flex space-x-2">
-            {/* Previous Button */}
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
-            >
-              Prev
-            </button>
-
-            {/* Page Numbers */}
-            {[...Array(totalPages)].map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => handlePageChange(idx + 1)}
-                className={`px-3 py-1 border rounded-md text-sm ${
-                  currentPage === idx + 1
-                    ? "bg-indigo-500 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {idx + 1}
-              </button>
-            ))}
-
-            {/* Next Button */}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
         </div>
       )}
     </div>

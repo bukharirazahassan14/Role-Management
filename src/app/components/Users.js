@@ -89,6 +89,8 @@ export default function Users() {
 
   const [viewMode, setViewMode] = useState("list"); // "list" | "card"
   const isMobile = useIsMobile();
+  const isEditing = !!selectedUser;
+const isLoading = false;
 
   function parseJwt(token) {
     try {
