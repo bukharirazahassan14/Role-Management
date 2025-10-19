@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+
 import {
   Glasses,
   Plus,
@@ -89,9 +90,6 @@ export default function Users() {
 
   const [viewMode, setViewMode] = useState("list"); // "list" | "card"
   const isMobile = useIsMobile();
-  const isEditing = !!selectedUser;
-const isLoading = false;
-
   function parseJwt(token) {
     try {
       const base64Url = token.split(".")[1];
@@ -304,13 +302,29 @@ const isLoading = false;
     router.push(`/main/UserProfile?userID=${user.id}`);
   };
 
-  if (loading) return <div className="p-8">Loading users...</div>;
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <div className="flex space-x-2">
+          <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"></div>
+          <div
+            className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
+            style={{ animationDelay: "0.2s" }}
+          ></div>
+          <div
+            className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
+            style={{ animationDelay: "0.4s" }}
+          ></div>
+        </div>
+        <p className="text-indigo-600 text-lg font-medium animate-pulse">
+          Fetching users...
+        </p>
+      </div>
+    );
   if (!users.length) return <div className="p-8">No users found.</div>;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    console.log("📌 Submitting User Data:", userFormData);
     const formData = new FormData(e.target);
 
     const userData = {
@@ -328,18 +342,17 @@ const isLoading = false;
       medicalCondition: formData.get("medicalCondition"),
       jd: formData.get("jd"),
       exp: formData.get("exp"),
+      joiningDate: formData.get("joiningDate"),
       isActive: formData.get("isActive") !== null,
     };
 
-    console.log("📌 Submitting User Data:", userData);
-
     try {
       const res = await fetch(
-        userFormData.id ? `/api/users/${userFormData.id}` : "/api/users",
+        selectedUser ? `/api/users/${userFormData.id}` : "/api/users",
         {
-          method: selectedUser ? "PUT" : "POST", // ✅ PUT if updating, POST if creating
-          body: JSON.stringify(userData),
+          method: selectedUser ? "PUT" : "POST", // ✅ PUT if editing, POST if adding
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(userData),
         }
       );
 
@@ -348,7 +361,7 @@ const isLoading = false;
           selectedUser ? "Failed to update user" : "Failed to create user"
         );
       }
-
+      setSelectedUser(null);
       // ✅ Success message
       setDrawerOpen(false);
       setMessage(
@@ -364,7 +377,6 @@ const isLoading = false;
 
       // ✅ Reset form fields
       e.target.reset();
-      setSelectedUser(null);
     } catch (err) {
       console.error("❌ Error saving user:", err);
       setMessage(
@@ -457,36 +469,34 @@ const isLoading = false;
 
       {/* ✅ Right Drawer (Modern + Complete) */}
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:w-[28rem] md:w-[34rem] bg-white/90 backdrop-blur-xl shadow-2xl transform transition-transform duration-500 ease-in-out z-50 rounded-l-2xl ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[32rem] md:w-[38rem] bg-white/80 backdrop-blur-2xl border-l border-gray-200/40 shadow-2xl transform transition-transform duration-500 ease-in-out z-50 rounded-l-3xl ${
           drawerOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-indigo-900 text-white rounded-tl-2xl">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="text-xl">{selectedUser ? "✏️" : "➕"}</span>
-            {selectedUser ? "Edit User" : "Add New User"}
+        <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-indigo-700 via-indigo-800 to-indigo-900 text-white rounded-tl-3xl shadow-lg">
+          <h2 className="text-xl font-semibold tracking-wide flex items-center gap-2">
+            <span className="text-2xl">{selectedUser ? "✏️" : "➕"}</span>
+            {selectedUser ? "Edit User Profile" : "Add New User"}
           </h2>
           <button
             onClick={() => {
               setDrawerOpen(false);
               setSelectedUser(null);
             }}
-            className="hover:bg-white/20 p-2 rounded-full transition"
+            className="hover:bg-white/20 p-2 rounded-full transition-all duration-300"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto h-[calc(100%-70px)]">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* First & Last Name */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="p-7 overflow-y-auto h-[calc(100%-72px)] scrollbar-thin scrollbar-thumb-indigo-300/70 scrollbar-track-transparent">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* 🧍 First & Last Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  First Name
-                </label>
+                <label className="form-label">First Name</label>
                 <input
                   id="firstName"
                   name="firstName"
@@ -494,13 +504,11 @@ const isLoading = false;
                   required
                   maxLength={50}
                   defaultValue={selectedUser?.firstName || ""}
-                  className="form-input"
+                  className="form-input-modern"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Last Name
-                </label>
+                <label className="form-label">Last Name</label>
                 <input
                   id="lastName"
                   name="lastName"
@@ -508,16 +516,14 @@ const isLoading = false;
                   required
                   maxLength={50}
                   defaultValue={selectedUser?.lastName || ""}
-                  className="form-input"
+                  className="form-input-modern"
                 />
               </div>
             </div>
 
-            {/* Emails */}
+            {/* 📧 Emails */}
             <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Primary Email
-              </label>
+              <label className="form-label">Primary Email</label>
               <input
                 id="primaryEmail"
                 name="primaryEmail"
@@ -525,119 +531,103 @@ const isLoading = false;
                 required
                 maxLength={100}
                 defaultValue={selectedUser?.primaryEmail || ""}
-                className="form-input"
+                className="form-input-modern"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Secondary Email
-              </label>
+              <label className="form-label">Secondary Email</label>
               <input
                 id="secondaryEmail"
                 name="secondaryEmail"
                 type="email"
                 maxLength={100}
                 defaultValue={selectedUser?.secondaryEmail || ""}
-                className="form-input"
+                className="form-input-modern"
               />
             </div>
 
-            {/* Password */}
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-600">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  maxLength={128}
-                  className="form-input"
-                  placeholder="••••••••"
-                />
-              </div>
+            {/* 🔑 Password */}
+            <div>
+              <label className="form-label">Password</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                maxLength={128}
+                className="form-input-modern"
+                placeholder="••••••••"
+              />
             </div>
 
-            {/* Father Name */}
+            {/* 👨 Father Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Father Name
-              </label>
+              <label className="form-label">Father Name</label>
               <input
                 id="fatherName"
                 name="fatherName"
                 type="text"
                 maxLength={100}
                 defaultValue={selectedUser?.fatherName || ""}
-                className="form-input"
+                className="form-input-modern"
               />
             </div>
 
-            {/* Phone & CNIC */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* ☎️ Phone & CNIC */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Phone
-                </label>
+                <label className="form-label">Phone</label>
                 <input
                   id="phone"
                   name="phone"
                   type="text"
                   maxLength={15}
                   defaultValue={selectedUser?.phone || ""}
-                  className="form-input"
+                  className="form-input-modern"
                   placeholder="03XXXXXXXXX"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  CNIC
-                </label>
+                <label className="form-label">CNIC</label>
                 <input
                   id="cnic"
                   name="cnic"
                   type="text"
                   maxLength={15}
                   defaultValue={selectedUser?.cnic || ""}
-                  className="form-input"
+                  className="form-input-modern"
                   placeholder="XXXXX-XXXXXXX-X"
                 />
               </div>
             </div>
 
-            {/* Emergency Contact */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* 🚨 Emergency Contact */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Emergency Contact
-                </label>
+                <label className="form-label">Emergency Contact</label>
                 <input
                   id="emergencyContact"
                   name="emergencyContact"
                   type="text"
                   maxLength={15}
                   defaultValue={selectedUser?.emergencyContact || ""}
-                  className="form-input"
+                  className="form-input-modern"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Emergency Relation
-                </label>
+                <label className="form-label">Emergency Relation</label>
                 <input
                   id="emergencyRelation"
                   name="emergencyRelation"
                   type="text"
                   maxLength={50}
                   defaultValue={selectedUser?.emergencyRelation || ""}
-                  className="form-input"
+                  className="form-input-modern"
                   placeholder="Brother, Sister, etc."
                 />
               </div>
             </div>
 
-            {/* Role */}
+            {/* 🏷️ Role */}
             <div>
               <label className="form-label">Role</label>
               <select
@@ -647,7 +637,7 @@ const isLoading = false;
                 onChange={(e) =>
                   setUserFormData((prev) => ({ ...prev, role: e.target.value }))
                 }
-                className="form-input"
+                className="form-input-modern"
                 disabled={
                   roles.find(
                     (r) =>
@@ -676,61 +666,72 @@ const isLoading = false;
               </select>
             </div>
 
-            {/* Medical Condition */}
+            {/* 📅 Joining Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Medical Condition
-              </label>
+              <label className="form-label">Joining Date</label>
+              <input
+                id="joiningDate"
+                name="joiningDate"
+                type="date"
+                required
+                defaultValue={
+                  selectedUser?.joiningDate
+                    ? new Date(selectedUser.joiningDate)
+                        .toISOString()
+                        .split("T")[0]
+                    : ""
+                }
+                className="form-input-modern"
+              />
+            </div>
+
+            {/* ❤️ Medical Condition */}
+            <div>
+              <label className="form-label">Medical Condition</label>
               <input
                 id="medicalCondition"
                 name="medicalCondition"
                 type="text"
                 maxLength={200}
                 defaultValue={selectedUser?.medicalCondition || ""}
-                className="form-input"
+                className="form-input-modern"
               />
             </div>
 
-            {/* Job Description */}
+            {/* 💼 Job Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Job Description
-              </label>
+              <label className="form-label">Job Description</label>
               <textarea
                 id="jd"
                 name="jd"
-                className="form-input min-h-24"
+                className="form-input-modern min-h-24"
                 placeholder="Responsibilities, duties, etc."
                 maxLength={1000}
                 defaultValue={selectedUser?.jd || ""}
               />
             </div>
 
-            {/* Experience */}
+            {/* 🧾 Experience */}
             <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Experience
-              </label>
+              <label className="form-label">Experience</label>
               <input
                 id="exp"
                 name="exp"
                 type="text"
                 maxLength={500}
                 defaultValue={selectedUser?.exp || ""}
-                className="form-input"
+                className="form-input-modern"
                 placeholder="e.g., 3 years"
               />
             </div>
 
-            {/* ✅ Active Toggle */}
-            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-3">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-700">
-                  Active
-                </span>
-                <span className="text-xs text-gray-500">
+            {/* 🟢 Active Toggle */}
+            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-2xl p-4">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Active</p>
+                <p className="text-xs text-gray-500">
                   User can log in when active.
-                </span>
+                </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -751,10 +752,10 @@ const isLoading = false;
               </label>
             </div>
 
-            {/* Submit */}
+            {/* 💾 Submit */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition mt-2"
+              className="w-full bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-700 hover:from-indigo-700 hover:to-indigo-900 text-white py-3.5 rounded-2xl font-semibold shadow-lg transition-transform hover:scale-[1.02]"
             >
               💾 {selectedUser ? "Update User" : "Save User"}
             </button>
@@ -826,7 +827,9 @@ const isLoading = false;
                   <th className="px-6 py-4 text-left font-semibold">Name</th>
                   <th className="px-6 py-4 text-left font-semibold">Email</th>
                   <th className="px-6 py-4 text-left font-semibold">Role</th>
-                  <th className="px-6 py-4 text-left font-semibold">Created</th>
+                  <th className="px-6 py-4 text-left font-semibold">
+                    Joining Date
+                  </th>
                   <th className="px-6 py-4 text-center font-semibold">
                     Active
                   </th>
@@ -941,11 +944,21 @@ const isLoading = false;
                           {user.role?.description || "-"}
                         </td>
                         <td className="px-6 py-5 text-gray-500 text-sm">
-                          {user.createdAt
-                            ? new Date(user.createdAt).toLocaleDateString()
+                          {user.joiningDate
+                            ? (() => {
+                                const date = new Date(user.joiningDate);
+                                const day = date
+                                  .getDate()
+                                  .toString()
+                                  .padStart(2, "0");
+                                const month = date.toLocaleString("en-US", {
+                                  month: "short",
+                                });
+                                const year = date.getFullYear();
+                                return `${day}/${month}/${year}`;
+                              })()
                             : "-"}
                         </td>
-
                         {/* Active toggle */}
                         <td className="px-6 py-5 text-center">
                           <div className="flex justify-center">

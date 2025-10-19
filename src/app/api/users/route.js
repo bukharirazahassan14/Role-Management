@@ -22,7 +22,7 @@ export async function GET(req) {
             description: u.role.description || null, // ✅ include role description
           }
         : null,
-      createdAt: u.created_at,
+      joiningDate: u.joiningDate,
       isActive: u.isActive,
     }));
 
@@ -64,6 +64,7 @@ export async function POST(req) {
       medicalCondition: body.medicalCondition,
       jd: body.jd,
       exp: body.exp,
+      joiningDate: body.joiningDate,
       isActive: body.isActive,
     });
 

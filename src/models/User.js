@@ -48,7 +48,7 @@ const UserSchema = new mongoose.Schema({
   cnic: { 
     type: String, 
     maxlength: 15 
-  }, // 9: CNIC (13 digits typically)
+  }, // 9: CNIC
 
   role: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -56,20 +56,25 @@ const UserSchema = new mongoose.Schema({
     required: true 
   }, // 10: Role Reference
 
+  joiningDate: { 
+    type: Date, 
+    required: true 
+  }, // 11: Joining Date
+
   medicalCondition: { 
     type: String, 
     maxlength: 200 
-  }, // 11: Medical Condition
+  }, // 12: Medical Condition
 
   jd: { 
     type: String, 
     maxlength: 1000 
-  }, // 12: JD (Job Description)
+  }, // 13: Job Description
 
   exp: { 
     type: String, 
     maxlength: 500 
-  }, // 13: Experience
+  }, // 14: Experience
 
   password: { 
     type: String, 
