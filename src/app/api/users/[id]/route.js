@@ -59,6 +59,7 @@ export async function PUT(req, context) {
       medicalCondition: body.medicalCondition,
       jd: body.jd,
       exp: body.exp,
+      joiningDate: body.joiningDate,
       isActive: body.isActive,
     };
 

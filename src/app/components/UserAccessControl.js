@@ -17,7 +17,6 @@ import {
   ChevronUp,
 } from "lucide-react";
 
-// --- FIX: Mock Next.js Hooks for local testing ---
 const useSearchParams = () => {
   if (typeof window === "undefined") return new Map();
   return new URLSearchParams(window.location.search);
@@ -82,6 +81,7 @@ export default function UserAccessControl() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const roleID = searchParams.get("roleID");
   const roleName = searchParams.get("roleName");
   const roleDescription = searchParams.get("roleDescription");
   const profileDisplay = roleDescription || roleName || "Guest User";
@@ -92,12 +92,16 @@ export default function UserAccessControl() {
   const [loading, setLoading] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [isUsersCollapsed, setIsUsersCollapsed] = useState(true);
+
+  const [tabAccessLevels, setTabAccessLevels] = useState({});
   const [selectedAccessLevel, setSelectedAccessLevel] = useState(
     ACCESS_OPTIONS[0].level
   );
 
   const [userAccess, setUserAccess] = useState({});
   const [rolePermissionAccess, setRolePermissionAccess] = useState({});
+  const [profilePermissionAccess, setProfilePermissionAccess] = useState({});
+  const [reportPermissionAccess, setReportPermissionAccess] = useState({});
 
   const activeTab = useMemo(
     () => accessForms.find((item) => item.name === activeTabName),
@@ -163,6 +167,8 @@ export default function UserAccessControl() {
         });
         setUserAccess(initialAccess);
         setRolePermissionAccess(roleAccess);
+        setProfilePermissionAccess(roleAccess);
+        setReportPermissionAccess(roleAccess);
       } catch (error) {
         console.error(error);
         setUsersInRole([]);
@@ -177,14 +183,30 @@ export default function UserAccessControl() {
   // --- Conditions ---
   const shouldShowCheck =
     activeTabName === "Dashboard" && selectedAccessLevel === "Full Access";
-  const shouldShowRedX =
-    activeTabName === "Dashboard" && selectedAccessLevel === "No Access";
-  const shouldShowCheckboxes =
-    activeTabName === "Dashboard" && selectedAccessLevel === "Partial Access";
   const shouldShowRoleCheck =
     activeTabName === "Roles" && selectedAccessLevel === "Full Access";
+  const shouldShowProfileCheck =
+    activeTabName === "Profile" && selectedAccessLevel === "Full Access";
+  const shouldShowReportCheck =
+    activeTabName === "Report" && selectedAccessLevel === "Full Access";
+
+  const shouldShowCheckboxes =
+    activeTabName === "Dashboard" && selectedAccessLevel === "Partial Access";
   const shouldShowRolePermissions =
     activeTabName === "Roles" && selectedAccessLevel === "Partial Access";
+  const shouldShowProfilePermissions =
+    activeTabName === "Profile" && selectedAccessLevel === "Partial Access";
+  const shouldShowReportPermissions =
+    activeTabName === "Report" && selectedAccessLevel === "Partial Access";
+
+  const shouldShowRedX =
+    activeTabName === "Dashboard" && selectedAccessLevel === "No Access";
+  const shouldShowRedX_Role =
+    activeTabName === "Roles" && selectedAccessLevel === "No Access";
+  const shouldShowRedX_Profile =
+    activeTabName === "Profile" && selectedAccessLevel === "No Access";
+  const shouldShowRedX_Report =
+    activeTabName === "Report" && selectedAccessLevel === "No Access";
 
   const toggleCheckbox = (id) => {
     setUserAccess((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -200,12 +222,40 @@ export default function UserAccessControl() {
     }));
   };
 
+  const toggleProfilePermission = (userId, permission) => {
+    setProfilePermissionAccess((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        [permission]: !prev[userId][permission],
+      },
+    }));
+  };
+
+  const toggleReportPermission = (userId, permission) => {
+    setReportPermissionAccess((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        [permission]: !prev[userId][permission],
+      },
+    }));
+  };
+
   // --- Render User Access ---
   const renderUserAccess = (user) => {
-    if (shouldShowRedX)
+    if (shouldShowRedX) return <XCircle className="w-5 h-5 text-red-500" />;
+
+    if (shouldShowRedX_Role)
       return <XCircle className="w-5 h-5 text-red-500" />;
+    if (shouldShowRedX_Profile)
+      return <XCircle className="w-5 h-5 text-red-500" />;
+    if (shouldShowRedX_Report)
+      return <XCircle className="w-5 h-5 text-red-500" />;
+
     if (shouldShowCheck)
       return <CheckCircle className="w-5 h-5 text-green-500" />;
+
     if (shouldShowCheckboxes)
       return (
         <input
@@ -215,38 +265,164 @@ export default function UserAccessControl() {
           className="w-5 h-5 accent-indigo-600 cursor-pointer"
         />
       );
+
     if (shouldShowRoleCheck)
       return <CheckCircle className="w-5 h-5 text-green-500" />;
 
-    // ✅ Roles + Partial Access (modern, single-row: icon + checkbox)
+    if (shouldShowProfileCheck)
+      return <CheckCircle className="w-5 h-5 text-green-500" />;
+
+    if (shouldShowReportCheck)
+      return <CheckCircle className="w-5 h-5 text-green-500" />;
+
+    // ✅ Roles + Partial Access (Modern Master Design)
     if (shouldShowRolePermissions) {
       const perms = rolePermissionAccess[user.id] || {};
+
+      // Define the permissions
+      const permissionsData = [
+        { key: "view", Icon: Eye, color: "text-blue-500", label: "View" },
+        { key: "edit", Icon: Pencil, color: "text-yellow-600", label: "Edit" },
+        { key: "add", Icon: Plus, color: "text-green-600", label: "Add" },
+        { key: "delete", Icon: Trash2, color: "text-red-600", label: "Delete" },
+      ];
+
       return (
-        <div className="flex items-center gap-20 bg-gray-50 px-5 py-2 rounded-xl border border-gray-200 shadow-sm">
-          {[
-            { key: "view", Icon: Eye, color: "text-blue-500" },
-            { key: "edit", Icon: Pencil, color: "text-yellow-500" },
-            { key: "add", Icon: Plus, color: "text-green-500" },
-            { key: "delete", Icon: Trash2, color: "text-red-500" },
-          ].map(({ key, Icon, color }) => (
-            <div
-              key={key}
-              className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform"
-            >
-              <Icon className={`w-4 h-4 ${color}`} />
-              <input
-                type="checkbox"
-                checked={perms[key] || false}
-                onChange={() => toggleRolePermission(user.id, key)}
-                className="w-4 h-4 accent-indigo-600"
-              />
-            </div>
-          ))}
+        // Minimalist Container: No background, no border. Focus on a tight row (px-4 py-2)
+        <div className="flex items-center gap-2 p-2">
+          {permissionsData.map(({ key, Icon, color, label }) => {
+            const isActive = perms[key] || false;
+
+            return (
+              <button
+                key={key}
+                onClick={() => toggleRolePermission(user.id, key)}
+                title={`${label} permission`}
+                // Master Design Toggle Styling:
+                className={`
+              p-2 rounded-lg transition-all duration-150 ease-in-out
+              ${
+                isActive
+                  ? // Active State: Solid background, white icon for high contrast
+                    `bg-indigo-600 shadow-md text-white`
+                  : // Inactive State: Subtle background, muted icon
+                    `bg-gray-100 hover:bg-gray-200 text-gray-500`
+              }
+              flex items-center justify-center w-8 h-8 flex-shrink-0
+            `}
+              >
+                <Icon className="w-5 h-5" />
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ✅ Profile + Partial Access (Modern Master Design)
+    if (shouldShowProfilePermissions) {
+      const perms = profilePermissionAccess[user.id] || {};
+
+      // Define the permissions
+      const permissionsData = [
+        { key: "view", Icon: Eye, color: "text-blue-500", label: "View" },
+        { key: "edit", Icon: Pencil, color: "text-yellow-600", label: "Edit" },
+        { key: "add", Icon: Plus, color: "text-green-600", label: "Add" },
+        { key: "delete", Icon: Trash2, color: "text-red-600", label: "Delete" },
+      ];
+
+      return (
+        // Minimalist Container: No background, no border. Focus on a tight row (px-4 py-2)
+        <div className="flex items-center gap-2 p-2">
+          {permissionsData.map(({ key, Icon, color, label }) => {
+            const isActive = perms[key] || false;
+
+            return (
+              <button
+                key={key}
+                onClick={() => toggleProfilePermission(user.id, key)}
+                title={`${label} permission`}
+                // Master Design Toggle Styling:
+                className={`
+              p-2 rounded-lg transition-all duration-150 ease-in-out
+              ${
+                isActive
+                  ? // Active State: Solid background, white icon for high contrast
+                    `bg-indigo-600 shadow-md text-white`
+                  : // Inactive State: Subtle background, muted icon
+                    `bg-gray-100 hover:bg-gray-200 text-gray-500`
+              }
+              flex items-center justify-center w-9 h-9 flex-shrink-0
+            `}
+              >
+                <Icon className="w-5 h-5" />
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ✅ Report + Partial Access (Modern Master Design)
+    if (shouldShowReportPermissions) {
+      const perms = reportPermissionAccess[user.id] || {};
+
+      // Define the permissions
+      const permissionsData = [
+        { key: "view", Icon: Eye, color: "text-blue-500", label: "View" },
+        { key: "edit", Icon: Pencil, color: "text-yellow-600", label: "Edit" },
+        { key: "add", Icon: Plus, color: "text-green-600", label: "Add" },
+        { key: "delete", Icon: Trash2, color: "text-red-600", label: "Delete" },
+      ];
+
+      return (
+        // Minimalist Container: No background, no border. Focus on a tight row (px-4 py-2)
+        <div className="flex items-center gap-2 p-2">
+          {permissionsData.map(({ key, Icon, color, label }) => {
+            const isActive = perms[key] || false;
+
+            return (
+              <button
+                key={key}
+                onClick={() => toggleReportPermission(user.id, key)}
+                title={`${label} permission`}
+                // Master Design Toggle Styling:
+                className={`
+              p-2 rounded-lg transition-all duration-150 ease-in-out
+              ${
+                isActive
+                  ? // Active State: Solid background, white icon for high contrast
+                    `bg-indigo-600 shadow-md text-white`
+                  : // Inactive State: Subtle background, muted icon
+                    `bg-gray-100 hover:bg-gray-200 text-gray-500`
+              }
+              flex items-center justify-center w-9 h-9 flex-shrink-0
+            `}
+              >
+                <Icon className="w-5 h-5" />
+              </button>
+            );
+          })}
         </div>
       );
     }
 
     return null;
+  };
+
+  const handleUpdateAccess = async (userId) => {
+    try {
+      console.log("Updating access for user:", userId);
+      // You can integrate your PUT /api/UserAccessControl logic here
+      // Example:
+      // await fetch(`/api/UserAccessControl/${userId}`, {
+      //   method: "PUT",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ permissions: ... }),
+      // });
+    } catch (error) {
+      console.error("Failed to update access:", error);
+    }
   };
 
   return (
@@ -288,7 +464,10 @@ export default function UserAccessControl() {
                     key={item._id}
                     onClick={() => {
                       setActiveTabName(item.name);
-                      setSelectedAccessLevel(ACCESS_OPTIONS[0].level);
+                      // restore previously selected access for this tab (default = Full Access)
+                      setSelectedAccessLevel(
+                        tabAccessLevels[item.name] || ACCESS_OPTIONS[0].level
+                      );
                     }}
                     className={`relative px-5 py-2 text-sm sm:text-base rounded-lg font-semibold transition-all duration-300 flex items-center space-x-2 
                       ${
@@ -313,7 +492,13 @@ export default function UserAccessControl() {
                     return (
                       <button
                         key={option.level}
-                        onClick={() => setSelectedAccessLevel(option.level)}
+                        onClick={() => {
+                          setSelectedAccessLevel(option.level);
+                          setTabAccessLevels((prev) => ({
+                            ...prev,
+                            [activeTabName]: option.level, // remember this tab’s chosen level
+                          }));
+                        }}
                         className={`relative p-3 rounded-xl border-2 text-center transition-all duration-300 shadow-md 
                           ${
                             isActive
@@ -392,23 +577,31 @@ export default function UserAccessControl() {
                             key={user.id}
                             className="flex justify-between items-center px-4 py-2 bg-white border border-gray-100 rounded-lg hover:shadow-md transition-all"
                           >
-                            <span className="font-medium text-gray-800 text-sm">
-                              {user.fullName}
-                            </span>
-                            {renderUserAccess(user)}
+                            {/* 👤 User Info */}
+                            <div className="flex items-center gap-3">
+                              <span className="font-sans text-lg font-semibold text-gray-700 tracking-tight">
+                                {user.fullName}
+                              </span>
+                            </div>
+
+                            {/* 🔒 Access Controls */}
+                            <div className="flex items-center gap-4">
+                              {renderUserAccess(user)}
+
+                              {/* 🆕 Individual Update Button */}
+                              <button
+                                onClick={() => handleUpdateAccess(user.id)}
+                                className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:from-indigo-700 hover:to-purple-700 transition duration-200 transform hover:scale-[1.02] active:scale-[0.97]"
+                              >
+                                Update
+                              </button>
+                            </div>
                           </li>
                         ))}
                       </ul>
                     )}
                   </div>
                 </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="pt-5 text-center">
-                <button className="w-full md:w-auto px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-md hover:from-indigo-700 hover:to-purple-700 transition duration-300 transform hover:scale-[1.01] active:scale-[0.97]">
-                  Update Access
-                </button>
               </div>
             </>
           )}

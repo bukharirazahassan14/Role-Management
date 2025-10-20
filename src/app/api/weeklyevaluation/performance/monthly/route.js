@@ -50,7 +50,7 @@ export async function GET(req) {
       matchCondition.weekNumber = { $in: weeks };
     }
 
-    // ✅ Determine latest month end (for user created_at filter)
+    // ✅ Determine latest month end (for user joiningDate filter)
     const lastMonthEnd = monthDateRanges[monthDateRanges.length - 1].end;
 
     const results = await User.aggregate([
@@ -70,7 +70,7 @@ export async function GET(req) {
         $match: {
           "roleInfo.name": { $in: ["HR", "Staff", "Temp Staff"] },
           // ✅ Always take the latest selected month’s end date
-          created_at: {
+          joiningDate: {
             $lte: new Date(
               Math.max(...monthDateRanges.map((r) => r.end.getTime()))
             ),

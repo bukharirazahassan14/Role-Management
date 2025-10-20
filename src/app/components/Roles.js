@@ -143,6 +143,7 @@ export default function Roles() {
 
           const handleClick = () => {
             const query = new URLSearchParams({
+              roleID: role._id,
               roleName: role.name,
               roleDescription: role.description,
             }).toString();

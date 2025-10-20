@@ -47,7 +47,6 @@ export default function EmployeeWeeklyEvaluation() {
   const [takenWeeks, setTakenWeeks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
   //Search>>>>>>>>>>>>>>>>>>>>>>>>>
   const [SerSelectedYear, setSerSelectedYear] = useState(
     new Date().getFullYear()
@@ -101,7 +100,7 @@ export default function EmployeeWeeklyEvaluation() {
   // 🔄 Fetch users when drawer opens
   useEffect(() => {
     if (!drawerOpen) return;
-    
+
     const fetchUsers = async () => {
       try {
         const res = await fetch("/api/users/basic"); // replace with your API
@@ -234,26 +233,25 @@ export default function EmployeeWeeklyEvaluation() {
     fetchEvaluationPrograms();
   }, []);
 
-if (loading)
-  return (
-    <div className="flex flex-col items-center justify-center h-96 space-y-4">
-      <div className="flex space-x-2">
-        <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"></div>
-        <div
-          className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
-          style={{ animationDelay: "0.2s" }}
-        ></div>
-        <div
-          className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
-          style={{ animationDelay: "0.4s" }}
-        ></div>
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <div className="flex space-x-2">
+          <div className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"></div>
+          <div
+            className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
+            style={{ animationDelay: "0.2s" }}
+          ></div>
+          <div
+            className="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"
+            style={{ animationDelay: "0.4s" }}
+          ></div>
+        </div>
+        <p className="text-indigo-600 text-lg font-medium animate-pulse">
+          Fetching evaluations...
+        </p>
       </div>
-      <p className="text-indigo-600 text-lg font-medium animate-pulse">
-        Fetching evaluations...
-      </p>
-    </div>
-  );
-
+    );
 
   const formatDatePKT = (date) => {
     return date.toLocaleDateString("en-CA", {
@@ -386,7 +384,6 @@ if (loading)
 
   const handleSubmit = async (payload) => {
     try {
-       
       setIsSubmitting(true);
 
       if (!payload.userId) {
@@ -447,7 +444,7 @@ if (loading)
       setMessage("❌ Failed to submit evaluation");
       setSuccess(false);
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
       setTimeout(() => setMessage(""), 3000);
     }
   };
@@ -897,7 +894,7 @@ if (loading)
             {
               <button
                 type="submit"
-                 disabled={isSubmitting}
+                disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-indigo-900 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white py-3 rounded-xl font-semibold shadow-lg transition"
               >
                 💾 {editingEvaluation ? "Update Record" : "Save Record"}
