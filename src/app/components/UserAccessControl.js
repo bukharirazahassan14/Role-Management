@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+
 import {
   LayoutGrid,
   Loader2,
@@ -20,31 +22,6 @@ import {
 const useSearchParams = () => {
   if (typeof window === "undefined") return new Map();
   return new URLSearchParams(window.location.search);
-};
-
-const useRouter = () => ({
-  push: (path) => {
-    if (typeof window !== "undefined") {
-      console.log(`Simulating navigation to: ${path}`);
-    }
-  },
-});
-
-// --- JWT Parser ---
-const parseJwt = (token) => {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
 };
 
 // --- Access Option Data ---
@@ -108,15 +85,36 @@ export default function UserAccessControl() {
     [accessForms, activeTabName]
   );
 
+  function parseJwt(token) {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      return JSON.parse(jsonPayload);
+    } catch (err) {
+      return null;
+    }
+  }
+
   // --- Auth Check ---
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
     const payload = parseJwt(token);
     const now = Math.floor(Date.now() / 1000);
+
     if (!payload || payload.exp < now) {
       localStorage.removeItem("token");
-      console.warn("Token expired, redirecting to login...");
+      router.replace("/login");
     }
   }, [router]);
 
@@ -152,6 +150,7 @@ export default function UserAccessControl() {
         );
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
+        
         setUsersInRole(data);
 
         const initialAccess = {};
@@ -244,15 +243,14 @@ export default function UserAccessControl() {
 
   // --- Render User Access ---
   const renderUserAccess = (user) => {
-    if (shouldShowRedX) return <XCircle className="w-5 h-5 text-red-500" />;
-
+    if (shouldShowRedX) 
+       return <XCircle className="w-5 h-5 text-red-500" />;
     if (shouldShowRedX_Role)
       return <XCircle className="w-5 h-5 text-red-500" />;
     if (shouldShowRedX_Profile)
       return <XCircle className="w-5 h-5 text-red-500" />;
     if (shouldShowRedX_Report)
       return <XCircle className="w-5 h-5 text-red-500" />;
-
     if (shouldShowCheck)
       return <CheckCircle className="w-5 h-5 text-green-500" />;
 
@@ -352,7 +350,7 @@ export default function UserAccessControl() {
                   : // Inactive State: Subtle background, muted icon
                     `bg-gray-100 hover:bg-gray-200 text-gray-500`
               }
-              flex items-center justify-center w-9 h-9 flex-shrink-0
+              flex items-center justify-center w-8 h-8 flex-shrink-0
             `}
               >
                 <Icon className="w-5 h-5" />
@@ -396,7 +394,7 @@ export default function UserAccessControl() {
                   : // Inactive State: Subtle background, muted icon
                     `bg-gray-100 hover:bg-gray-200 text-gray-500`
               }
-              flex items-center justify-center w-9 h-9 flex-shrink-0
+              flex items-center justify-center w-8 h-8 flex-shrink-0
             `}
               >
                 <Icon className="w-5 h-5" />

@@ -698,17 +698,54 @@ export default function Users() {
               />
             </div>
 
-            {/* 💼 Job Description */}
+            {/* 💼 Software Designation List */}
             <div>
-              <label className="form-label">Job Description</label>
-              <textarea
+              <label className="form-label">Designation</label>
+              <select
                 id="jd"
                 name="jd"
-                className="form-input-modern min-h-24"
-                placeholder="Responsibilities, duties, etc."
-                maxLength={1000}
-                defaultValue={selectedUser?.jd || ""}
-              />
+                value={userFormData.jd || ""}
+                onChange={(e) =>
+                  setUserFormData((prev) => ({ ...prev, jd: e.target.value }))
+                }
+                className="form-input-modern"
+                style={{
+                  maxHeight: "180px", // limits dropdown height
+                  overflowY: "auto", // makes it scrollable
+                }}
+              >
+                <option value="Software Developer">Software Developer</option>
+                <option value="Associate Software Developer">
+                  Associate Software Developer
+                </option>
+                <option value="Full Stack Developer">
+                  Full Stack Developer
+                </option>
+                <option value="Full Stack Developer Intern">
+                  Full Stack Developer Intern
+                </option>
+                <option value="Senior Software Engineer">
+                  Senior Software Engineer
+                </option>
+                <option value="Software Quality Assurance">
+                  Software Quality Assurance (SQA)
+                </option>
+                <option value="Junior Full Stack Developer">
+                  Junior Full Stack Developer
+                </option>
+                <option value="ASO">
+                  ASO (App Store Optimization Specialist)
+                </option>
+                <option value="Unity Developer">Unity Developer</option>
+                <option value="HR Manager">HR Manager</option>
+                <option value="HR Executive">HR Executive</option>
+                <option value="HR Officer">HR Officer</option>
+                <option value="Vision & Strategy">Vision & Strategy</option>
+                <option value="Vice President">Vice President</option>
+                <option value="Chief Technology Officer">
+                  Chief Technology Officer
+                </option>
+              </select>
             </div>
 
             {/* 🧾 Experience */}
@@ -931,7 +968,7 @@ export default function Users() {
                                 {user.fullName || "-"}
                               </div>
                               <div className="text-gray-500 text-xs font-medium mt-1">
-                                {user.role?.description || "-"}
+                                {user.jd || "-"}
                               </div>
                             </div>
                           </div>
@@ -1094,7 +1131,7 @@ export default function Users() {
                       </h3>
                       {/* ✅ Role Description Badge (replaces role name) */}
                       <p className="text-sm font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                        {user.role?.description || "No Description"}
+                        {user.jd || "Designation"}
                       </p>
                     </div>
                   </div>

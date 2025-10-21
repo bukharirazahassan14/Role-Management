@@ -112,7 +112,7 @@ const TeamMemberListRow = ({ member, index }) => {
           className="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full 
                          bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm min-w-[60px] justify-center"
         >
-          {member.role}
+          {member.jd}
         </span>
 
         {/* Navigation Icon - Softer indigo */}
@@ -175,6 +175,7 @@ export default function Dashboard() {
           id: u.id,
           name: u.fullName,
           email: u.email,
+          jd: u.jd,
           role: u.role ? u.role.description : "No Role",
         }));
 
@@ -450,20 +451,16 @@ export default function Dashboard() {
             <span>My Team ({teamMembers.length})</span>
           </h3>
 
+          {/* ✅ Keep max height, remove slice → scrollable list */}
           <div className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-1">
             {teamMembers.length > 0 ? (
-              teamMembers.slice(0, 5).map(
-                (
-                  member,
-                  index // Show only the top 5 for a compact overview
-                ) => (
-                  <TeamMemberListRow
-                    key={member.id}
-                    member={member}
-                    index={index}
-                  />
-                )
-              )
+              teamMembers.map((member, index) => (
+                <TeamMemberListRow
+                  key={member.id}
+                  member={member}
+                  index={index}
+                />
+              ))
             ) : (
               <div className="bg-gray-50 rounded-xl p-5 flex items-center justify-center border border-gray-200">
                 <p className="text-sm font-medium text-gray-500 text-center py-5">

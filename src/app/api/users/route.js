@@ -23,6 +23,7 @@ export async function GET(req) {
           }
         : null,
       joiningDate: u.joiningDate,
+      jd: u.jd,
       isActive: u.isActive,
     }));
 

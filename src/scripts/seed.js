@@ -45,7 +45,7 @@ async function seed() {
       role: roleMap["Super Admin"],
       joiningDate: new Date("2022-01-10"), // ✅ Joining Date (ISO format recommended)
       medicalCondition: "None", // optional field
-      jd: "Oversee all organizational operations and ensure strategic alignment across departments.",
+      jd: "Vision & Strategy",
       exp: "10 years of administrative and leadership experience.",
       password: await bcrypt.hash("123456", 10),
       isActive: true,
