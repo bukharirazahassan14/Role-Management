@@ -48,6 +48,7 @@ export async function GET(req) {
           exp: 1,
           isActive: 1,
           created_at: 1,
+          joiningDate: 1,
           role: {
             _id: "$roleDetails._id",
             name: "$roleDetails.name",

@@ -424,7 +424,7 @@ export default function Dashboard() {
         }));
 
         setEvaluationPrograms(formattedData);
-        console.log("✅ Loaded Programs:", formattedData);
+        
       } catch (err) {
         console.error("❌ Error fetching programs:", err);
       }

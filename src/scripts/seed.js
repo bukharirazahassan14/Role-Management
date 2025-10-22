@@ -24,7 +24,7 @@ async function seed() {
     { name: "Management", description: "Management" },
     { name: "HR", description: "HR" },
     { name: "Staff", description: "Team" },
-    { name: "Temp Staff", description: "Associate" },
+    { name: "Temp Staff", description: "Temp Team" },
   ]);
 
   const roleMap = {};

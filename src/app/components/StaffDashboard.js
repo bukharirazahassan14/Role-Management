@@ -212,7 +212,7 @@ const ProfileCard = ({ user }) => {
             <Briefcase className="h-5 w-5 text-purple-600" />
           </div>
           <p className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-500">
-            {user.role}
+            {user.jd}
           </p>
         </div>
       </div>
@@ -632,6 +632,7 @@ export default function StaffDashboard() {
                 name: staffData.fullName,
                 email: staffData.primaryEmail,
                 role: staffData.roleDesc,
+                jd: staffData.jd,
               }}
             />
             {/* Stats */}

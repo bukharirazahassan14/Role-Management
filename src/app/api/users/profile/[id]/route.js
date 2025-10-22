@@ -29,6 +29,7 @@ export async function GET(req, context) {
             description: u.role.description || null, // ✅ include description
           }
         : null,
+      jd: u.jd,  
       createdAt: u.created_at,
       isActive: u.isActive,
     };

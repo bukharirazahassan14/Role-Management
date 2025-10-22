@@ -639,10 +639,11 @@ export default function Users() {
                 }
                 className="form-input-modern"
                 disabled={
+                  currentUserRole === "Staff" ||  currentUserRole === "Temp Staff" || // 👈 disable if logged-in user is Staff
                   roles.find(
                     (r) =>
                       r._id === (userFormData.role?._id || userFormData.role)
-                  )?.name === "Super Admin"
+                  )?.name === "Super Admin" // 👈 also keep your Super Admin protection
                 }
               >
                 {roles
@@ -673,6 +674,7 @@ export default function Users() {
                 id="joiningDate"
                 name="joiningDate"
                 type="date"
+                disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
                 required
                 defaultValue={
                   selectedUser?.joiningDate
@@ -704,6 +706,7 @@ export default function Users() {
               <select
                 id="jd"
                 name="jd"
+                disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
                 value={userFormData.jd || ""}
                 onChange={(e) =>
                   setUserFormData((prev) => ({ ...prev, jd: e.target.value }))
@@ -755,6 +758,7 @@ export default function Users() {
                 id="exp"
                 name="exp"
                 type="text"
+               disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
                 maxLength={500}
                 defaultValue={selectedUser?.exp || ""}
                 className="form-input-modern"
@@ -775,6 +779,7 @@ export default function Users() {
                   type="checkbox"
                   id="isActive"
                   name="isActive"
+                  disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
                   checked={!!userFormData.isActive}
                   onChange={(e) =>
                     setUserFormData({
@@ -1197,7 +1202,8 @@ export default function Users() {
                   {/* Edit Button (Role Restricted) */}
                   {(currentUserRole === "Super Admin" ||
                     currentUserRole === "HR" ||
-                    currentUserRole === "Management") && (
+                    currentUserRole === "Management" ||
+                    currentUserRole === "Staff") && (
                     <button
                       onClick={() => handleEditUser(user)}
                       className="p-2 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition shadow-lg"

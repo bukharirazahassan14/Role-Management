@@ -289,6 +289,7 @@ export async function GET(req) {
           _id: 0,
           primaryEmail: 1,
           fullName: { $concat: ["$firstName", " ", "$lastName"] },
+          jd: 1,
           roleName: "$roleInfo.name",
           roleDesc: "$roleInfo.description",
           currentWeekNumber: "$currentEvaluation.weekNumber",

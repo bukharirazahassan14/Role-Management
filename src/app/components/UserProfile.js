@@ -101,13 +101,13 @@ const MonthlyRatingPieChart = ({ monthlyRatings = [], selectedYear }) => {
       tooltip: {
         callbacks: {
           label: (ctx) => {
-            const month = monthlyRatings[ctx.dataIndex]?.month ?? '';
+            const month = monthlyRatings[ctx.dataIndex]?.month ?? "";
             const rating = monthlyRatings[ctx.dataIndex]?.rating ?? 0;
             // Always format rating to two decimal places
             return `${month}: ${rating.toFixed(2)}`;
-          }
-        }
-      }
+          },
+        },
+      },
     },
     cutout: "60%", // increase cutout for smaller pie
   };
@@ -226,7 +226,7 @@ export default function UserProfile({ searchParams }) {
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [monthlyRatings, setMonthlyRatings] = useState([]);
-  
+
   // ✅ Calculate Yearly Average Rating including all 12 months
   const yearAvgRating = useMemo(() => {
     if (!monthlyRatings || monthlyRatings.length === 0) return 0;
@@ -365,13 +365,13 @@ export default function UserProfile({ searchParams }) {
 
     return (
       <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
-        <div className="flex items-center justify-center mb-6 text-center pb-3 border-b border-gray-100"> {/* Subtle border for separation */}
+        <div className="flex items-center justify-center mb-6 text-center pb-3 border-b border-gray-100">
+          {" "}
+          {/* Subtle border for separation */}
           <Star className="w-6 h-6 mr-2 text-yellow-500 fill-yellow-400" />
-          <h2 className="text-xl font-bold text-gray-800">
-            Year AVG Rating
-          </h2>
+          <h2 className="text-xl font-bold text-gray-800">Year AVG Rating</h2>
         </div>
-        
+
         {/* Metric Display */}
         <div className="flex flex-col items-center">
           <div className="flex items-baseline gap-2">
@@ -406,60 +406,63 @@ export default function UserProfile({ searchParams }) {
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
       {/* Top Section */}
       <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
-  <div className="flex items-center space-x-6">
-    {/* ✅ User Image (with graceful fallback) */}
-    <div className="relative">
-      <Image
-        src={getUserImagePath(user._id)}
-        alt={`${user.firstName} ${user.lastName} Avatar`}
-        width={96}
-        height={96}
-        className="w-24 h-24 rounded-full object-cover border-4 border-indigo-200 shadow-md hover:scale-105 transition-transform duration-300"
-        onError={handleImageError}
-      />
-    </div>
+        <div className="flex items-center space-x-6">
+          {/* ✅ User Image (with graceful fallback) */}
+          <div className="relative">
+            <Image
+              src={getUserImagePath(user._id)}
+              alt={`${user.firstName} ${user.lastName} Avatar`}
+              width={96}
+              height={96}
+              className="w-24 h-24 rounded-full object-cover border-4 border-indigo-200 shadow-md hover:scale-105 transition-transform duration-300"
+              onError={handleImageError}
+            />
+          </div>
 
-    <div>
-      <h1 className="text-4xl font-extrabold text-gray-900">
-        {user.firstName} {user.lastName}
-      </h1>
-      <p className="mt-2 text-lg text-gray-600 flex items-center">
-        <Briefcase className="w-5 h-5 mr-2 text-indigo-500" />
-        <span className="font-semibold">{user.role?.description || "Role Not Defined"}</span>
-      </p>
-    </div>
-  </div>
+          <div>
+            <h1 className="text-4xl font-extrabold text-gray-900">
+              {user.firstName} {user.lastName}
+            </h1>
+            <p className="mt-2 text-lg text-gray-600 flex items-center">
+              <Briefcase className="w-5 h-5 mr-2 text-indigo-500" />
+              <span className="font-semibold">
+                {user.jd || "Desination Not Defined"}
+              </span>
+            </p>
+          </div>
+        </div>
 
-  <span
-    className={`px-4 py-1.5 rounded-full text-sm font-semibold tracking-wider shadow-md ${
-      user.isActive
-        ? "bg-green-50 text-green-700 border border-green-200"
-        : "bg-red-50 text-red-700 border border-red-200"
-    }`}
-  >
-    {user.isActive ? "ACTIVE" : "INACTIVE"}
-  </span>
-</div>
-
+        <span
+          className={`px-4 py-1.5 rounded-full text-sm font-semibold tracking-wider shadow-md ${
+            user.isActive
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
+          }`}
+        >
+          {user.isActive ? "ACTIVE" : "INACTIVE"}
+        </span>
+      </div>
 
       {/* Middle Info - Grouped and Cleaned */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Job Description Card */}
         <div className="bg-white rounded-xl shadow-md p-5 lg:col-span-2 border border-gray-100">
-          <div className="flex items-center mb-3 pb-2 border-b border-gray-100"> {/* Subtle border */}
+          <div className="flex items-center mb-3 pb-2 border-b border-gray-100">
+            {" "}
+            {/* Subtle border */}
             <FileText className="w-5 h-5 mr-2 text-indigo-500" />
-            <h2 className="text-lg font-bold text-gray-800">
-              Job Description
-            </h2>
+            <h2 className="text-lg font-bold text-gray-800">Role</h2>
           </div>
           <p className="text-gray-700 text-sm leading-relaxed">
-            {user.jd || "No job description provided."}
+            {user.role?.description || "No rule provided."}
           </p>
         </div>
-        
+
         {/* Emergency Contact Card */}
         <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-          <div className="flex items-center mb-3 pb-2 border-b border-gray-100"> {/* Subtle border */}
+          <div className="flex items-center mb-3 pb-2 border-b border-gray-100">
+            {" "}
+            {/* Subtle border */}
             <Tag className="w-5 h-5 mr-2 text-red-500" />
             <h2 className="text-lg font-bold text-gray-800">
               Emergency Contact
@@ -483,7 +486,9 @@ export default function UserProfile({ searchParams }) {
       {/* Primary Info & Files */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-          <div className="flex items-center mb-4 pb-2 border-b border-gray-100"> {/* Subtle border */}
+          <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
+            {" "}
+            {/* Subtle border */}
             <UserCheck className="w-6 h-6 mr-2 text-indigo-500" />
             <h2 className="text-xl font-bold text-gray-800">
               Primary Information
@@ -497,11 +502,7 @@ export default function UserProfile({ searchParams }) {
             />
             <InfoRow icon={Phone} label="Phone Number" value={user.phone} />
             <InfoRow icon={Shield} label="CNIC / ID" value={user.cnic} />
-            <InfoRow
-              icon={Clock}
-              label="Experience (Years)"
-              value={user.exp}
-            />
+            <InfoRow icon={Clock} label="Experience (Years)" value={user.exp} />
             <InfoRow
               icon={User}
               label="Father's Name"
@@ -510,7 +511,7 @@ export default function UserProfile({ searchParams }) {
             <InfoRow
               icon={Calendar}
               label="Date Joined"
-              value={new Date(user.created_at).toLocaleDateString("en-US", {
+              value={new Date(user.joiningDate).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "short",
                 day: "numeric",
@@ -520,14 +521,16 @@ export default function UserProfile({ searchParams }) {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-          <div className="flex items-center mb-4 pb-2 border-b border-gray-100"> {/* Subtle border */}
+          <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
+            {" "}
+            {/* Subtle border */}
             <Paperclip className="w-6 h-6 mr-2 text-indigo-500" />
-            <h2 className="text-xl font-bold text-gray-800">
-              Attached Files
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800">Attached Files</h2>
           </div>
           {files.length > 0 ? (
-            <ul className="space-y-3 max-h-72 overflow-y-auto pr-2"> {/* Added pr-2 for scrollbar spacing */}
+            <ul className="space-y-3 max-h-72 overflow-y-auto pr-2">
+              {" "}
+              {/* Added pr-2 for scrollbar spacing */}
               {files.map((file) => (
                 <li
                   key={file._id}
@@ -552,7 +555,7 @@ export default function UserProfile({ searchParams }) {
             </ul>
           ) : (
             <div className="flex items-center justify-center h-40 bg-gray-50 rounded-lg text-gray-500 text-sm">
-                No files attached.
+              No files attached.
             </div>
           )}
         </div>
@@ -562,7 +565,9 @@ export default function UserProfile({ searchParams }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Monthly AVG Rating Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6 relative flex flex-col border border-gray-100">
-          <div className="flex items-center justify-between gap-4 mb-4 z-10 relative pb-3 border-b border-gray-100"> {/* Subtle border */}
+          <div className="flex items-center justify-between gap-4 mb-4 z-10 relative pb-3 border-b border-gray-100">
+            {" "}
+            {/* Subtle border */}
             <div className="flex items-center">
               <h2 className="text-xl font-bold text-gray-800">
                 Monthly AVG Rating

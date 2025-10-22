@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -80,11 +80,6 @@ export default function UserAccessControl() {
   const [profilePermissionAccess, setProfilePermissionAccess] = useState({});
   const [reportPermissionAccess, setReportPermissionAccess] = useState({});
 
-  const activeTab = useMemo(
-    () => accessForms.find((item) => item.name === activeTabName),
-    [accessForms, activeTabName]
-  );
-
   function parseJwt(token) {
     try {
       const base64Url = token.split(".")[1];
@@ -125,6 +120,7 @@ export default function UserAccessControl() {
         const res = await fetch("/api/UserAccessControl");
         if (!res.ok) throw new Error("Failed to fetch access controls");
         const data = await res.json();
+        console.log("UserAccessControl", data);
         setAccessForms(data);
         if (data.length > 0) setActiveTabName(data[0].name);
       } catch (error) {
@@ -137,47 +133,108 @@ export default function UserAccessControl() {
     fetchAccessControls();
   }, []);
 
-  // --- Fetch Users By Role ---
-  useEffect(() => {
-    async function fetchUsersByRole() {
-      if (!roleName) return setUsersInRole([]);
-      setLoadingUsers(true);
-      try {
-        const res = await fetch(
-          `/api/UserAccessControl/UserByRoleAPI?roleName=${encodeURIComponent(
-            roleName
-          )}`
-        );
-        if (!res.ok) throw new Error("Failed to fetch users");
-        const data = await res.json();
-        
-        setUsersInRole(data);
+  // ✅ Reusable function to fetch data (so refresh can call it too)
+  const fetchUsersByRole = useCallback(async () => {
+    if (!roleID) return setUsersInRole([]);
+    setLoadingUsers(true);
 
-        const initialAccess = {};
-        const roleAccess = {};
-        data.forEach((u) => {
-          initialAccess[u.id] = true;
-          roleAccess[u.id] = {
-            view: true,
-            edit: false,
-            add: false,
-            delete: false,
-          };
+    try {
+      const res = await fetch(
+        `/api/UserAccessControl/UserByRoleAPI?roleID=${encodeURIComponent(
+          roleID
+        )}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const data = await res.json();
+
+      setUsersInRole(data);
+
+      // ✅ Initialize Access States
+      const initialAccess = {};
+      const roleAccess = {};
+      const profileAccess = {};
+      const reportAccess = {};
+
+      data.forEach((user) => {
+        user.forms.forEach((form) => {
+          const formName = form.formName;
+
+          // Full Access
+          if (form.fullAccess) {
+            initialAccess[user.userId] = true;
+
+            if (formName === "Roles")
+              roleAccess[user.userId] = {
+                view: true,
+                edit: true,
+                add: true,
+                delete: true,
+              };
+            if (formName === "Profile")
+              profileAccess[user.userId] = {
+                view: true,
+                edit: true,
+                add: true,
+                delete: true,
+              };
+            if (formName === "Report")
+              reportAccess[user.userId] = {
+                view: true,
+                edit: true,
+                add: true,
+                delete: true,
+              };
+          }
+
+          // Partial Access
+          else if (form.partialAccess?.enabled) {
+            const perms = form.partialAccess.permissions || {};
+
+            if (formName === "Dashboard")
+              initialAccess[user.userId] = perms.view || false;
+
+            if (formName === "Roles") roleAccess[user.userId] = { ...perms };
+            if (formName === "Profile")
+              profileAccess[user.userId] = { ...perms };
+            if (formName === "Report") reportAccess[user.userId] = { ...perms };
+          }
+
+          // No Access
+          else if (form.noAccess) {
+            if (formName === "Dashboard") initialAccess[user.userId] = false;
+
+            const noPerms = {
+              view: false,
+              edit: false,
+              add: false,
+              delete: false,
+            };
+
+            if (formName === "Roles") roleAccess[user.userId] = noPerms;
+            if (formName === "Profile") profileAccess[user.userId] = noPerms;
+            if (formName === "Report") reportAccess[user.userId] = noPerms;
+          }
         });
-        setUserAccess(initialAccess);
-        setRolePermissionAccess(roleAccess);
-        setProfilePermissionAccess(roleAccess);
-        setReportPermissionAccess(roleAccess);
-      } catch (error) {
-        console.error(error);
-        setUsersInRole([]);
-      } finally {
-        setLoadingUsers(false);
-      }
-    }
+      });
 
+      // ✅ Apply states
+      setUserAccess(initialAccess);
+      setRolePermissionAccess(roleAccess);
+      setProfilePermissionAccess(profileAccess);
+      setReportPermissionAccess(reportAccess);
+      
+    } catch (error) {
+      console.error(error);
+      setUsersInRole([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [roleID]);
+
+  // ✅ Auto-fetch when roleID changes
+  useEffect(() => {
     fetchUsersByRole();
-  }, [roleName]);
+  }, [fetchUsersByRole]);
 
   // --- Conditions ---
   const shouldShowCheck =
@@ -243,8 +300,7 @@ export default function UserAccessControl() {
 
   // --- Render User Access ---
   const renderUserAccess = (user) => {
-    if (shouldShowRedX) 
-       return <XCircle className="w-5 h-5 text-red-500" />;
+    if (shouldShowRedX) return <XCircle className="w-5 h-5 text-red-500" />;
     if (shouldShowRedX_Role)
       return <XCircle className="w-5 h-5 text-red-500" />;
     if (shouldShowRedX_Profile)
@@ -258,7 +314,7 @@ export default function UserAccessControl() {
       return (
         <input
           type="checkbox"
-          checked={userAccess[user.id] || false}
+          checked={userAccess[user.userId] || false}
           onChange={() => toggleCheckbox(user.id)}
           className="w-5 h-5 accent-indigo-600 cursor-pointer"
         />
@@ -275,7 +331,7 @@ export default function UserAccessControl() {
 
     // ✅ Roles + Partial Access (Modern Master Design)
     if (shouldShowRolePermissions) {
-      const perms = rolePermissionAccess[user.id] || {};
+      const perms = rolePermissionAccess[user.userId] || {};
 
       // Define the permissions
       const permissionsData = [
@@ -294,7 +350,7 @@ export default function UserAccessControl() {
             return (
               <button
                 key={key}
-                onClick={() => toggleRolePermission(user.id, key)}
+                onClick={() => toggleRolePermission(user.userId, key)}
                 title={`${label} permission`}
                 // Master Design Toggle Styling:
                 className={`
@@ -319,7 +375,7 @@ export default function UserAccessControl() {
 
     // ✅ Profile + Partial Access (Modern Master Design)
     if (shouldShowProfilePermissions) {
-      const perms = profilePermissionAccess[user.id] || {};
+      const perms = profilePermissionAccess[user.userId] || {};
 
       // Define the permissions
       const permissionsData = [
@@ -338,7 +394,7 @@ export default function UserAccessControl() {
             return (
               <button
                 key={key}
-                onClick={() => toggleProfilePermission(user.id, key)}
+                onClick={() => toggleProfilePermission(user.userId, key)}
                 title={`${label} permission`}
                 // Master Design Toggle Styling:
                 className={`
@@ -363,7 +419,7 @@ export default function UserAccessControl() {
 
     // ✅ Report + Partial Access (Modern Master Design)
     if (shouldShowReportPermissions) {
-      const perms = reportPermissionAccess[user.id] || {};
+      const perms = reportPermissionAccess[user.userId] || {};
 
       // Define the permissions
       const permissionsData = [
@@ -382,7 +438,7 @@ export default function UserAccessControl() {
             return (
               <button
                 key={key}
-                onClick={() => toggleReportPermission(user.id, key)}
+                onClick={() => toggleReportPermission(user.userId, key)}
                 title={`${label} permission`}
                 // Master Design Toggle Styling:
                 className={`
@@ -422,6 +478,29 @@ export default function UserAccessControl() {
       console.error("Failed to update access:", error);
     }
   };
+  // ⬇️ Handle Tab Click Logic (Full / Partial / No Access Auto Select)
+  const handleTabClick = (tabName) => {
+    setActiveTabName(tabName);
+
+    // ✅ Find the selected form by name (fixed: using .forms not .formAccess)
+    const selectedForm = usersInRole
+      ?.flatMap((u) => u.forms || [])
+      .find((f) => f.formName === tabName);
+
+    // ✅ Determine Access Level
+    let level = "No Access";
+    if (selectedForm?.fullAccess) level = "Full Access";
+    else if (selectedForm?.partialAccess?.enabled) level = "Partial Access";
+    else if (selectedForm?.noAccess) level = "No Access";
+
+    setSelectedAccessLevel(level);
+
+    // ✅ Remember each tab’s chosen access
+    setTabAccessLevels((prev) => ({
+      ...prev,
+      [tabName]: level,
+    }));
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-indigo-50 to-gray-100 p-4 sm:p-6 md:p-10 font-sans">
@@ -436,6 +515,38 @@ export default function UserAccessControl() {
                 {profileDisplay}
               </span>
             </span>
+
+            {/* 🔄 Refresh Button */}
+            <button
+              onClick={fetchUsersByRole}
+              disabled={loadingUsers}
+              className={`ml-3 group relative flex items-center justify-center gap-2 px-4 py-2 
+    rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 
+    hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 
+    transition-all duration-500 shadow-lg hover:shadow-xl overflow-hidden
+    ${loadingUsers ? "opacity-70 cursor-wait" : "opacity-100"}`}
+              title="Refresh Data"
+            >
+              {/* ✨ Animated glow */}
+              <div className="absolute inset-0 rounded-full bg-white/10 blur-md animate-pulse" />
+
+              {/* 🔄 Icon */}
+              <Loader2
+                className={`relative z-10 w-5 h-5 text-white transition-transform duration-500 
+      ${loadingUsers ? "animate-spin-slow" : "group-hover:rotate-180"}`}
+              />
+
+              {/* 💬 Text Label */}
+              <span
+                className={`relative z-10 text-white text-sm font-medium 
+      transition-all duration-500 ease-in-out 
+      ${
+        loadingUsers ? "opacity-0 w-0" : "opacity-100 group-hover:translate-x-1"
+      }`}
+              >
+                {loadingUsers ? "" : "Refresh"}
+              </span>
+            </button>
           </div>
         </header>
 
@@ -460,19 +571,13 @@ export default function UserAccessControl() {
                 {accessForms.map((item) => (
                   <button
                     key={item._id}
-                    onClick={() => {
-                      setActiveTabName(item.name);
-                      // restore previously selected access for this tab (default = Full Access)
-                      setSelectedAccessLevel(
-                        tabAccessLevels[item.name] || ACCESS_OPTIONS[0].level
-                      );
-                    }}
+                    onClick={() => handleTabClick(item.name)} // ✅ Call the function here
                     className={`relative px-5 py-2 text-sm sm:text-base rounded-lg font-semibold transition-all duration-300 flex items-center space-x-2 
-                      ${
-                        activeTabName === item.name
-                          ? "bg-gradient-to-r from-indigo-600 to-purple-500 text-white shadow-md transform scale-[1.03]"
-                          : "bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-700"
-                      }`}
+        ${
+          activeTabName === item.name
+            ? "bg-gradient-to-r from-indigo-600 to-purple-500 text-white shadow-md transform scale-[1.03]"
+            : "bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-700"
+        }`}
                   >
                     <LayoutGrid className="w-4 h-4" />
                     <span>{item.name}</span>
@@ -572,13 +677,13 @@ export default function UserAccessControl() {
                       <ul className="space-y-2">
                         {usersInRole.map((user) => (
                           <li
-                            key={user.id}
+                            key={user.userId}
                             className="flex justify-between items-center px-4 py-2 bg-white border border-gray-100 rounded-lg hover:shadow-md transition-all"
                           >
                             {/* 👤 User Info */}
                             <div className="flex items-center gap-3">
                               <span className="font-sans text-lg font-semibold text-gray-700 tracking-tight">
-                                {user.fullName}
+                                {user.userName}
                               </span>
                             </div>
 
@@ -588,7 +693,7 @@ export default function UserAccessControl() {
 
                               {/* 🆕 Individual Update Button */}
                               <button
-                                onClick={() => handleUpdateAccess(user.id)}
+                                onClick={() => handleUpdateAccess(user.userId)}
                                 className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:from-indigo-700 hover:to-purple-700 transition duration-200 transform hover:scale-[1.02] active:scale-[0.97]"
                               >
                                 Update
