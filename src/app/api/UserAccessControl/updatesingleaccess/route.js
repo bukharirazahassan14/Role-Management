@@ -10,8 +10,6 @@ export async function PUT(req) {
     const body = await req.json();
     const { formId, userIds, userAccessValue } = body;
 
-    console.log("📩 Received:", { formId, userIds, userAccessValue });
-
     if (!formId || !userIds) {
       return new Response(
         JSON.stringify({ error: "❌ Missing required fields" }),
@@ -70,7 +68,6 @@ export async function PUT(req) {
     );
 
     if (result.modifiedCount > 0) {
-      console.log("✅ Updated successfully:", { enabled, permissions });
       return new Response(
         JSON.stringify({
           message: "✅ Partial access updated successfully",

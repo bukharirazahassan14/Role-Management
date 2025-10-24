@@ -141,6 +141,7 @@ export default function UserAccessControl() {
 
   // ✅ Reusable function to fetch data (so refresh can call it too)
   const fetchUsersByRole = useCallback(async () => {
+
     if (!roleID) return setUsersInRole([]);
     setLoadingUsers(true);
 
@@ -256,8 +257,10 @@ export default function UserAccessControl() {
 
   // ✅ Auto-fetch when roleID changes
   useEffect(() => {
+    if (!roleID) return;
     fetchUsersByRole();
-  }, [fetchUsersByRole]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleID]);
 
   // ⬇️ Handle Tab Click Logic (Full / Partial / No Access Auto Select)
   const handleTabClick = (tabName) => {

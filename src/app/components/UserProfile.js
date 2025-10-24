@@ -15,6 +15,7 @@ import {
   FileText,
   Paperclip,
   Star,
+  TrendingUp,
 } from "lucide-react";
 
 import { Doughnut, Bar } from "react-chartjs-2";
@@ -226,9 +227,13 @@ export default function UserProfile({ searchParams }) {
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [monthlyRatings, setMonthlyRatings] = useState([]);
+  const [incrementState, setIncrementState] = useState(0);
 
   // ✅ Calculate Yearly Average Rating including all 12 months
   const yearAvgRating = useMemo(() => {
+
+    console.log('monthlyRatings>>>>>>>>',monthlyRatings);
+
     if (!monthlyRatings || monthlyRatings.length === 0) return 0;
 
     // Always calculate for all 12 months
@@ -273,6 +278,8 @@ export default function UserProfile({ searchParams }) {
       });
 
       setMonthlyRatings(filledData);
+      console.log('filledData',filledData);
+ 
     } catch {
       setMonthlyRatings([]);
     }
@@ -321,6 +328,33 @@ export default function UserProfile({ searchParams }) {
   useEffect(() => {
     if (user) fetchMonthlyRatings(user._id, selectedYear);
   }, [user, selectedYear, fetchMonthlyRatings]);
+
+  // ✅ Compute total eligible increment based on each month's rating
+useEffect(() => {
+  if (!monthlyRatings || monthlyRatings.length === 0) {
+    setIncrementState(0);
+    return;
+  }
+
+  const getIncrementValue = (rating) => {
+    if (rating <= 1) return 0;
+    if (rating <= 2) return 0.5;
+    if (rating <= 3) return 1;
+    if (rating <= 4) return 1.5;
+    if (rating <= 5) return 2;
+    return 0;
+  };
+
+  let totalIncrement = 0;
+
+  monthlyRatings.forEach((m) => {
+    if (m.rating > 0) {
+      totalIncrement += getIncrementValue(m.rating);
+    }
+  });
+
+  setIncrementState(totalIncrement);
+}, [monthlyRatings]);
 
   if (loading || !user)
     return (
@@ -401,6 +435,59 @@ export default function UserProfile({ searchParams }) {
       </div>
     );
   };
+
+const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
+  const eligible = incrementState > 0;
+
+  return (
+    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-center mb-6 text-center pb-3 border-b border-gray-100">
+        <TrendingUp
+          className={`w-6 h-6 mr-2 ${
+            eligible ? "text-green-600" : "text-red-500"
+          }`}
+        />
+        <h2 className="text-xl font-bold text-gray-800">
+          Eligible for Increment
+        </h2>
+      </div>
+
+      {/* Increment Display */}
+      <div className="flex flex-col items-center justify-center flex-grow">
+        <span
+          className={`text-6xl font-extrabold ${
+            eligible ? "text-green-600" : "text-red-500"
+          }`}
+        >
+          {eligible ? `${incrementState.toFixed(1)}%` : "NO"}
+        </span>
+        <p className="mt-2 text-base text-gray-500 font-medium">
+          Total Annual Increment based on Monthly Ratings
+        </p>
+        <p className="text-sm text-gray-400 mt-1">
+          Performance Year: {selectedYear}
+        </p>
+      </div>
+
+      {/* Footer / Status */}
+      <div className="mt-6 border-t border-gray-100 pt-3 text-center">
+        {eligible ? (
+          <p className="text-green-700 font-medium">
+            ✅ Eligible for yearly increment
+          </p>
+        ) : (
+          <p className="text-red-600 font-medium">
+            ❌ Not eligible for increment
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
@@ -562,7 +649,7 @@ export default function UserProfile({ searchParams }) {
       </div>
 
       {/* Ratings Section - Enhanced Design */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Monthly AVG Rating Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6 relative flex flex-col border border-gray-100">
           <div className="flex items-center justify-between gap-4 mb-4 z-10 relative pb-3 border-b border-gray-100">
@@ -595,6 +682,8 @@ export default function UserProfile({ searchParams }) {
 
         {/* Year AVG Rating Card (Using the new component) */}
         <YearAvgRatingCard avgRating={yearAvgRating} />
+
+        <YearlyIncrementCard incrementState={incrementState} selectedYear={selectedYear} />
       </div>
     </div>
   );

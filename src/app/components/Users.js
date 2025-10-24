@@ -90,6 +90,7 @@ export default function Users() {
 
   const [viewMode, setViewMode] = useState("list"); // "list" | "card"
   const isMobile = useIsMobile();
+
   function parseJwt(token) {
     try {
       const base64Url = token.split(".")[1];
@@ -361,6 +362,62 @@ export default function Users() {
           selectedUser ? "Failed to update user" : "Failed to create user"
         );
       }
+
+      const data = await res.json();
+
+      // ✅ If new user created
+      if (!selectedUser) {
+        console.log("✅ User created successfully!");
+        console.log("🆔 User ID:", data.userId);
+        console.log("🎭 Role:", data.role);
+
+        // ✅ Create default access control for new user
+        const accessRes = await fetch(
+          "/api/UserAccessControl/insertdefaultaccess",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: data.userId,
+              roleId: data.role, // 👈 backend expects roleId
+            }),
+          }
+        );
+
+        if (!accessRes.ok) {
+          console.error("⚠️ Failed to insert default access control");
+        } else {
+          const accessData = await accessRes.json();
+          console.log("✅ Default access inserted:", accessData);
+        }
+      }
+      // ✅ If existing user updated
+      else {
+        console.log("✅ User updated successfully!");
+        console.log("🆔 User ID:", userFormData.id);
+        console.log("🎭 Role:", userData.role);
+
+        // ✅ Update default access only if role changed
+        const accessUpdateRes = await fetch(
+          "/api/UserAccessControl/updatedefaultaccess",
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: userFormData.id,
+              roleId: userData.role, // 👈 backend checks if changed
+            }),
+          }
+        );
+
+        if (!accessUpdateRes.ok) {
+          console.error("⚠️ Failed to update default access control");
+        } else {
+          const updateAccessData = await accessUpdateRes.json();
+          console.log("🔁 Access control update result:", updateAccessData);
+        }
+      }
+
       setSelectedUser(null);
       // ✅ Success message
       setDrawerOpen(false);
@@ -639,7 +696,8 @@ export default function Users() {
                 }
                 className="form-input-modern"
                 disabled={
-                  currentUserRole === "Staff" ||  currentUserRole === "Temp Staff" || // 👈 disable if logged-in user is Staff
+                  currentUserRole === "Staff" ||
+                  currentUserRole === "Temp Staff" || // 👈 disable if logged-in user is Staff
                   roles.find(
                     (r) =>
                       r._id === (userFormData.role?._id || userFormData.role)
@@ -674,7 +732,10 @@ export default function Users() {
                 id="joiningDate"
                 name="joiningDate"
                 type="date"
-                disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
+                disabled={
+                  currentUserRole === "Staff" ||
+                  currentUserRole === "Temp Staff"
+                }
                 required
                 defaultValue={
                   selectedUser?.joiningDate
@@ -706,7 +767,10 @@ export default function Users() {
               <select
                 id="jd"
                 name="jd"
-                disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
+                disabled={
+                  currentUserRole === "Staff" ||
+                  currentUserRole === "Temp Staff"
+                }
                 value={userFormData.jd || ""}
                 onChange={(e) =>
                   setUserFormData((prev) => ({ ...prev, jd: e.target.value }))
@@ -758,7 +822,10 @@ export default function Users() {
                 id="exp"
                 name="exp"
                 type="text"
-               disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
+                disabled={
+                  currentUserRole === "Staff" ||
+                  currentUserRole === "Temp Staff"
+                }
                 maxLength={500}
                 defaultValue={selectedUser?.exp || ""}
                 className="form-input-modern"
@@ -779,7 +846,10 @@ export default function Users() {
                   type="checkbox"
                   id="isActive"
                   name="isActive"
-                  disabled={currentUserRole === "Staff" || currentUserRole === "Temp Staff" }
+                  disabled={
+                    currentUserRole === "Staff" ||
+                    currentUserRole === "Temp Staff"
+                  }
                   checked={!!userFormData.isActive}
                   onChange={(e) =>
                     setUserFormData({

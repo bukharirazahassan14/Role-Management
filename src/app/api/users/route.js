@@ -75,6 +75,7 @@ export async function POST(req) {
       JSON.stringify({
         message: "User created successfully",
         userId: savedUser._id.toString(),
+        role: savedUser.role,
       }),
       {
         status: 201,

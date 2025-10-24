@@ -276,14 +276,16 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
   }, [viewMode, month, weekNumber, fetchEvaluationRecord]);
 
   const incrementDisplay = useMemo(() => {
-    // prefer server-provided Increment state if available
-    if (Increment && Increment !== "") return Increment;
-    // fallback to monthlyAverage logic
-    if (monthlyAverage <= 2) return "NO";
-    if (monthlyAverage <= 3) return "1%";
-    if (monthlyAverage <= 4) return "1.5%";
-    return "2%";
-  }, [Increment, monthlyAverage]);
+  if (Increment && Increment !== "") return Increment;
+
+  if (monthlyAverage <= 1) return "NO";
+  if (monthlyAverage <= 2) return "0.5%";
+  if (monthlyAverage <= 3) return "1%";
+  if (monthlyAverage <= 4) return "1.5%";
+  if (monthlyAverage <= 5) return "2%";
+  
+  return "2%"; // optional fallback
+}, [Increment, monthlyAverage]);
 
   const incrementIcon = useMemo(() => {
     if (!incrementDisplay || incrementDisplay === "NO") return "❌";
