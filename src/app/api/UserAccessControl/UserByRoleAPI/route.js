@@ -20,7 +20,7 @@ export async function GET(req) {
     const db = mongoose.connection.db;
 
     // ✅ Use EXACT same query as provided (no change)
-    const results = await db.collection("UserAccessControl").aggregate(
+    const results = await db.collection("useraccesscontrol").aggregate(
       [
         // 1️⃣ Match by roleId (uses index)
         {

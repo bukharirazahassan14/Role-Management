@@ -4,6 +4,7 @@ This project is built with **Next.js**.
 
 ## 📦 Version
 
+- v22.15.0
 - next@15.5.0
 
 ## 🔑 Super Admin Login
@@ -14,5 +15,5 @@ npm run seed
 
 ## Default Super Admin Credentials
 
-Email: superadmin@greyloops.com
+Email: nabeekh@greyloops.com
 Password: 123456

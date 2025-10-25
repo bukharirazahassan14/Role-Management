@@ -88,8 +88,8 @@ export async function POST(req) {
       updatedAt: new Date(),
     };
 
-    // ✅ Insert into UserAccessControl
-    const result = await db.collection("UserAccessControl").insertOne(doc);
+    // ✅ Insert into useraccesscontrol
+    const result = await db.collection("useraccesscontrol").insertOne(doc);
 
     // ✅ Success response
     return new Response(

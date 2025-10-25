@@ -59,7 +59,7 @@ export async function PUT(req) {
     };
 
     // ⚡ Perform the update
-    const result = await db.collection("UserAccessControl").updateOne(
+    const result = await db.collection("useraccesscontrol").updateOne(
       {
         userId: new ObjectId(userIds),
         "formAccess.formId": new ObjectId(formId),

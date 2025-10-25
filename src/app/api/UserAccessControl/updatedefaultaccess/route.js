@@ -20,7 +20,7 @@ export async function PUT(req) {
 
     // ✅ Find existing UserAccessControl for the user
     const existing = await db
-      .collection("UserAccessControl")
+      .collection("useraccesscontrol")
       .findOne({ userId: new ObjectId(userId) });
 
     if (!existing) {
@@ -114,7 +114,7 @@ export async function PUT(req) {
     });
 
     // ✅ Update UserAccessControl with new role + default access
-    const result = await db.collection("UserAccessControl").updateOne(
+    const result = await db.collection("useraccesscontrol").updateOne(
       { userId: new ObjectId(userId) },
       {
         $set: {

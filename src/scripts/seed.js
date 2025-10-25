@@ -4,7 +4,8 @@ import Role from "../models/Role.js";
 import UserAttachedFile from "../models/UserAttachedFile.js";
 import EvaluationProgram from "../models/EvaluationProgram.js";
 import WeeklyEvaluation from "../models/WeeklyEvaluation.js";
-import AccessControlForm from "../models/accesscontrolform.js";
+import accesscontrolform from "../models/accesscontrolform.js";
+import useraccesscontrol from "../models/useraccesscontrol.js"; // ✅ Add this import
 import bcrypt from "bcryptjs";
 
 async function seed() {
@@ -16,7 +17,8 @@ async function seed() {
   await UserAttachedFile.deleteMany({});
   await EvaluationProgram.deleteMany({});
   await WeeklyEvaluation.deleteMany({});
-  await AccessControlForm.deleteMany({});
+  await accesscontrolform.deleteMany({});
+  await useraccesscontrol.deleteMany({});
 
   // Create roles
   const roles = await Role.insertMany([
@@ -30,21 +32,21 @@ async function seed() {
   const roleMap = {};
   roles.forEach((r) => (roleMap[r.name] = r._id));
 
-  // Create default users
+  // Create default user (Super Admin)
   const users = await User.insertMany([
     {
-      firstName: "Super",
-      lastName: "Admin",
-      primaryEmail: "admin@greyloops.com",
-      secondaryEmail: "superadmin.backup@greyloops.com", // optional
-      fatherName: "John Admin",
+      firstName: "Muhammad",
+      lastName: "Nabeekh",
+      primaryEmail: "nabeekh@greyloops.com",
+      secondaryEmail: "",
+      fatherName: "Father Name",
       phone: "1234567890",
       emergencyContact: "0987654321",
       emergencyRelation: "Brother",
       cnic: "12345-1234567-1",
       role: roleMap["Super Admin"],
-      joiningDate: new Date("2022-01-10"), // ✅ Joining Date (ISO format recommended)
-      medicalCondition: "None", // optional field
+      joiningDate: new Date("2022-01-10"),
+      medicalCondition: "None",
       jd: "Vision & Strategy",
       exp: "10 years of administrative and leadership experience.",
       password: await bcrypt.hash("123456", 10),
@@ -53,7 +55,9 @@ async function seed() {
     },
   ]);
 
-  // Evaluation Programs (KPIs)
+  const superAdmin = users[0];
+
+  // Insert Evaluation Programs (KPIs)
   await EvaluationProgram.insertMany([
     {
       Name: "Task Deliverability",
@@ -87,27 +91,37 @@ async function seed() {
     },
   ]);
 
-  // ✅ Insert Access Control Forms
-  await AccessControlForm.insertMany([
-    {
-      name: "Dashboard",
-      description: "Access to main analytics and performance dashboards.",
-    },
-    {
-      name: "Roles",
-      description: "Manage and assign different system roles.",
-    },
-    {
-      name: "Profile",
-      description: "View and update user profile information.",
-    },
-    {
-      name: "Report",
-      description: "Generate and view detailed system reports.",
-    },
+  // ✅ Insert Access Control Forms and store their IDs
+  const accessForms = await accesscontrolform.insertMany([
+    { name: "Dashboard", description: "Access to analytics and performance dashboards." },
+    { name: "Roles", description: "Manage and assign system roles." },
+    { name: "Profile", description: "View and update user profile info." },
+    { name: "Report", description: "Generate and view detailed reports." },
   ]);
 
-  console.log("✅ Database seeded successfully!");
+  // ✅ Create default access for Super Admin (full access to all forms)
+  const formAccess = accessForms.map((form) => ({
+    formId: form._id,
+    fullAccess: true,
+    noAccess: false,
+    partialAccess: {
+      enabled: false,
+      permissions: { view: false, edit: false, add: false, delete: false },
+    },
+  }));
+
+  // ✅ Insert useraccesscontrol dynamically
+  await useraccesscontrol.create({
+    userId: superAdmin._id,
+    roleId: superAdmin.role,
+    formAccess,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  console.log("✅ Database seeded successfully with default access control!");
+  console.log("Super Admin ID:", superAdmin._id.toString());
+  console.log("Super Admin Role ID:", superAdmin.role.toString());
 }
 
 seed().catch((err) => {

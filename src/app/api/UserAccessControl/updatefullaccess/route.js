@@ -46,7 +46,7 @@ export async function PUT(req) {
     }));
 
     // ⚡ Use native bulkWrite via db
-    const result = await db.collection("UserAccessControl").bulkWrite(bulkOps, { ordered: false });
+    const result = await db.collection("useraccesscontrol").bulkWrite(bulkOps, { ordered: false });
 
     return new Response(JSON.stringify({
       message: "✅ Access levels updated successfully",

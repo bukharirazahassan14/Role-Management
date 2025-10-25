@@ -682,7 +682,6 @@ const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
 
         {/* Year AVG Rating Card (Using the new component) */}
         <YearAvgRatingCard avgRating={yearAvgRating} />
-
         <YearlyIncrementCard incrementState={incrementState} selectedYear={selectedYear} />
       </div>
     </div>

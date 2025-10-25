@@ -1,7 +1,7 @@
 // lib/jwt.js
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey"; // ⚠️ use env var in production
+const JWT_SECRET = process.env.JWT_SECRET || "3f1c8d7e29a84b4db8f2b9e5f92b1dfe6c47991e1a63c5e28e7e0a34f5d9f4d2"; // ⚠️ use env var in production
 
 // Generate token
 export function generateToken(user) {
