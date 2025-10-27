@@ -695,6 +695,7 @@ export default function Users() {
                   setUserFormData((prev) => ({ ...prev, role: e.target.value }))
                 }
                 className="form-input-modern"
+                required
                 disabled={
                   currentUserRole === "Staff" ||
                   currentUserRole === "Temp Staff" || // 👈 disable if logged-in user is Staff
@@ -1239,7 +1240,7 @@ export default function Users() {
                       <Calendar className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                       Joined:
                     </span>
-                    <span>{new Date(user.createdAt).toLocaleDateString()}</span>
+                    <span>{new Date(user.joiningDate).toLocaleDateString()}</span>
                   </p>
 
                   {/* Active Status (Circle Indicator) */}

@@ -23,10 +23,10 @@ async function seed() {
   // Create roles
   const roles = await Role.insertMany([
     { name: "Super Admin", description: "Super Admin" },
-    { name: "Management", description: "Management" },
-    { name: "HR", description: "HR" },
-    { name: "Staff", description: "Team" },
-    { name: "Temp Staff", description: "Temp Team" },
+    // { name: "Management", description: "Management" },
+    // { name: "HR", description: "HR" },
+    // { name: "Staff", description: "Team" },
+    // { name: "Temp Staff", description: "Temp Team" },
   ]);
 
   const roleMap = {};
@@ -37,18 +37,18 @@ async function seed() {
     {
       firstName: "Muhammad",
       lastName: "Nabeekh",
-      primaryEmail: "nabeekh@greyloops.com",
+      primaryEmail: "admin@greyloops.com",
       secondaryEmail: "",
-      fatherName: "Father Name",
-      phone: "1234567890",
-      emergencyContact: "0987654321",
-      emergencyRelation: "Brother",
-      cnic: "12345-1234567-1",
+      fatherName: "",
+      phone: "",
+      emergencyContact: "",
+      emergencyRelation: "",
+      cnic: "",
       role: roleMap["Super Admin"],
-      joiningDate: new Date("2022-01-10"),
-      medicalCondition: "None",
+      joiningDate: new Date("2020-01-01"),
+      medicalCondition: "",
       jd: "Vision & Strategy",
-      exp: "10 years of administrative and leadership experience.",
+      exp: "",
       password: await bcrypt.hash("123456", 10),
       isActive: true,
       created_at: new Date(),
@@ -106,7 +106,7 @@ async function seed() {
     noAccess: false,
     partialAccess: {
       enabled: false,
-      permissions: { view: false, edit: false, add: false, delete: false },
+      permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false },
     },
   }));
 

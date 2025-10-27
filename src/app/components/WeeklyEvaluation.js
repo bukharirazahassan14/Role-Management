@@ -132,7 +132,6 @@ export default function EmployeeWeeklyEvaluation() {
   //search>>>>>>>>>>>>>>>>>>>>>>>>>
   const SerNotifyChange = async (SerYear, SerMonth, SerWeeks) => {
     try {
-      console.log("SerNotifyChange");
       // ✅ Get role & userID
       const role = localStorage.getItem("userRole");
       const userId = localStorage.getItem("loginID");
@@ -163,6 +162,8 @@ export default function EmployeeWeeklyEvaluation() {
           : {}),
       }).toString();
 
+      console.log('query>>>>>',query);
+
       // ✅ Choose API endpoint based on role
       const endpoint =
         role === "Super Admin" || role === "Management" || role === "HR"
@@ -173,12 +174,18 @@ export default function EmployeeWeeklyEvaluation() {
       const res = await fetch(endpoint);
       const data = await res.json();
 
+      console.log('data>>>>>>',data);
+
       if (Array.isArray(data)) {
         setEvaluations(data);
+         console.log('setEvaluations>>>>>>', evaluations);
       } else {
         console.error("Unexpected API response:", data);
         setEvaluations([]);
       }
+
+     
+
     } catch (error) {
       console.error("Error fetching evaluations:", error);
     }
@@ -1069,10 +1076,7 @@ export default function EmployeeWeeklyEvaluation() {
             </thead>
 
             <tbody>
-              {evaluations.length === 0 ||
-              (evaluations.length === 1 &&
-                (!evaluations[0].weekNumbers ||
-                  evaluations[0].weekNumbers.length === 0)) ? (
+              {evaluations.length === 0  ? (
                 <tr>
                   <td
                     colSpan={8}

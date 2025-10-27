@@ -1,5 +1,6 @@
 import connectToDB from "@/lib/mongodb.js";
 import Role from "@/models/Role.js";
+import User from "@/models/User.js";
 
 // ✅ PUT - Update role by ID (with unique name validation)
 export async function PUT(req, context) {
@@ -58,13 +59,30 @@ export async function PUT(req, context) {
   }
 }
 
-// ✅ DELETE - Delete role by ID
+// ✅ DELETE - Delete role by ID (with user check)
 export async function DELETE(req, context) {
   try {
     await connectToDB();
 
     const { id } = await context.params; // ✅ Await params for Next.js 15
 
+    // 🔍 Check if any user has this role
+    const userWithRole = await User.findOne({ role: id });
+
+    if (userWithRole) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Cannot delete role — it is assigned to one or more users.",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 🗑️ Proceed to delete if not assigned
     const deletedRole = await Role.findByIdAndDelete(id);
 
     if (!deletedRole) {

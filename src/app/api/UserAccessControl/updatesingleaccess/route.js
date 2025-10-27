@@ -18,7 +18,7 @@ export async function PUT(req) {
     }
 
     // 🧠 Default permissions
-    let permissions = { view: false, edit: false, add: false, delete: false };
+    let permissions = { view: false, edit: false, add: false, delete: false, applyKpi: false };
     let enabled = true; // ✅ Always true for partial access updates
 
     // ✅ Case 1: Boolean (true / false)
@@ -28,6 +28,7 @@ export async function PUT(req) {
         edit: userAccessValue,
         add: userAccessValue,
         delete: userAccessValue,
+        applyKpi: userAccessValue,
       };
     }
 
@@ -38,6 +39,7 @@ export async function PUT(req) {
         edit: !!userAccessValue.edit,
         add: !!userAccessValue.add,
         delete: !!userAccessValue.delete,
+        applyKpi: !!userAccessValue.applyKpi,
       };
       // Force enabled = true (you requested it should always be true)
       enabled = true;

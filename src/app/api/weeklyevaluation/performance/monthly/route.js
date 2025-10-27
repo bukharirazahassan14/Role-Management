@@ -68,7 +68,7 @@ export async function GET(req) {
       // ✅ Only HR, Staff, Temp Staff users
       {
         $match: {
-          "roleInfo.name": { $in: ["HR", "Staff", "Temp Staff"] },
+           "roleInfo.name": { $nin: ["Super Admin"] },
           // ✅ Always take the latest selected month’s end date
           joiningDate: {
             $lte: new Date(

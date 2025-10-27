@@ -31,6 +31,7 @@ export async function GET(req, context) {
         : null,
       jd: u.jd,  
       createdAt: u.created_at,
+      joiningDate: u.joiningDate,
       isActive: u.isActive,
     };
 
