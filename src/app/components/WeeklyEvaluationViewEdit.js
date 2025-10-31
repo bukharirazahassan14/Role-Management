@@ -188,58 +188,90 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
     fetchEvaluationRecord(updated);
   };
 
-  const fetchMonthlyData = useCallback(
-    async (months) => {
-      try {
-        const monthsParam = months.join(",");
-        const res = await fetch(
-          `/api/weeklyevaluation/multi-month?year=${year}&months=${monthsParam}&userId=${userId}`
-        );
+const fetchMonthlyData = useCallback(
+  async (months) => {
+    try {
+      const monthsParam = months.join(",");
+      const res = await fetch(
+        `/api/weeklyevaluation/multi-month?year=${year}&months=${monthsParam}&userId=${userId}`
+      );
 
-        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
-        const result = await res.json();
-        const data = result[0] || {};
+      const result = await res.json();
+      const data = result[0] || {};
 
-        console.log("📦 API Response >>>>>>>", data);
+      console.log("📦 API Response >>>>>>>", data);
 
-        // ✅ Update states
-        setSelectedWeek(data.weeksCovered || []);
+      // ✅ Update states
+      setSelectedWeek(data.weeksCovered || []);
 
-        // Set week start & end
-        setWeekStart(data.monthStart?.split("T")[0] || "");
-        setWeekEnd(data.monthEnd?.split("T")[0] || "");
+      // Set week start & end
+      setWeekStart(data.monthStart?.split("T")[0] || "");
+      setWeekEnd(data.monthEnd?.split("T")[0] || "");
 
-        // Map scores to programs
-        const scoresMap = new Map(
-          (data.scores || []).map((s) => [s.kpiId.toString(), s])
-        );
+      // ✅ Map scores to programs
+      const scoresMap = new Map(
+        (data.scores || []).map((s) => [s.kpiId.toString(), s])
+      );
 
-        setEvaluationScores(
-          evaluationPrograms.map((program) => {
-            const scoreObj = scoresMap.get(program._id.toString()) || {};
-            return {
-              kpiId: program._id,
-              score: scoreObj.score ?? 0,
-              weightage: scoreObj.weightage ?? program.Weightage,
-              weightedRating: scoreObj.weightedRating ?? 0,
-            };
-          })
-        );
+      const weeks = data.weeksCovered || [];
+      const weekCount = weeks.length || 1; // ✅ For average calculation
 
-        // ✅ Totals and performance fields
-        setTotalScore(data.totalScore ?? 0);
-        setTotalWeightedRating(data.totalWeightedRating ?? 0);
-        setPerformance(data.performance ?? "");
-        setMonthlyAverage(data.monthlyAverage ?? 0);
-        setAction(data.Action ?? "");
-        setIncrement(data.Increment ?? "");
-      } catch (error) {
-        console.error("❌ Error fetching monthly data:", error);
-      }
-    },
-    [year, evaluationPrograms, userId] // <-- use evaluationPrograms instead of programs
-  );
+      // ✅ Calculate averages and round
+      const updatedScores = evaluationPrograms.map((program) => {
+        const scoreObj = scoresMap.get(program._id.toString()) || {};
+        const score = scoreObj.score ?? 0;
+        const weightedRating = scoreObj.weightedRating ?? 0;
+        const weightage = scoreObj.weightage ?? program.Weightage;
+
+        // ✅ Divide by week count and round
+        const avgScore = score / weekCount;
+        const avgWeightedRating = weightedRating / weekCount;
+
+        return {
+          kpiId: program._id,
+          score: parseFloat(avgScore.toFixed(2)), // 🎯 rounded to 2 decimals
+          weightage,
+          weightedRating: parseFloat(avgWeightedRating.toFixed(2)), // 🎯 rounded to 2 decimals
+        };
+      });
+
+      // ✅ Set evaluation scores
+      setEvaluationScores(updatedScores);
+
+      // ✅ Recalculate total score & total weighted rating from averaged data
+      const totalScore = updatedScores.reduce((sum, s) => sum + s.score, 0);
+      const totalWeightedRating = updatedScores.reduce(
+        (sum, s) => sum + s.weightedRating,
+        0
+      );
+
+      // ✅ Round totals
+      const roundedTotalScore = parseFloat(totalScore.toFixed(2));
+      const roundedTotalWeightedRating = parseFloat(
+        totalWeightedRating.toFixed(2)
+      );
+
+      // ✅ Set totals and other fields
+      setTotalScore(roundedTotalScore);
+      setTotalWeightedRating(roundedTotalWeightedRating);
+      setPerformance(data.performance ?? "");
+      setMonthlyAverage(data.monthlyAverage ?? 0);
+      setAction(data.Action ?? "");
+      setIncrement(data.Increment ?? "");
+
+      // 🧮 Log for verification
+      console.log("🧮 Week Count:", weekCount);
+      console.log("📊 Rounded Total Score:", roundedTotalScore);
+      console.log("📊 Rounded Total Weighted Rating:", roundedTotalWeightedRating);
+    } catch (error) {
+      console.error("❌ Error fetching monthly data:", error);
+    }
+  },
+  [year, evaluationPrograms, userId]
+);
+
 
   // ✅ Toggle month selection
   const handleMonthClick = (monthNumber) => {

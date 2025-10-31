@@ -460,7 +460,8 @@ const KpiBreakdownCard = ({ data, staffData }) => {
   return (
     <div className="bg-white p-5 rounded-3xl h-96 shadow-2xl border border-gray-100 transition-all duration-300 hover:shadow-3xl">
       <h2 className="text-xl font-extrabold text-gray-900 mb-4 pb-2 border-b border-gray-100">
-        Week {staffData?.currentWeekNumber ?? "N/A"} KPI Insights
+        {/* Week {staffData?.currentWeekNumber ?? "N/A"} KPI Insights */}
+        Key performance indicators (KPIs)
       </h2>
 
       <div className="space-y-5">
@@ -499,7 +500,7 @@ const KpiBreakdownCard = ({ data, staffData }) => {
                     className="text-sm font-semibold"
                     style={{ color: barColor }}
                   >
-                    {performance}
+                    {/* {performance} */}
                   </span>
                 </div>
               </div>
