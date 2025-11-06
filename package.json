@@ -2,8 +2,8 @@
   "name": "my-next-app",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "type": "module",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

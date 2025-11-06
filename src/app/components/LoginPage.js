@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 // Imported 11 icons: Lock + 10 evaluation icons
 import {
   Lock,
@@ -27,6 +27,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const router = useRouter();
+
+  const [forms, setForms] = useState([]);
+
+  useEffect(() => {
+    async function fetchForms() {
+      try {
+        const res = await fetch("/api/UserAccessControl", {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("Failed to fetch forms");
+        const data = await res.json();
+        setForms(data);
+      } catch (error) {
+        console.error("❌ Error loading forms:", error);
+      }
+    }
+
+    fetchForms();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,8 +102,41 @@ export default function LoginPage() {
           body: JSON.stringify({ userId: data.user.id }),
         }).catch((err) => console.error("Failed to update notified:", err));
 
-        // ✅ Finally, redirect user
-        router.replace("/main/dashboard");
+        // ✅ Determine redirect path based on accessData
+        const formAccess = accessData.formAccess || [];
+
+        /* ✅ Find the first form where access is allowed */
+        const firstAllowed = formAccess.find((f) => {
+          if (f.noAccess) return false;
+          if (f.fullAccess) return true;
+
+          // ✅ Check partialAccess: enabled + at least one permission true
+          if (f.partialAccess?.enabled) {
+            const perms = f.partialAccess.permissions || {};
+            return Object.values(perms).some((val) => val === true);
+          }
+
+          return false;
+        });
+
+        /* ✅ Match formId to form name */
+        let formName = null;
+        if (firstAllowed) {
+          const matchedForm = forms.find(
+            (form) => form._id === firstAllowed.formId
+          );
+          formName = matchedForm?.name || null;
+        }
+
+        /* ✅ Redirect based on allowed form */
+        if (formName) {
+          let path = formName.toLowerCase().replace(/\s+/g, "");
+          if (formName === "Report") path = "weeklyevaluation";
+          router.replace(`/main/${path}`);
+        } else {
+          // Default fallback
+          router.replace("/main/dashboard");
+        }
       } else {
         setMessage("❌ " + data.error);
       }

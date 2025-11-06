@@ -174,7 +174,7 @@ export default function UserAccessControl() {
                 add: true,
                 delete: true,
               };
-            if (formName === "Profile")
+            if (formName === "Users")
               profileAccess[user.userId] = {
                 view: true,
                 edit: true,
@@ -199,7 +199,7 @@ export default function UserAccessControl() {
             if (formName === "Dashboard")
               initialAccess[user.userId] = hasAllAccess;
             if (formName === "Roles") roleAccess[user.userId] = { ...perms };
-            if (formName === "Profile")
+            if (formName === "Users")
               profileAccess[user.userId] = { ...perms };
             if (formName === "Report") reportAccess[user.userId] = { ...perms };
           }
@@ -225,7 +225,7 @@ export default function UserAccessControl() {
             
 
             if (formName === "Roles") roleAccess[user.userId] = noPerms;
-            if (formName === "Profile") profileAccess[user.userId] = noPerms;
+            if (formName === "Users") profileAccess[user.userId] = noPerms;
             if (formName === "Report") reportAccess[user.userId] = noPerms_report;
           }
         });
@@ -301,7 +301,7 @@ export default function UserAccessControl() {
   const shouldShowRoleCheck =
     activeTabName === "Roles" && selectedAccessLevel === "Full Access";
   const shouldShowProfileCheck =
-    activeTabName === "Profile" && selectedAccessLevel === "Full Access";
+    activeTabName === "Users" && selectedAccessLevel === "Full Access";
   const shouldShowReportCheck =
     activeTabName === "Report" && selectedAccessLevel === "Full Access";
 
@@ -310,7 +310,7 @@ export default function UserAccessControl() {
   const shouldShowRolePermissions =
     activeTabName === "Roles" && selectedAccessLevel === "Partial Access";
   const shouldShowProfilePermissions =
-    activeTabName === "Profile" && selectedAccessLevel === "Partial Access";
+    activeTabName === "Users" && selectedAccessLevel === "Partial Access";
   const shouldShowReportPermissions =
     activeTabName === "Report" && selectedAccessLevel === "Partial Access";
 
@@ -319,7 +319,7 @@ export default function UserAccessControl() {
   const shouldShowRedX_Role =
     activeTabName === "Roles" && selectedAccessLevel === "No Access";
   const shouldShowRedX_Profile =
-    activeTabName === "Profile" && selectedAccessLevel === "No Access";
+    activeTabName === "Users" && selectedAccessLevel === "No Access";
   const shouldShowRedX_Report =
     activeTabName === "Report" && selectedAccessLevel === "No Access";
 
@@ -389,7 +389,7 @@ export default function UserAccessControl() {
     if (shouldShowReportCheck)
       return <CheckCircle className="w-5 h-5 text-green-500" />;
 
-    // ✅ Profile + Partial Access (Modern Master Design)
+    // ✅ Users + Partial Access (Modern Master Design)
      if (shouldShowProfilePermissions) {
       const perms = profilePermissionAccess[user.userId] || {};
 
@@ -588,7 +588,7 @@ export default function UserAccessControl() {
       let accessMap = {};
       if (activeTabName === "Dashboard") accessMap = userAccess;
       else if (activeTabName === "Roles") accessMap = rolePermissionAccess;
-      else if (activeTabName === "Profile") accessMap = profilePermissionAccess;
+      else if (activeTabName === "Users") accessMap = profilePermissionAccess;
       else if (activeTabName === "Report") accessMap = reportPermissionAccess;
 
       const userAccessValue = accessMap[userId];
@@ -679,7 +679,7 @@ export default function UserAccessControl() {
             <div className="flex items-center space-x-3 px-6 py-3 bg-white/90 backdrop-blur-lg border border-indigo-200 rounded-full shadow-lg hover:shadow-indigo-300/50 transition">
               <Lock className="w-5 h-5 text-indigo-600" />
               <span className="text-base sm:text-lg font-semibold text-gray-800">
-                Access Profile:{" "}
+                Access Users:{" "}
                 <span className="text-indigo-700 font-bold">
                   {profileDisplay}
                 </span>

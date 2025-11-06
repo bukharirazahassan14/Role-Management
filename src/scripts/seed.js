@@ -95,7 +95,7 @@ async function seed() {
   const accessForms = await accesscontrolform.insertMany([
     { name: "Dashboard", description: "Access to analytics and performance dashboards." },
     { name: "Roles", description: "Manage and assign system roles." },
-    { name: "Profile", description: "View and update user profile info." },
+    { name: "Users", description: "View and update user profile info." },
     { name: "Report", description: "Generate and view detailed reports." },
   ]);
 
