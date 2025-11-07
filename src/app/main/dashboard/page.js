@@ -18,7 +18,8 @@ export default function MainPage() {
   if (
     userRole === "Super Admin" ||
     userRole === "Management" ||
-    userRole === "HR"
+    userRole === "HR" ||
+    userRole === "Admin"
   ) {
     return <MainLayout />;
   }

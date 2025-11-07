@@ -91,6 +91,64 @@ export default function Users() {
   const [viewMode, setViewMode] = useState("list"); // "list" | "card"
   const isMobile = useIsMobile();
 
+  const [permissions, setPermissions] = useState({
+    view: false,
+    edit: false,
+    add: false,
+    delete: false,
+  });
+
+  // ✅ Fetch and set permissions from userAccess
+  useEffect(() => {
+    const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+    const formAccess = accessData.formAccess || [];
+
+    const activeFormId = localStorage.getItem("activeForm");
+
+    if (!activeFormId || formAccess.length === 0) {
+      console.warn("⚠️ No form access data found for this user.");
+      return;
+    }
+
+    const currentForm = formAccess.find(
+      (f) => String(f.formId) === String(activeFormId)
+    );
+
+    if (currentForm) {
+      if (currentForm.fullAccess) {
+        setPermissions({
+          view: true,
+          edit: true,
+          add: true,
+          delete: true,
+        });
+      } else if (currentForm.partialAccess?.enabled) {
+        const perms = currentForm.partialAccess.permissions || {};
+        setPermissions({
+          view: perms.view || false,
+          edit: perms.edit || false,
+          add: perms.add || false,
+          delete: perms.delete || false,
+        });
+      } else {
+        setPermissions({
+          view: false,
+          edit: false,
+          add: false,
+          delete: false,
+        });
+      }
+    } else {
+      console.warn("⚠️ No matching form access found.");
+    }
+  }, []);
+
+  // Example usage
+  const canView = permissions.view;
+  const canEdit = permissions.edit;
+  const canAdd = permissions.add;
+  const canDelete = permissions.delete;
+
   function parseJwt(token) {
     try {
       const base64Url = token.split(".")[1];
@@ -111,7 +169,7 @@ export default function Users() {
     const role = localStorage.getItem("userRole");
 
     // If Staff or Temp Staff → force card view
-    if (role === "Staff" || role === "Temp Staff") {
+    if (role === "Staff" || role === "Temp Staff" || role === "Team") {
       setViewMode("card");
     }
   }, []);
@@ -261,7 +319,12 @@ export default function Users() {
         setCurrentUserRole(role);
 
         let res;
-        if (role === "Super Admin" || role === "Management" || role === "HR") {
+        if (
+          role === "Super Admin" ||
+          role === "Management" ||
+          role === "HR" ||
+          role === "Admin"
+        ) {
           // ✅ Fetch ALL users
           res = await fetch("/api/users");
         } else if (loginID) {
@@ -488,6 +551,45 @@ export default function Users() {
     }
   };
 
+  const handleDeleteUser = async (user) => {
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage("✅ User and related access records deleted successfully!");
+        setSuccess(true);
+
+        // ✅ Refresh user list from server
+        const updatedRes = await fetch("/api/users");
+        const updatedUsers = await updatedRes.json();
+        setUsers(updatedUsers);
+      } else if (
+        response.status === 400 &&
+        data.error?.includes("Evaluation")
+      ) {
+        setMessage("⚠️ Cannot delete user — evaluation record already exists.");
+        setSuccess(false);
+      } else if (response.status === 404) {
+        setMessage("❌ User not found. It may have been deleted already.");
+        setSuccess(false);
+      } else {
+        setMessage(data.error || "❌ Failed to delete user.");
+        setSuccess(false);
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      setMessage("🚨 Something went wrong while deleting the user.");
+      setSuccess(false);
+    }
+
+    // ✅ Automatically hide toast after 3 seconds
+    setTimeout(() => setMessage(""), 3000);
+  };
+
   // 🔍 Filter users
   const filteredUsers = users.filter((user) => {
     const query = searchQuery.toLowerCase();
@@ -697,32 +799,16 @@ export default function Users() {
                 className="form-input-modern"
                 required
                 disabled={
-                  currentUserRole === "Staff" ||
-                  currentUserRole === "Temp Staff" || // 👈 disable if logged-in user is Staff
-                  roles.find(
-                    (r) =>
-                      r._id === (userFormData.role?._id || userFormData.role)
-                  )?.name === "Super Admin" // 👈 also keep your Super Admin protection
-                }
+                  !["Super Admin", "Admin", "HR", "Management"].includes(
+                    currentUserRole
+                  )
+                } // ✅ Only these roles can edit
               >
-                {roles
-                  .filter((role) => {
-                    if (role.name === "Super Admin") {
-                      return (
-                        roles.find(
-                          (r) =>
-                            r._id ===
-                            (userFormData.role?._id || userFormData.role)
-                        )?.name === "Super Admin"
-                      );
-                    }
-                    return true;
-                  })
-                  .map((role) => (
-                    <option key={role._id} value={role._id}>
-                      {role.description}
-                    </option>
-                  ))}
+                {roles.map((role) => (
+                  <option key={role._id} value={role._id}>
+                    {role.description}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -879,7 +965,8 @@ export default function Users() {
       {/* 🔍 Search Box (Visible only for Super Admin, HR, Management) */}
       {(currentUserRole === "Super Admin" ||
         currentUserRole === "HR" ||
-        currentUserRole === "Management") && (
+        currentUserRole === "Management" ||
+        currentUserRole === "Admin") && (
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center justify-end flex-1 ml-4">
             <div className="relative w-full max-w-sm">
@@ -954,28 +1041,16 @@ export default function Users() {
 
               <tbody>
                 {Array.isArray(currentUsers) &&
-                  currentUsers
-                    .filter((user) => {
-                      if (
-                        currentUserRole === "Staff" ||
-                        currentUserRole === "Temp Staff"
-                      ) {
-                        return (
-                          user.role?.name !== "Super Admin" &&
-                          user.role?.name !== "Management" &&
-                          user.role?.name !== "HR"
-                        );
-                      }
-                      return true;
-                    })
-                    .map((user) => (
-                      <tr
-                        key={user.id}
-                        className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-                      >
-                        {/* Actions */}
-                        <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
-                          <div className="flex justify-center items-center gap-4">
+                  currentUsers.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                    >
+                      {/* Actions */}
+                      <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
+                        <div className="flex justify-center items-center gap-4">
+                          {/* 👁 View Button (Shown if canView = true) */}
+                          {canView && (
                             <button
                               onClick={() => handleViewUser(user)}
                               className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
@@ -983,138 +1058,90 @@ export default function Users() {
                             >
                               <Glasses className="w-6 h-6" />
                             </button>
+                          )}
+
+                          {/* ✏️ Edit Button (Shown if canEdit = true) */}
+                          {canEdit && (
                             <button
                               onClick={() => handleEditUser(user)}
-                              className={`transition-all ${
-                                currentUserRole === "Super Admin" ||
-                                (currentUserRole === "Management" &&
-                                  user.role?.name !== "Super Admin") ||
-                                (currentUserRole === "HR" &&
-                                  user.role?.name !== "Super Admin" &&
-                                  user.role?.name !== "Management")
-                                  ? "text-indigo-600 hover:text-indigo-900 hover:scale-110"
-                                  : "opacity-40 cursor-not-allowed"
-                              }`}
-                              title={
-                                currentUserRole === "Super Admin" ||
-                                (currentUserRole === "Management" &&
-                                  user.role?.name !== "Super Admin") ||
-                                (currentUserRole === "HR" &&
-                                  user.role?.name !== "Super Admin" &&
-                                  user.role?.name !== "Management")
-                                  ? "Edit User"
-                                  : "Not allowed"
-                              }
-                              disabled={
-                                !(
-                                  currentUserRole === "Super Admin" ||
-                                  (currentUserRole === "Management" &&
-                                    user.role?.name !== "Super Admin") ||
-                                  (currentUserRole === "HR" &&
-                                    user.role?.name !== "Super Admin" &&
-                                    user.role?.name !== "Management")
-                                )
-                              }
+                              className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                              title="Edit User"
                             >
                               <Edit className="w-6 h-6" />
                             </button>
-                          </div>
-                        </td>
+                          )}
 
-                        {/* Avatar & Name */}
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="relative">
-                              <Image
-                                src={getUserImagePath(user.id)}
-                                alt={`${user.fullName} Avatar`}
-                                width={60}
-                                height={60}
-                                className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 shadow-sm hover:scale-105 transition-transform"
-                                onError={handleImageError}
-                              />
-                              <span
-                                className={`absolute bottom-0 right-0 block w-3 h-3 rounded-full ring-2 ring-white ${
-                                  user.isActive ? "bg-green-500" : "bg-gray-400"
-                                }`}
-                              />
+                          {/* 🗑️ Delete Button */}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              className="text-red-500 hover:text-red-700 hover:scale-110 transition-all"
+                              title="Delete User"
+                            >
+                              <Trash2 className="w-6 h-6" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Avatar & Name */}
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <Image
+                              src={getUserImagePath(user.id)}
+                              alt={`${user.fullName} Avatar`}
+                              width={60}
+                              height={60}
+                              className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 shadow-sm hover:scale-105 transition-transform"
+                              onError={handleImageError}
+                            />
+                            <span
+                              className={`absolute bottom-0 right-0 block w-3 h-3 rounded-full ring-2 ring-white ${
+                                user.isActive ? "bg-green-500" : "bg-gray-400"
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900 text-sm">
+                              {user.fullName || "-"}
                             </div>
-                            <div>
-                              <div className="font-semibold text-gray-900 text-sm">
-                                {user.fullName || "-"}
-                              </div>
-                              <div className="text-gray-500 text-xs font-medium mt-1">
-                                {user.jd || "-"}
-                              </div>
+                            <div className="text-gray-500 text-xs font-medium mt-1">
+                              {user.jd || "-"}
                             </div>
                           </div>
-                        </td>
+                        </div>
+                      </td>
 
-                        <td className="px-6 py-5 text-gray-700 text-sm">
-                          {user.email}
-                        </td>
-                        <td className="px-6 py-5 text-gray-700 text-sm">
-                          {user.role?.description || "-"}
-                        </td>
-                        <td className="px-6 py-5 text-gray-500 text-sm">
-                          {user.joiningDate
-                            ? (() => {
-                                const date = new Date(user.joiningDate);
-                                const day = date
-                                  .getDate()
-                                  .toString()
-                                  .padStart(2, "0");
-                                const month = date.toLocaleString("en-US", {
-                                  month: "short",
-                                });
-                                const year = date.getFullYear();
-                                return `${day}/${month}/${year}`;
-                              })()
-                            : "-"}
-                        </td>
-                        {/* Active toggle */}
-                        <td className="px-6 py-5 text-center">
-                          <div className="flex justify-center">
-                            {currentUserRole === "Super Admin" ? (
-                              user.role?.name === "Super Admin" ? (
-                                <div
-                                  className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
-                                    user.isActive
-                                      ? "bg-indigo-500"
-                                      : "bg-gray-300"
-                                  }`}
-                                >
-                                  <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white ${
-                                      user.isActive
-                                        ? "translate-x-6"
-                                        : "translate-x-1"
-                                    }`}
-                                  />
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() =>
-                                    handleToggleActive(user.id, !user.isActive)
-                                  }
-                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
-                                    user.isActive
-                                      ? "bg-indigo-500"
-                                      : "bg-gray-300"
-                                  }`}
-                                >
-                                  <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                                      user.isActive
-                                        ? "translate-x-6"
-                                        : "translate-x-1"
-                                    }`}
-                                  />
-                                </button>
-                              )
-                            ) : (
+                      <td className="px-6 py-5 text-gray-700 text-sm">
+                        {user.email}
+                      </td>
+                      <td className="px-6 py-5 text-gray-700 text-sm">
+                        {user.role?.description || "-"}
+                      </td>
+                      <td className="px-6 py-5 text-gray-500 text-sm">
+                        {user.joiningDate
+                          ? (() => {
+                              const date = new Date(user.joiningDate);
+                              const day = date
+                                .getDate()
+                                .toString()
+                                .padStart(2, "0");
+                              const month = date.toLocaleString("en-US", {
+                                month: "short",
+                              });
+                              const year = date.getFullYear();
+                              return `${day}/${month}/${year}`;
+                            })()
+                          : "-"}
+                      </td>
+                      {/* Active toggle */}
+                      <td className="px-6 py-5 text-center">
+                        <div className="flex justify-center">
+                          {currentUserRole === "Super Admin" ? (
+                            user.role?.name === "Super Admin" ? (
                               <div
-                                className={`inline-flex h-6 w-11 items-center rounded-full ${
+                                className={`inline-flex h-6 w-11 items-center rounded-full opacity-50 cursor-not-allowed ${
                                   user.isActive
                                     ? "bg-indigo-500"
                                     : "bg-gray-300"
@@ -1128,33 +1155,65 @@ export default function Users() {
                                   }`}
                                 />
                               </div>
-                            )}
-                          </div>
-                        </td>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleToggleActive(user.id, !user.isActive)
+                                }
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 ${
+                                  user.isActive
+                                    ? "bg-indigo-500"
+                                    : "bg-gray-300"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                                    user.isActive
+                                      ? "translate-x-6"
+                                      : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
+                            )
+                          ) : (
+                            <div
+                              className={`inline-flex h-6 w-11 items-center rounded-full ${
+                                user.isActive ? "bg-indigo-500" : "bg-gray-300"
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white ${
+                                  user.isActive
+                                    ? "translate-x-6"
+                                    : "translate-x-1"
+                                }`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </td>
 
-                        {/* File Attachments */}
-                        <td className="px-6 py-5 text-center rounded-r-2xl">
-                          <button
-                            onClick={() => handleOpenFrame(user)}
-                            className="relative text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
-                            title={`View ${fileCounts[user.id] ?? 0} files`}
-                          >
-                            <FileText className="w-6 h-6" />
-                            <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow">
-                              {fileCounts[user.id] ?? 0}
-                            </span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                      {/* File Attachments */}
+                      <td className="px-6 py-5 text-center rounded-r-2xl">
+                        <button
+                          onClick={() => handleOpenFrame(user)}
+                          className="relative text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                          title={`View ${fileCounts[user.id] ?? 0} files`}
+                        >
+                          <FileText className="w-6 h-6" />
+                          <span className="absolute -top-2 -right-2 bg-indigo-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow">
+                            {fileCounts[user.id] ?? 0}
+                          </span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
 
-          {/* ✅ Floating Add Button */}
-          {(currentUserRole === "Super Admin" ||
-            currentUserRole === "HR" ||
-            currentUserRole === "Management") && (
+          {/* ✅ Floating Add Button (Visible only if canAdd = true) */}
+          {canAdd && (
             <button
               onClick={handleAddUser}
               title="Add New User"
@@ -1165,134 +1224,114 @@ export default function Users() {
           )}
         </div>
       ) : (
-        // ✅ Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {currentUsers
-            .filter((user) => {
-              // Filtering logic remains UNCHANGED
-              if (
-                currentUserRole === "Staff" ||
-                currentUserRole === "Temp Staff"
-              ) {
-                return (
-                  user.role?.name !== "Super Admin" &&
-                  user.role?.name !== "Management" &&
-                  user.role?.name !== "HR"
-                );
-              }
-              return true; // other roles see everything
-            })
-            .map((user) => (
-              <div
-                key={user.id}
-                // PREMIUM STYLING: Subtle gradient background, deeper shadow on hover
-                className="relative bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-xl rounded-2xl p-6 group transition duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
-              >
-                {/* --- Header: Avatar, Name, and Role --- */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    {/* ✅ Profile Avatar - Now showing large image instead of initials */}
-                    <Image
-                      src={getUserImagePath(user.id)}
-                      alt={`${user.fullName} Avatar`}
-                      width={64}
-                      height={64}
-                      className="w-16 h-16 rounded-full object-cover shadow-md border border-gray-200 hover:scale-105 transition-transform duration-300"
-                      onError={handleImageError}
-                    />
+          {currentUsers.map((user) => (
+            <div
+              key={user.id}
+              className="
+        relative flex flex-col justify-between bg-gradient-to-br from-white to-gray-50 border border-gray-200 
+        shadow-lg rounded-2xl p-6 group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300
+      "
+            >
+              {/* --- Header: Avatar, Name, and Role --- */}
+              <div className="flex flex-col items-center text-center">
+                {/* ✅ Avatar */}
+                <Image
+                  src={getUserImagePath(user.id)}
+                  alt={`${user.fullName} Avatar`}
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 rounded-full object-cover shadow-md border border-gray-200 hover:scale-105 transition-transform duration-300"
+                  onError={handleImageError}
+                />
 
-                    <div>
-                      <h3 className="font-extrabold text-gray-900 text-xl tracking-tight group-hover:text-indigo-700 transition">
-                        {user.fullName || `${user.firstName} ${user.lastName}`}
-                      </h3>
-                      {/* ✅ Role Description Badge (replaces role name) */}
-                      <p className="text-sm font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                        {user.jd || "Designation"}
-                      </p>
-                    </div>
-                  </div>
+                {/* ✅ Name & Role */}
+                <h3 className="font-extrabold text-gray-900 text-lg mt-3 group-hover:text-indigo-700 transition">
+                  {user.fullName || `${user.firstName} ${user.lastName}`}
+                </h3>
+                <p className="text-sm font-semibold text-purple-700 bg-purple-100 px-3 py-0.5 rounded-full inline-block mt-1">
+                  {user.jd || "Designation"}
+                </p>
+              </div>
 
-                  {/* Empty div for layout symmetry */}
-                  <div className="w-10 h-10"></div>
+              {/* --- Divider --- */}
+              <div className="mt-5 mb-3">
+                <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-300 to-transparent"></div>
+              </div>
+
+              {/* --- Info Section --- */}
+              <div className="space-y-3 text-sm text-gray-700">
+                {/* Email */}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-medium text-gray-600">
+                    <Mail className="w-4 h-4 text-indigo-500" /> Email:
+                  </span>
+                  <span className="truncate text-right max-w-[60%]">
+                    {user.email || "-"}
+                  </span>
                 </div>
 
-                {/* --- STYLIZED DIVIDER --- */}
-                <div className="mt-6">
-                  <div className="w-12 h-0.5 bg-indigo-400 rounded-full mx-auto group-hover:w-full transition-all duration-500"></div>
+                {/* Joined Date */}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-medium text-gray-600">
+                    <Calendar className="w-4 h-4 text-indigo-500" /> Joined:
+                  </span>
+                  <span>{new Date(user.joiningDate).toLocaleDateString()}</span>
                 </div>
 
-                {/* --- User Info (Data Section) --- */}
-                <div className="mt-4 space-y-3 text-sm text-gray-700">
-                  {/* Email */}
-                  <p className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 font-semibold text-gray-600">
-                      <Mail className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                      Email:
-                    </span>
-                    <span className="truncate max-w-[60%]">
-                      {user.email || "-"}
-                    </span>
-                  </p>
-
-                  {/* Created Date */}
-                  <p className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 font-semibold text-gray-600">
-                      <Calendar className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                      Joined:
-                    </span>
-                    <span>{new Date(user.joiningDate).toLocaleDateString()}</span>
-                  </p>
-
-                  {/* Active Status (Circle Indicator) */}
-                  <p className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 font-semibold text-gray-600">
-                      <Check className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                      Active:
-                    </span>
-                    {/* The Circle Indicator */}
-                    <span
-                      className={`w-3 h-3 rounded-full shadow-inner ${
-                        user.isActive ? "bg-green-500" : "bg-red-500"
-                      }`}
-                      title={user.isActive ? "Currently Active" : "Inactive"}
-                    ></span>
-                  </p>
+                {/* Active Status */}
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-medium text-gray-600">
+                    <Check className="w-4 h-4 text-indigo-500" /> Active:
+                  </span>
+                  <span
+                    className={`w-3 h-3 rounded-full ${
+                      user.isActive ? "bg-green-500" : "bg-red-500"
+                    }`}
+                    title={user.isActive ? "Currently Active" : "Inactive"}
+                  ></span>
                 </div>
+              </div>
 
-                {/* --- Action Buttons (Now Visible by default, Enhanced Hover) --- */}
-                <div className="absolute top-4 right-4 flex gap-2 transition-all duration-300">
-                  {/* View Button */}
+              {/* --- Buttons Row (moved to bottom, no overlap) --- */}
+              <div className="flex justify-center gap-3 mt-6">
+                {canView && (
                   <button
                     onClick={() => handleViewUser(user)}
-                    className="p-2 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition shadow-lg"
+                    className="p-2 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition-all shadow-md"
                     title="View Details"
                   >
                     <Glasses className="w-5 h-5" />
                   </button>
-
-                  {/* Edit Button (Role Restricted) */}
-                  {(currentUserRole === "Super Admin" ||
-                    currentUserRole === "HR" ||
-                    currentUserRole === "Management" ||
-                    currentUserRole === "Staff") && (
-                    <button
-                      onClick={() => handleEditUser(user)}
-                      className="p-2 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-600 hover:text-white transition shadow-lg"
-                      title="Edit User"
-                    >
-                      <Edit className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
+                )}
+                {canEdit && (
+                  <button
+                    onClick={() => handleEditUser(user)}
+                    className="p-2 rounded-full bg-yellow-50 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-all shadow-md"
+                    title="Edit User"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => handleDeleteUser(user)}
+                    className="p-2 rounded-full bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-all shadow-md"
+                    title="Delete User"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
               </div>
-            ))}
+            </div>
+          ))}
 
-          {/* ➕ Add New User Card (Modernized & Role Restricted) */}
-          {currentUserRole !== "Staff" && currentUserRole !== "Temp Staff" && (
+          {/* ➕ Add New User Card */}
+          {canAdd && (
             <div
               onClick={handleAddUser}
-              className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer transition duration-300 h-full 
-         hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-inner"
+              className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer transition duration-300 
+        hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-inner"
             >
               <Plus className="w-14 h-14 text-indigo-600/80" />
               <span className="mt-4 text-indigo-700 font-bold text-lg">
@@ -1307,7 +1346,8 @@ export default function Users() {
       {/* ✅ Pagination + Info (visible only for Super Admin, HR, or Management) */}
       {(currentUserRole === "Super Admin" ||
         currentUserRole === "HR" ||
-        currentUserRole === "Management") && (
+        currentUserRole === "Management" ||
+        currentUserRole === "Admin") && (
         <div className="flex justify-end items-center mt-4 space-x-4">
           <p className="text-sm text-gray-500">
             Showing {indexOfFirstUser + 1} -{" "}
@@ -1392,7 +1432,7 @@ export default function Users() {
                         </a>
 
                         {/* ✅ Delete File */}
-                        {["Super Admin", "HR", "Management"].includes(
+                        {["Super Admin", "HR", "Management", "Admin"].includes(
                           currentUserRole
                         ) && (
                           <button
@@ -1448,42 +1488,36 @@ export default function Users() {
                   onChange={(e) => setNewFile(e.target.files[0])}
                   className="w-full sm:flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
                 />
-                <button
-                  onClick={handleUpload}
-                  disabled={
-                    !(
-                      currentUserRole === "Super Admin" ||
-                      (currentUserRole === "Management" &&
-                        fileFrameUser?.role?.name !== "Super Admin") ||
-                      (currentUserRole === "HR" &&
-                        fileFrameUser?.role?.name !== "Super Admin" &&
-                        fileFrameUser?.role?.name !== "Management")
-                    )
-                  }
-                  className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
-                    currentUserRole === "Super Admin" ||
-                    (currentUserRole === "Management" &&
-                      fileFrameUser?.role?.name !== "Super Admin") ||
-                    (currentUserRole === "HR" &&
-                      fileFrameUser?.role?.name !== "Super Admin" &&
-                      fileFrameUser?.role?.name !== "Management")
-                      ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                      : "bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed"
-                  }`}
-                  title={
-                    currentUserRole === "Super Admin" ||
-                    (currentUserRole === "Management" &&
-                      fileFrameUser?.role?.name !== "Super Admin") ||
-                    (currentUserRole === "HR" &&
-                      fileFrameUser?.role?.name !== "Super Admin" &&
-                      fileFrameUser?.role?.name !== "Management")
-                      ? "Upload File"
-                      : "You cannot upload for this user"
-                  }
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload</span>
-                </button>
+
+                {/* Define who can upload */}
+                {(() => {
+                  const canUpload = [
+                    "Super Admin",
+                    "Admin",
+                    "Management",
+                    "HR",
+                  ].includes(currentUserRole);
+
+                  return (
+                    <button
+                      onClick={handleUpload}
+                      disabled={!canUpload}
+                      className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
+                        canUpload
+                          ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                          : "bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed"
+                      }`}
+                      title={
+                        canUpload
+                          ? "Upload File"
+                          : "You do not have permission to upload files"
+                      }
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload</span>
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           </div>

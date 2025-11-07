@@ -80,6 +80,66 @@ export default function EmployeeWeeklyEvaluation() {
 
   const SerWeeks = [1, 2, 3, 4];
 
+
+  const [permissions, setPermissions] = useState({
+    view: false,
+    edit: false,
+    add: false,
+    delete: false,
+  });
+
+  // ✅ Fetch and set permissions from userAccess
+  useEffect(() => {
+    const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+    const formAccess = accessData.formAccess || [];
+
+    const activeFormId = localStorage.getItem("activeForm");
+
+    if (!activeFormId || formAccess.length === 0) {
+      console.warn("⚠️ No form access data found for this user.");
+      return;
+    }
+
+    const currentForm = formAccess.find(
+      (f) => String(f.formId) === String(activeFormId)
+    );
+
+    if (currentForm) {
+      if (currentForm.fullAccess) {
+        setPermissions({
+          view: true,
+          edit: true,
+          add: true,
+          delete: true,
+        });
+      } else if (currentForm.partialAccess?.enabled) {
+        const perms = currentForm.partialAccess.permissions || {};
+        setPermissions({
+          view: perms.view || false,
+          edit: perms.edit || false,
+          add: perms.add || false,
+          delete: perms.delete || false,
+        });
+      } else {
+        setPermissions({
+          view: false,
+          edit: false,
+          add: false,
+          delete: false,
+        });
+      }
+    } else {
+      console.warn("⚠️ No matching form access found.");
+    }
+  }, []);
+
+  // Example usage
+  const canView = permissions.view;
+  const canEdit = permissions.edit;
+  const canAdd = permissions.add;
+  const canDelete = permissions.delete;
+
+
   // 🔑 decode JWT
   function parseJwt(token) {
     try {
@@ -162,8 +222,6 @@ export default function EmployeeWeeklyEvaluation() {
           : {}),
       }).toString();
 
-      console.log('query>>>>>',query);
-
       // ✅ Choose API endpoint based on role
       const endpoint =
         role === "Super Admin" || role === "Management" || role === "HR"
@@ -173,9 +231,7 @@ export default function EmployeeWeeklyEvaluation() {
       // ✅ Fetch data
       const res = await fetch(endpoint);
       const data = await res.json();
-
-      console.log('data>>>>>>',data);
-
+      
       if (Array.isArray(data)) {
         setEvaluations(data);
          console.log('setEvaluations>>>>>>', evaluations);
@@ -183,8 +239,7 @@ export default function EmployeeWeeklyEvaluation() {
         console.error("Unexpected API response:", data);
         setEvaluations([]);
       }
-
-     
+    
 
     } catch (error) {
       console.error("Error fetching evaluations:", error);

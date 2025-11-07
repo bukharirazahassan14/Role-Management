@@ -41,7 +41,7 @@ export default function Sidebar() {
 
     const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
     const formAccess = accessData.formAccess || [];
-
+     
     return forms
       .filter((form) => {
         const access = formAccess.find(
@@ -67,6 +67,7 @@ export default function Sidebar() {
         if (f.name === "Report") path = "weeklyevaluation";
 
         return {
+          _id: f._id,
           name: f.name,
           href: `/main/${path}`,
           icon:
@@ -106,7 +107,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Navigation Links */}
+      {/* ✅ Navigation Links with activeForm saving */}
       <nav className="flex flex-col space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -116,7 +117,12 @@ export default function Sidebar() {
           return (
             <button
               key={item.name}
-              onClick={() => router.replace(item.href)}
+              onClick={() => {
+                // ✅ Save active form ID in localStorage
+                localStorage.setItem("activeForm", item._id);
+                // ✅ Navigate
+                router.replace(item.href);
+              }}
               className={`
                 w-full flex items-center 
                 ${
