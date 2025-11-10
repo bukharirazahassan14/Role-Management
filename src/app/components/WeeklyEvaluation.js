@@ -379,6 +379,7 @@ export default function EmployeeWeeklyEvaluation() {
         `/api/weeklyevaluation/performance/${userId}?month=${currentMonth}&year=${currentyear}`
       );
       const data = await res.json();
+
       const existingWeeks = data?.uniqueWeeks || [];
       const weekCount = data?.weekCount || 0;
 
@@ -397,9 +398,10 @@ export default function EmployeeWeeklyEvaluation() {
       fetchEvaluationPrograms();
       setTakenWeeks(existingWeeks);
 
-      // Pick default week (next available)
-      const defaultWeek =
-        existingWeeks.length > 0 ? Math.max(...existingWeeks) + 1 : 1;
+      // ✅ Find first missing week (1–4)
+      const allWeeks = [1, 2, 3, 4];
+      const missingWeek = allWeeks.find((w) => !existingWeeks.includes(w));
+      const defaultWeek = missingWeek ?? 1;
       setSelectedWeek(defaultWeek);
 
       // ✅ Calculate week start/end
@@ -1194,14 +1196,15 @@ export default function EmployeeWeeklyEvaluation() {
                       {/* Action buttons */}
                       <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
                         <div className="flex justify-center items-center gap-4">
-                          {/* 👁️ View Button */}
-                          {canView && (
+                          
+                          {/* ➕ Add Record Button */}
+                          {canAdd && (
                             <button
-                              onClick={() => handleViewEvaluation(ev._id)}
+                              onClick={() => handleAddUser(ev._id)}
                               className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
-                              title="View Evaluation"
+                              title="Add New Record"
                             >
-                              <Glasses className="w-6 h-6" />
+                              <FilePlus className="w-6 h-6" />
                             </button>
                           )}
 
@@ -1215,17 +1218,19 @@ export default function EmployeeWeeklyEvaluation() {
                               <Edit className="w-6 h-6" />
                             </button>
                           )}
-
-                          {/* ➕ Add Record Button */}
-                          {canAdd && (
+                          
+                          {/* 👁️ View Button */}
+                          {canView && (
                             <button
-                              onClick={() => handleAddUser(ev._id)}
+                              onClick={() => handleViewEvaluation(ev._id)}
                               className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
-                              title="Add New Record"
+                              title="View Evaluation"
                             >
-                              <FilePlus className="w-6 h-6" />
+                              <Glasses className="w-6 h-6" />
                             </button>
                           )}
+                                                   
+
                         </div>
                       </td>
 
@@ -1319,174 +1324,172 @@ export default function EmployeeWeeklyEvaluation() {
       ) : (
         // Modern Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-  {evaluations.map((ev) => {
-    const score = ev.totalScoreSum || 0;
-    const weighted = ev.totalWeightedRatingSum || 0;
+          {evaluations.map((ev) => {
+            const score = ev.totalScoreSum || 0;
+            const weighted = ev.totalWeightedRatingSum || 0;
 
-    let performance = ev.performance || "N/A";
-    let badgeClass = "bg-gray-200 text-gray-600";
-    if (performance === "Poor")
-      badgeClass = "bg-red-200/80 text-red-900";
-    else if (performance === "Partial")
-      badgeClass = "bg-orange-200/80 text-orange-900";
-    else if (performance === "Normal")
-      badgeClass = "bg-yellow-200/80 text-yellow-900";
-    else if (performance === "Good")
-      badgeClass = "bg-green-200/80 text-green-900";
-    else if (performance === "Excellent")
-      badgeClass = "bg-blue-200/80 text-blue-900";
+            let performance = ev.performance || "N/A";
+            let badgeClass = "bg-gray-200 text-gray-600";
+            if (performance === "Poor")
+              badgeClass = "bg-red-200/80 text-red-900";
+            else if (performance === "Partial")
+              badgeClass = "bg-orange-200/80 text-orange-900";
+            else if (performance === "Normal")
+              badgeClass = "bg-yellow-200/80 text-yellow-900";
+            else if (performance === "Good")
+              badgeClass = "bg-green-200/80 text-green-900";
+            else if (performance === "Excellent")
+              badgeClass = "bg-blue-200/80 text-blue-900";
 
-    return (
-      <div
-        key={ev._id}
-        className="relative bg-white backdrop-blur-xl border border-gray-200/50 shadow-lg hover:shadow-2xl transition rounded-2xl p-6 group overflow-hidden"
-      >
-        {/* Gradient Accent Bar */}
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+            return (
+              <div
+                key={ev._id}
+                className="relative bg-white backdrop-blur-xl border border-gray-200/50 shadow-lg hover:shadow-2xl transition rounded-2xl p-6 group overflow-hidden"
+              >
+                {/* Gradient Accent Bar */}
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
 
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-            {ev.fullName?.charAt(0) || "U"}
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 text-lg group-hover:text-indigo-600 transition">
-              {ev.fullName || "N/A"}
-            </h3>
-            {/* Weeks Inline */}
-            <div className="flex items-center gap-2 mt-2">
-              {/* Icon + label */}
-              <div className="flex items-center gap-1 text-xs font-medium text-gray-600">
-                <Calendar className="w-3 h-3 text-indigo-500" />
-                Weeks
+                {/* Header */}
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                    {ev.fullName?.charAt(0) || "U"}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-lg group-hover:text-indigo-600 transition">
+                      {ev.fullName || "N/A"}
+                    </h3>
+                    {/* Weeks Inline */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {/* Icon + label */}
+                      <div className="flex items-center gap-1 text-xs font-medium text-gray-600">
+                        <Calendar className="w-3 h-3 text-indigo-500" />
+                        Weeks
+                      </div>
+
+                      {/* Equal-size smaller bars */}
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4].map((week) => {
+                          const isActive = ev.weekNumbers?.includes(week);
+                          return (
+                            <div
+                              key={week}
+                              className={`w-5 h-1.5 rounded-full transition ${
+                                isActive
+                                  ? "bg-indigo-500 shadow-md"
+                                  : "bg-gray-200"
+                              }`}
+                              title={`Week ${week}`}
+                            ></div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="mt-6 space-y-4 text-sm text-gray-700">
+                  {/* Dates */}
+                  <div className="flex justify-between items-center gap-4">
+                    <p className="flex items-center gap-2 font-medium">
+                      <Calendar className="w-4 h-4 text-indigo-500" />
+                      {ev.weekStart
+                        ? new Date(ev.weekStart).toLocaleDateString("en-US", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "-"}
+                    </p>
+
+                    <span className="text-gray-500">→</span>
+
+                    <p className="flex items-center gap-2 font-medium">
+                      <Calendar className="w-4 h-4 text-purple-500" />
+                      {ev.weekEnd
+                        ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "-"}
+                    </p>
+                  </div>
+
+                  {/* Score */}
+                  <p className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <Star className="w-4 h-4 text-yellow-500" /> Score
+                    </span>
+                    <span className="font-medium text-indigo-700">{score}</span>
+                  </p>
+
+                  {/* Weighted */}
+                  <p className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <TrendingUp className="w-4 h-4 text-green-500" /> Weighted
+                    </span>
+                    <span className="font-medium text-green-700">
+                      {weighted.toFixed(2)}
+                    </span>
+                  </p>
+
+                  {/* Performance */}
+                  <p className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <Award className="w-4 h-4 text-pink-500" /> Performance
+                    </span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}
+                    >
+                      {performance}
+                    </span>
+                  </p>
+                </div>
+
+                {/* ✅ Actions */}
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  {canAdd && (
+                    <button
+                      onClick={() => handleAddUser(ev._id)}
+                      className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
+                      title="Add Record"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  )}
+                  {canEdit && (
+                    <button
+                      onClick={() => handleEditEvaluation(ev._id)}
+                      className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  )}
+                  {canView && (
+                    <button
+                      onClick={() => handleViewEvaluation(ev._id)}
+                      className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+                      title="View"
+                    >
+                      <Glasses className="w-4 h-4" />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteEvaluation(ev._id)}
+                      className="p-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
-
-              {/* Equal-size smaller bars */}
-              <div className="flex gap-1.5">
-                {[1, 2, 3, 4].map((week) => {
-                  const isActive = ev.weekNumbers?.includes(week);
-                  return (
-                    <div
-                      key={week}
-                      className={`w-5 h-1.5 rounded-full transition ${
-                        isActive ? "bg-indigo-500 shadow-md" : "bg-gray-200"
-                      }`}
-                      title={`Week ${week}`}
-                    ></div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
-
-        {/* Details */}
-        <div className="mt-6 space-y-4 text-sm text-gray-700">
-          {/* Dates */}
-          <div className="flex justify-between items-center gap-4">
-            <p className="flex items-center gap-2 font-medium">
-              <Calendar className="w-4 h-4 text-indigo-500" />
-              {ev.weekStart
-                ? new Date(ev.weekStart).toLocaleDateString("en-US", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "-"}
-            </p>
-
-            <span className="text-gray-500">→</span>
-
-            <p className="flex items-center gap-2 font-medium">
-              <Calendar className="w-4 h-4 text-purple-500" />
-              {ev.weekEnd
-                ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "-"}
-            </p>
-          </div>
-
-          {/* Score */}
-          <p className="flex justify-between items-center">
-            <span className="flex items-center gap-2 font-medium">
-              <Star className="w-4 h-4 text-yellow-500" /> Score
-            </span>
-            <span className="font-medium text-indigo-700">{score}</span>
-          </p>
-
-          {/* Weighted */}
-          <p className="flex justify-between items-center">
-            <span className="flex items-center gap-2 font-medium">
-              <TrendingUp className="w-4 h-4 text-green-500" /> Weighted
-            </span>
-            <span className="font-medium text-green-700">
-              {weighted.toFixed(2)}
-            </span>
-          </p>
-
-          {/* Performance */}
-          <p className="flex justify-between items-center">
-            <span className="flex items-center gap-2 font-medium">
-              <Award className="w-4 h-4 text-pink-500" /> Performance
-            </span>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}
-            >
-              {performance}
-            </span>
-          </p>
-
-          
-          
-        </div>
-
-        {/* ✅ Actions */}
-        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-          {canAdd && (
-            <button
-              onClick={() => handleAddUser(ev._id)}
-              className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
-              title="Add Record"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          )}
-          {canEdit && (
-            <button
-              onClick={() => handleEditEvaluation(ev._id)}
-              className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-              title="Edit"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-          )}
-          {canView && (
-            <button
-              onClick={() => handleViewEvaluation(ev._id)}
-              className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-              title="View"
-            >
-              <Glasses className="w-4 h-4" />
-            </button>
-          )}
-          {canDelete && (
-            <button
-              onClick={() => handleDeleteEvaluation(ev._id)}
-              className="p-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  })}
-</div>
-
       )}
     </div>
   );
