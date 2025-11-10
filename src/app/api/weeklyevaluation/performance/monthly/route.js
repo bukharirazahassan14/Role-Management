@@ -65,15 +65,27 @@ export async function GET(req) {
       },
       { $unwind: { path: "$roleInfo", preserveNullAndEmptyArrays: true } },
 
-      // ✅ Only HR, Staff, Temp Staff users
+      // --- Lookup UserAccessControl ---
+      {
+        $lookup: {
+          from: "useraccesscontrol",
+          localField: "_id",
+          foreignField: "userId",
+          as: "accessControl",
+        },
+      },
+
+      // ✅ Only HR, Staff, Temp Staff users & must have applyKpi = true
       {
         $match: {
-           "roleInfo.name": { $nin: ["Super Admin"] },
-          // ✅ Always take the latest selected month’s end date
+          "roleInfo.name": { $nin: ["Super Admin"] },
           joiningDate: {
             $lte: new Date(
               Math.max(...monthDateRanges.map((r) => r.end.getTime()))
             ),
+          },
+          "accessControl.formAccess": {
+            $elemMatch: { "partialAccess.permissions.applyKpi": true },
           },
         },
       },
@@ -99,7 +111,6 @@ export async function GET(req) {
                 ...matchCondition,
               },
             },
-            // Group by month to collect week numbers and stats
             {
               $group: {
                 _id: { month: { $month: "$weekEnd" } },
@@ -111,7 +122,6 @@ export async function GET(req) {
                 maxWeekEnd: { $max: "$weekEnd" },
               },
             },
-            // Then group all months back together
             {
               $group: {
                 _id: null,
@@ -123,7 +133,6 @@ export async function GET(req) {
                 latestWeekEnd: { $max: "$maxWeekEnd" },
               },
             },
-            // ✅ Flatten weekNumbers
             {
               $addFields: {
                 weekNumbers: {
@@ -133,11 +142,6 @@ export async function GET(req) {
                     in: { $concatArrays: ["$$value", "$$this"] },
                   },
                 },
-              },
-            },
-            // ✅ Compute averages and divisor
-            {
-              $addFields: {
                 divisor: { $multiply: ["$activeMonthsCount", 4] },
                 avgWeightedRating: {
                   $cond: [
@@ -183,57 +187,25 @@ export async function GET(req) {
               else: {
                 $switch: {
                   branches: [
-                    {
-                      case: { $lte: ["$evaluations.avgWeightedRating", 1] },
-                      then: "Poor",
-                    },
-                    {
-                      case: { $lte: ["$evaluations.avgWeightedRating", 2] },
-                      then: "Partial",
-                    },
-                    {
-                      case: { $lte: ["$evaluations.avgWeightedRating", 3] },
-                      then: "Normal",
-                    },
-                    {
-                      case: { $lte: ["$evaluations.avgWeightedRating", 4] },
-                      then: "Good",
-                    },
-                    {
-                      case: { $gt: ["$evaluations.avgWeightedRating", 4] },
-                      then: "Excellent",
-                    },
+                    { case: { $lte: ["$evaluations.avgWeightedRating", 1] }, then: "Poor" },
+                    { case: { $lte: ["$evaluations.avgWeightedRating", 2] }, then: "Partial" },
+                    { case: { $lte: ["$evaluations.avgWeightedRating", 3] }, then: "Normal" },
+                    { case: { $lte: ["$evaluations.avgWeightedRating", 4] }, then: "Good" },
+                    { case: { $gt: ["$evaluations.avgWeightedRating", 4] }, then: "Excellent" },
                   ],
                   default: "Unknown",
                 },
               },
             },
           },
-
-          // ✅ Added Action logic
           Action: {
             $switch: {
               branches: [
-                {
-                  case: { $lte: ["$evaluations.avgWeightedRating", 1] },
-                  then: "Urgent Meeting",
-                },
-                {
-                  case: { $lte: ["$evaluations.avgWeightedRating", 2] },
-                  then: "Hr Meeting",
-                },
-                {
-                  case: { $lte: ["$evaluations.avgWeightedRating", 3] },
-                  then: "Motivate",
-                },
-                {
-                  case: { $lte: ["$evaluations.avgWeightedRating", 4] },
-                  then: "Nothing",
-                },
-                {
-                  case: { $lte: ["$evaluations.avgWeightedRating", 5] },
-                  then: "Bonus",
-                },
+                { case: { $lte: ["$evaluations.avgWeightedRating", 1] }, then: "Urgent Meeting" },
+                { case: { $lte: ["$evaluations.avgWeightedRating", 2] }, then: "Hr Meeting" },
+                { case: { $lte: ["$evaluations.avgWeightedRating", 3] }, then: "Motivate" },
+                { case: { $lte: ["$evaluations.avgWeightedRating", 4] }, then: "Nothing" },
+                { case: { $lte: ["$evaluations.avgWeightedRating", 5] }, then: "Bonus" },
               ],
               default: "None",
             },

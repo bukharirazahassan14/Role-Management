@@ -184,6 +184,15 @@ export default function Header({ title = "Dashboard Overview", userName = "Super
         {/* Right - User */}
         <div className="relative" ref={menuRef}>
           <div className="flex items-center gap-3 group">
+            
+             {/* Only name toggles dropdown */}
+            <span
+              onClick={() => setOpen(!open)}
+              className="text-lg font-semibold text-gray-700 group-hover:text-blue-600 transition cursor-pointer"
+            >
+              {storedName}
+            </span>
+            
             {/* Image opens profile card */}
             <div
               className="relative cursor-pointer transform transition-transform duration-300 hover:scale-110"
@@ -201,13 +210,7 @@ export default function Header({ title = "Dashboard Overview", userName = "Super
               <span className="absolute bottom-0 right-0 block w-3 h-3 bg-blue-500 border-2 border-white rounded-full"></span>
             </div>
 
-            {/* Only name toggles dropdown */}
-            <span
-              onClick={() => setOpen(!open)}
-              className="text-lg font-semibold text-gray-700 group-hover:text-blue-600 transition cursor-pointer"
-            >
-              {storedName}
-            </span>
+           
           </div>
 
           {/* Dropdown Menu */}

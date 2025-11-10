@@ -160,7 +160,10 @@ export default function Roles() {
         return;
       }
 
-      showToast(`Role ${isUpdate ? "updated" : "created"} successfully`, "success");
+      showToast(
+        `Role ${isUpdate ? "updated" : "created"} successfully`,
+        "success"
+      );
       await fetchRoles();
       handleCloseCard();
     } catch (err) {
@@ -368,15 +371,19 @@ export default function Roles() {
 
           <form onSubmit={handleRoleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-600">Name</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Name
+              </label>
               <input
                 type="text"
                 value={newRole.name}
-                onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+                onChange={(e) =>
+                  setNewRole({ ...newRole, name: e.target.value })
+                }
                 placeholder="Enter role name"
-                className={`w-full p-2.5 border rounded-lg focus:ring-2 outline-none ${
-                  isReadOnly ? "bg-gray-100" : "focus:ring-indigo-400"
-                }`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-700 placeholder-gray-400
+      focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400
+      disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed`}
                 disabled={isReadOnly || !!editingRole}
               />
               {!!editingRole && !isReadOnly && (
@@ -387,7 +394,9 @@ export default function Roles() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-600">Label</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Label
+              </label>
               <input
                 type="text"
                 value={newRole.description}
@@ -395,9 +404,9 @@ export default function Roles() {
                   setNewRole({ ...newRole, description: e.target.value })
                 }
                 placeholder="Enter visible name"
-                className={`w-full p-2.5 border rounded-lg focus:ring-2 outline-none ${
-                  isReadOnly ? "bg-gray-100" : "focus:ring-pink-400"
-                }`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-700 placeholder-gray-400
+      focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400
+      disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed`}
                 disabled={isReadOnly}
               />
             </div>

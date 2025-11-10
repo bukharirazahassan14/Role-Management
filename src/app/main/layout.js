@@ -19,16 +19,16 @@ export default function MainLayout({ children }) {
 
   // ✅ If role is Staff or Temp Staff, show "My Profile" instead of "User Profile"
   const isStaff =
-    currentUserRole === "Staff" || currentUserRole === "Temp Staff";
+    currentUserRole === "Super Admin" || currentUserRole === "Admin" || currentUserRole === "HR" || currentUserRole === "Manager";
 
   const title = pathname.includes("/dashboard")
     ? isStaff
-      ? "Dashboard"
-      : "Team Dashboard"
+      ? "Team Dashboard"
+      : "Dashboard"
     : pathname.includes("/users")
     ? isStaff
-      ? "My Profile"
-      : "User Profile"
+      ? "User Profile"
+      : ""
     : pathname.includes("/roles")
     ? "Roles"
     : pathname.includes("/weeklyevaluation")
@@ -41,8 +41,8 @@ export default function MainLayout({ children }) {
     ? "User Access Control"
     : pathname.includes("/UserProfile")
     ? isStaff
-      ? "My Profile"
-      : "User Profile"
+      ? "User Profile"
+      : "My Profile"
     : "";
 
   return (

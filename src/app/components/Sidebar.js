@@ -16,6 +16,15 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [forms, setForms] = useState([]);
+  const [currentUserRole, setCurrentUserRole] = useState("");
+
+  // ✅ Fetch role from localStorage when component mounts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const role = localStorage.getItem("userRole");
+      setCurrentUserRole(role);
+    }
+  }, []);
 
   // ✅ Fetch AccessControlForm data once
   useEffect(() => {
@@ -41,7 +50,7 @@ export default function Sidebar() {
 
     const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
     const formAccess = accessData.formAccess || [];
-     
+
     return forms
       .filter((form) => {
         const access = formAccess.find(
@@ -75,14 +84,14 @@ export default function Sidebar() {
               ? LayoutDashboard
               : f.name === "Roles"
               ? Briefcase
-              : f.name === "Profile"
+              : f.name === "Users"
               ? Users
               : ClipboardCheck,
         };
       });
   }, [forms]);
 
-  const sidebarWidth = isCollapsed ? "w-20" : "w-40";
+  const sidebarWidth = isCollapsed ? "w-17" : "w-40";
   const sidebarPadding = isCollapsed ? "px-2" : "px-3";
   const ToggleIcon = isCollapsed ? ChevronRight : ChevronLeft;
 
@@ -143,7 +152,15 @@ export default function Sidebar() {
                 size={iconSize}
                 className="flex-shrink-0 transition-all duration-300"
               />
-              {!isCollapsed && <span className="truncate">{item.name}</span>}
+              <span className="truncate">
+                {["Super Admin", "Admin", "HR", "Manager"].includes(
+                  currentUserRole
+                )
+                  ? item.name
+                  : item.name === "Users"
+                  ? "My Profile"
+                  : item.name}
+              </span>
             </button>
           );
         })}

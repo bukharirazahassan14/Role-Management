@@ -663,7 +663,7 @@ export default function Users() {
                   required
                   maxLength={50}
                   defaultValue={selectedUser?.firstName || ""}
-                  className="form-input-modern"
+                  className="form-input-modern bg-white text-gray-900"
                 />
               </div>
               <div>
@@ -675,7 +675,7 @@ export default function Users() {
                   required
                   maxLength={50}
                   defaultValue={selectedUser?.lastName || ""}
-                  className="form-input-modern"
+                  className="form-input-modern bg-white text-gray-900"
                 />
               </div>
             </div>
@@ -690,7 +690,7 @@ export default function Users() {
                 required
                 maxLength={100}
                 defaultValue={selectedUser?.primaryEmail || ""}
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
               />
             </div>
             <div>
@@ -701,7 +701,7 @@ export default function Users() {
                 type="email"
                 maxLength={100}
                 defaultValue={selectedUser?.secondaryEmail || ""}
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
               />
             </div>
 
@@ -713,7 +713,7 @@ export default function Users() {
                 name="password"
                 type="password"
                 maxLength={128}
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
                 placeholder="••••••••"
               />
             </div>
@@ -727,7 +727,7 @@ export default function Users() {
                 type="text"
                 maxLength={100}
                 defaultValue={selectedUser?.fatherName || ""}
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
               />
             </div>
 
@@ -741,7 +741,7 @@ export default function Users() {
                   type="text"
                   maxLength={15}
                   defaultValue={selectedUser?.phone || ""}
-                  className="form-input-modern"
+                  className="form-input-modern bg-white text-gray-900"
                   placeholder="03XXXXXXXXX"
                 />
               </div>
@@ -753,7 +753,7 @@ export default function Users() {
                   type="text"
                   maxLength={15}
                   defaultValue={selectedUser?.cnic || ""}
-                  className="form-input-modern"
+                  className="form-input-modern bg-white text-gray-900"
                   placeholder="XXXXX-XXXXXXX-X"
                 />
               </div>
@@ -769,7 +769,7 @@ export default function Users() {
                   type="text"
                   maxLength={15}
                   defaultValue={selectedUser?.emergencyContact || ""}
-                  className="form-input-modern"
+                  className="form-input-modern bg-white text-gray-900"
                 />
               </div>
               <div>
@@ -780,7 +780,7 @@ export default function Users() {
                   type="text"
                   maxLength={50}
                   defaultValue={selectedUser?.emergencyRelation || ""}
-                  className="form-input-modern"
+                  className="form-input-modern bg-white text-gray-900"
                   placeholder="Brother, Sister, etc."
                 />
               </div>
@@ -796,13 +796,13 @@ export default function Users() {
                 onChange={(e) =>
                   setUserFormData((prev) => ({ ...prev, role: e.target.value }))
                 }
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
                 required
                 disabled={
                   !["Super Admin", "Admin", "HR", "Management"].includes(
                     currentUserRole
                   )
-                } // ✅ Only these roles can edit
+                }
               >
                 {roles.map((role) => (
                   <option key={role._id} value={role._id}>
@@ -831,7 +831,7 @@ export default function Users() {
                         .split("T")[0]
                     : ""
                 }
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
               />
             </div>
 
@@ -844,7 +844,7 @@ export default function Users() {
                 type="text"
                 maxLength={200}
                 defaultValue={selectedUser?.medicalCondition || ""}
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
               />
             </div>
 
@@ -862,16 +862,17 @@ export default function Users() {
                 onChange={(e) =>
                   setUserFormData((prev) => ({ ...prev, jd: e.target.value }))
                 }
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
                 style={{
-                  maxHeight: "180px", // limits dropdown height
-                  overflowY: "auto", // makes it scrollable
+                  maxHeight: "180px",
+                  overflowY: "auto",
                 }}
               >
                 <option value="Software Developer">Software Developer</option>
                 <option value="Associate Software Developer">
                   Associate Software Developer
                 </option>
+                <option value="Business Dev">Business Dev</option>
                 <option value="Full Stack Developer">
                   Full Stack Developer
                 </option>
@@ -915,7 +916,7 @@ export default function Users() {
                 }
                 maxLength={500}
                 defaultValue={selectedUser?.exp || ""}
-                className="form-input-modern"
+                className="form-input-modern bg-white text-gray-900"
                 placeholder="e.g., 3 years"
               />
             </div>
@@ -976,9 +977,9 @@ export default function Users() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg 
-           bg-white shadow-sm
-           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
-           text-base placeholder-gray-400 transition"
+             bg-white text-gray-900 shadow-sm
+             focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+             text-base placeholder-gray-400 transition"
               />
               {/* Bigger blue icon aligned vertically */}
               <Glasses className="absolute left-3 top-2.5 w-7 h-7 text-blue-500" />
@@ -1344,10 +1345,9 @@ export default function Users() {
       )}
 
       {/* ✅ Pagination + Info (visible only for Super Admin, HR, or Management) */}
-      {(currentUserRole === "Super Admin" ||
-        currentUserRole === "HR" ||
-        currentUserRole === "Management" ||
-        currentUserRole === "Admin") && (
+      {["Super Admin", "HR", "Management", "Admin"].includes(
+        currentUserRole
+      ) && (
         <div className="flex justify-end items-center mt-4 space-x-4">
           <p className="text-sm text-gray-500">
             Showing {indexOfFirstUser + 1} -{" "}
@@ -1356,14 +1356,16 @@ export default function Users() {
           </p>
 
           <div className="flex space-x-2">
+            {/* Prev Button */}
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+              className="px-3 py-1 border rounded-md text-sm bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Prev
             </button>
 
+            {/* Page Numbers */}
             {[...Array(totalPages)].map((_, idx) => (
               <button
                 key={idx}
@@ -1378,10 +1380,11 @@ export default function Users() {
               </button>
             ))}
 
+            {/* Next Button */}
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded-md text-sm hover:bg-gray-100 disabled:opacity-50"
+              className="px-3 py-1 border rounded-md text-sm bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Next
             </button>

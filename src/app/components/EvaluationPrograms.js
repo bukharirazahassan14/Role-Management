@@ -318,7 +318,11 @@ export default function EvaluationPrograms() {
             onChange={(e) =>
               setNewProgram({ ...newProgram, Name: e.target.value })
             }
-            className="w-full rounded-xl px-4 py-2 mb-4 bg-gray-50/70 focus:ring-2 focus:ring-indigo-400 focus:bg-white outline-none"
+             className="w-full rounded-xl px-4 py-2 mb-4 
+             bg-white 
+             text-gray-900 
+             focus:ring-2 focus:ring-indigo-400 
+             outline-none transition"
           />
 
           {/* Description Input */}
@@ -328,7 +332,11 @@ export default function EvaluationPrograms() {
             onChange={(e) =>
               setNewProgram({ ...newProgram, Description: e.target.value })
             }
-            className="w-full rounded-xl px-4 py-3 mb-4 bg-gray-50/70 focus:ring-2 focus:ring-indigo-400 focus:bg-white outline-none resize-y min-h-[80px] max-h-[200px]"
+            className="w-full rounded-xl px-4 py-3 mb-4 
+             bg-white 
+             text-gray-900 
+             focus:ring-2 focus:ring-indigo-400 
+             outline-none resize-y min-h-[80px] max-h-[200px] transition"
           />
 
           {/* Weightage Input */}

@@ -80,12 +80,47 @@ export default function EmployeeWeeklyEvaluation() {
 
   const SerWeeks = [1, 2, 3, 4];
 
+  const DEFAULT_SCORE = 5;
+
+  // 1️⃣ Initialize evaluationScores once when programs load
+  useEffect(() => {
+    if (evaluationPrograms && evaluationPrograms.length > 0) {
+      const initialScores = evaluationPrograms.map((prog) => ({
+        _id: prog._id,
+        score: DEFAULT_SCORE,
+        weightage: prog.Weightage,
+        weightedRating: parseFloat(
+          ((DEFAULT_SCORE * prog.Weightage) / 100).toFixed(2)
+        ),
+      }));
+      setEvaluationScores(initialScores);
+    }
+  }, [evaluationPrograms]);
+
+  // Handle score input + calculate weighted rating
+  const handleScoreChange = (index, score, weightage, progId) => {
+    const newScores = [...evaluationScores];
+    const numericScore = parseFloat(score) || 0;
+
+    // Correct calculation with 2 decimal places
+    const weightedRating = ((numericScore * weightage) / 100).toFixed(2);
+
+    newScores[index] = {
+      _id: progId,
+      score: numericScore,
+      weightage,
+      weightedRating: parseFloat(weightedRating), // store as number, not string
+    };
+
+    setEvaluationScores(newScores);
+  };
 
   const [permissions, setPermissions] = useState({
     view: false,
     edit: false,
     add: false,
     delete: false,
+    applyKpi: false,
   });
 
   // ✅ Fetch and set permissions from userAccess
@@ -94,6 +129,13 @@ export default function EmployeeWeeklyEvaluation() {
     const formAccess = accessData.formAccess || [];
 
     const activeFormId = localStorage.getItem("activeForm");
+
+    // ✅ Extract userId from accessData
+    if (accessData.userId) {
+      //
+    } else {
+      console.warn("⚠️ No userId found in userAccess data.");
+    }
 
     if (!activeFormId || formAccess.length === 0) {
       console.warn("⚠️ No form access data found for this user.");
@@ -111,6 +153,7 @@ export default function EmployeeWeeklyEvaluation() {
           edit: true,
           add: true,
           delete: true,
+          applyKpi: true,
         });
       } else if (currentForm.partialAccess?.enabled) {
         const perms = currentForm.partialAccess.permissions || {};
@@ -119,6 +162,7 @@ export default function EmployeeWeeklyEvaluation() {
           edit: perms.edit || false,
           add: perms.add || false,
           delete: perms.delete || false,
+          applyKpi: perms.applyKpi || false,
         });
       } else {
         setPermissions({
@@ -126,6 +170,7 @@ export default function EmployeeWeeklyEvaluation() {
           edit: false,
           add: false,
           delete: false,
+          applyKpi: false,
         });
       }
     } else {
@@ -138,7 +183,7 @@ export default function EmployeeWeeklyEvaluation() {
   const canEdit = permissions.edit;
   const canAdd = permissions.add;
   const canDelete = permissions.delete;
-
+  const canApplyKpi = permissions.applyKpi;
 
   // 🔑 decode JWT
   function parseJwt(token) {
@@ -217,30 +262,33 @@ export default function EmployeeWeeklyEvaluation() {
         year: SerYear,
         month: SerMonth,
         ...(weekParam ? { week: weekParam } : {}),
-        ...(role !== "Super Admin" && role !== "Management" && role !== "HR"
+        ...(role !== "Super Admin" &&
+        role !== "Management" &&
+        role !== "HR" &&
+        role !== "Admin"
           ? { userId } // add userId for non-admins
           : {}),
       }).toString();
 
       // ✅ Choose API endpoint based on role
       const endpoint =
-        role === "Super Admin" || role === "Management" || role === "HR"
+        role === "Super Admin" ||
+        role === "Management" ||
+        role === "HR" ||
+        role === "Admin"
           ? `/api/weeklyevaluation/performance/monthly?${query}`
           : `/api/weeklyevaluation/performance/monthly/usermonthly?${query}`;
 
       // ✅ Fetch data
       const res = await fetch(endpoint);
       const data = await res.json();
-      
+
       if (Array.isArray(data)) {
         setEvaluations(data);
-         console.log('setEvaluations>>>>>>', evaluations);
       } else {
         console.error("Unexpected API response:", data);
         setEvaluations([]);
       }
-    
-
     } catch (error) {
       console.error("Error fetching evaluations:", error);
     }
@@ -511,24 +559,6 @@ export default function EmployeeWeeklyEvaluation() {
     }
   };
 
-  // Handle score input + calculate weighted rating
-  const handleScoreChange = (index, score, weightage, progId) => {
-    const newScores = [...evaluationScores];
-    const numericScore = parseFloat(score) || 0;
-
-    // Correct calculation with 2 decimal places
-    const weightedRating = ((numericScore * weightage) / 100).toFixed(2);
-
-    newScores[index] = {
-      _id: progId,
-      score: numericScore,
-      weightage,
-      weightedRating: parseFloat(weightedRating), // store as number, not string
-    };
-
-    setEvaluationScores(newScores);
-  };
-
   // ✅ Function to handle editing an evaluation
   const handleEditEvaluation = async (userId) => {
     try {
@@ -778,7 +808,7 @@ export default function EmployeeWeeklyEvaluation() {
                   value={weekStart}
                   disabled
                   onChange={(e) => setWeekStart(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm bg-white text-gray-900 disabled:bg-white disabled:text-gray-900 cursor-not-allowed focus:ring-2 focus:ring-indigo-500"
                 />
 
                 {/* Arrow (inline, no extra column) */}
@@ -790,7 +820,7 @@ export default function EmployeeWeeklyEvaluation() {
                   value={weekEnd}
                   disabled
                   onChange={(e) => setWeekEnd(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm bg-white text-gray-900 disabled:bg-white disabled:text-gray-900 cursor-not-allowed focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -807,7 +837,7 @@ export default function EmployeeWeeklyEvaluation() {
                 onChange={(e) => setSelectedUserId(e.target.value)}
                 required
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm bg-white text-gray-900 disabled:bg-white disabled:text-gray-900 cursor-not-allowed"
               >
                 <option value="" disabled hidden></option>
                 {users.map((u) => (
@@ -870,7 +900,7 @@ export default function EmployeeWeeklyEvaluation() {
                                   );
                                 }}
                                 required
-                                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-900"
                               >
                                 <option value="">Select</option>
                                 {[1, 2, 3, 4, 5].map((num) => (
@@ -880,14 +910,14 @@ export default function EmployeeWeeklyEvaluation() {
                                     style={{
                                       backgroundColor:
                                         num === 1
-                                          ? "#fecaca" // red-200
+                                          ? "#fecaca"
                                           : num === 2
-                                          ? "#fde68a" // yellow-300
+                                          ? "#fde68a"
                                           : num === 3
-                                          ? "#fef3c7" // amber-100
+                                          ? "#fef3c7"
                                           : num === 4
-                                          ? "#bbf7d0" // green-200
-                                          : "#86efac", // green-300
+                                          ? "#bbf7d0"
+                                          : "#86efac",
                                       color: "#000",
                                     }}
                                   >
@@ -896,6 +926,7 @@ export default function EmployeeWeeklyEvaluation() {
                                 ))}
                               </select>
                             </td>
+
                             <td className="px-4 py-2 text-center font-semibold text-indigo-700">
                               {evaluationScores[index]?.weightedRating || "--"}
                             </td>
@@ -939,7 +970,7 @@ export default function EmployeeWeeklyEvaluation() {
                       onChange={(e) => setComments(e.target.value)}
                       rows={3}
                       placeholder="Write your evaluation comments here..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white text-gray-900"
                     />
                   </div>
                 </div>
@@ -986,7 +1017,7 @@ export default function EmployeeWeeklyEvaluation() {
                       SerSelectedWeeks
                     );
                   }}
-                  className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white text-gray-900 shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {SerYears.map((SerY) => (
                     <option key={SerY} value={SerY}>
@@ -1012,7 +1043,7 @@ export default function EmployeeWeeklyEvaluation() {
                       SerSelectedWeeks
                     );
                   }}
-                  className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white text-gray-900 shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {SerMonths.map((SerM) => (
                     <option key={SerM.SerValue} value={SerM.SerValue}>
@@ -1131,7 +1162,7 @@ export default function EmployeeWeeklyEvaluation() {
             </thead>
 
             <tbody>
-              {evaluations.length === 0  ? (
+              {evaluations.length === 0 ? (
                 <tr>
                   <td
                     colSpan={8}
@@ -1141,42 +1172,30 @@ export default function EmployeeWeeklyEvaluation() {
                   </td>
                 </tr>
               ) : (
-                evaluations
-                  .filter((ev) => {
-                    if (
-                      currentUserRole === "Staff" ||
-                      currentUserRole === "Temp Staff"
-                    ) {
-                      return (
-                        ev.roleName !== "Super Admin" &&
-                        ev.roleName !== "Management" &&
-                        ev.roleName !== "HR"
-                      );
-                    }
-                    return true;
-                  })
-                  .map((ev) => {
-                    let performance = ev.performance || "";
-                    let colorClass = "text-gray-600 font-medium";
-                    if (performance === "Poor")
-                      colorClass = "text-red-600 font-semibold";
-                    else if (performance === "Partial")
-                      colorClass = "text-orange-500 font-semibold";
-                    else if (performance === "Normal")
-                      colorClass = "text-yellow-500 font-semibold";
-                    else if (performance === "Good")
-                      colorClass = "text-green-600 font-semibold";
-                    else if (performance === "Excellent")
-                      colorClass = "text-blue-600 font-semibold";
+                evaluations.map((ev) => {
+                  let performance = ev.performance || "";
+                  let colorClass = "text-gray-600 font-medium";
+                  if (performance === "Poor")
+                    colorClass = "text-red-600 font-semibold";
+                  else if (performance === "Partial")
+                    colorClass = "text-orange-500 font-semibold";
+                  else if (performance === "Normal")
+                    colorClass = "text-yellow-500 font-semibold";
+                  else if (performance === "Good")
+                    colorClass = "text-green-600 font-semibold";
+                  else if (performance === "Excellent")
+                    colorClass = "text-blue-600 font-semibold";
 
-                    return (
-                      <tr
-                        key={ev._id}
-                        className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-                      >
-                        {/* Action buttons */}
-                        <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
-                          <div className="flex justify-center items-center gap-4">
+                  return (
+                    <tr
+                      key={ev._id}
+                      className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                    >
+                      {/* Action buttons */}
+                      <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
+                        <div className="flex justify-center items-center gap-4">
+                          {/* 👁️ View Button */}
+                          {canView && (
                             <button
                               onClick={() => handleViewEvaluation(ev._id)}
                               className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
@@ -1184,121 +1203,115 @@ export default function EmployeeWeeklyEvaluation() {
                             >
                               <Glasses className="w-6 h-6" />
                             </button>
+                          )}
 
-                            {(currentUserRole === "Super Admin" ||
-                              currentUserRole === "HR" ||
-                              currentUserRole === "Management") && (
-                              <button
-                                onClick={() => handleEditEvaluation(ev._id)}
-                                className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
-                                title="Edit Evaluation"
-                              >
-                                <Edit className="w-6 h-6" />
-                              </button>
-                            )}
-
-                            {(currentUserRole === "Super Admin" ||
-                              currentUserRole === "HR" ||
-                              currentUserRole === "Management") && (
-                              <button
-                                onClick={() => handleAddUser(ev._id)}
-                                className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
-                                title="Add New Record"
-                              >
-                                <FilePlus className="w-6 h-6" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Name */}
-                        <td className="px-6 py-5 text-gray-900 font-semibold truncate text-base">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                              {ev.fullName ? ev.fullName[0] : "?"}
-                            </div>
-                            <span>{ev.fullName || ""}</span>
-                          </div>
-                        </td>
-
-                        {/* Weeks */}
-                        <td className="px-4 py-5 text-center">
-                          <div className="flex gap-1 justify-center">
-                            {[1, 2, 3, 4].map((week) => {
-                              const isActive = ev.weekNumbers?.includes(week);
-                              return (
-                                <span
-                                  key={week}
-                                  className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition ${
-                                    isActive
-                                      ? "bg-indigo-600 text-white shadow-md"
-                                      : "bg-gray-200 text-gray-400"
-                                  }`}
-                                  title={`Week ${week}`}
-                                >
-                                  {week}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </td>
-
-                        {/* Start Date */}
-                        <td className="px-4 py-5 text-center text-gray-700 text-sm">
-                          {ev.weekStart
-                            ? new Date(ev.weekStart).toLocaleDateString(
-                                "en-US",
-                                {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                }
-                              )
-                            : ""}
-                        </td>
-
-                        {/* End Date */}
-                        <td className="px-4 py-5 text-center text-gray-700 text-sm">
-                          {ev.weekEnd
-                            ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : ""}
-                        </td>
-
-                        {/* AVG Rating */}
-                        <td className="px-4 py-5 text-right font-semibold text-gray-800">
-                          {ev.avgWeightedRating > 0
-                            ? ev.avgWeightedRating.toFixed(2)
-                            : "-"}
-                        </td>
-
-                        {/* Performance */}
-                        <td
-                          className={`px-4 py-5 text-center ${colorClass} text-sm font-semibold`}
-                        >
-                          {performance || ""}
-                        </td>
-
-                        {/* Delete */}
-                        <td className="px-4 py-5 text-center rounded-r-2xl">
-                          {(currentUserRole === "Super Admin" ||
-                            currentUserRole === "HR" ||
-                            currentUserRole === "Management") && (
+                          {/* ✏️ Edit Button */}
+                          {canEdit && (
                             <button
-                              onClick={() => handleDeleteEvaluation(ev._id)}
-                              className="text-red-600 hover:text-red-800 hover:scale-110 transition-all"
-                              title="Delete Evaluation"
+                              onClick={() => handleEditEvaluation(ev._id)}
+                              className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                              title="Edit Evaluation"
                             >
-                              <Trash2 className="w-6 h-6" />
+                              <Edit className="w-6 h-6" />
                             </button>
                           )}
-                        </td>
-                      </tr>
-                    );
-                  })
+
+                          {/* ➕ Add Record Button */}
+                          {canAdd && (
+                            <button
+                              onClick={() => handleAddUser(ev._id)}
+                              className="text-indigo-600 hover:text-indigo-900 hover:scale-110 transition-all"
+                              title="Add New Record"
+                            >
+                              <FilePlus className="w-6 h-6" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Name */}
+                      <td className="px-6 py-5 text-gray-900 font-semibold truncate text-base">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                            {ev.fullName ? ev.fullName[0] : "?"}
+                          </div>
+                          <span>{ev.fullName || ""}</span>
+                        </div>
+                      </td>
+
+                      {/* Weeks */}
+                      <td className="px-4 py-5 text-center">
+                        <div className="flex gap-1 justify-center">
+                          {[1, 2, 3, 4].map((week) => {
+                            const isActive = ev.weekNumbers?.includes(week);
+                            return (
+                              <span
+                                key={week}
+                                className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-semibold transition ${
+                                  isActive
+                                    ? "bg-indigo-600 text-white shadow-md"
+                                    : "bg-gray-200 text-gray-400"
+                                }`}
+                                title={`Week ${week}`}
+                              >
+                                {week}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </td>
+
+                      {/* Start Date */}
+                      <td className="px-4 py-5 text-center text-gray-700 text-sm">
+                        {ev.weekStart
+                          ? new Date(ev.weekStart).toLocaleDateString("en-US", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : ""}
+                      </td>
+
+                      {/* End Date */}
+                      <td className="px-4 py-5 text-center text-gray-700 text-sm">
+                        {ev.weekEnd
+                          ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : ""}
+                      </td>
+
+                      {/* AVG Rating */}
+                      <td className="px-4 py-5 text-right font-semibold text-gray-800">
+                        {ev.avgWeightedRating > 0
+                          ? ev.avgWeightedRating.toFixed(2)
+                          : "-"}
+                      </td>
+
+                      {/* Performance */}
+                      <td
+                        className={`px-4 py-5 text-center ${colorClass} text-sm font-semibold`}
+                      >
+                        {performance || ""}
+                      </td>
+
+                      {/* 🗑️ Delete */}
+                      <td className="px-4 py-5 text-center rounded-r-2xl">
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDeleteEvaluation(ev._id)}
+                            className="text-red-600 hover:text-red-800 hover:scale-110 transition-all"
+                            title="Delete Evaluation"
+                          >
+                            <Trash2 className="w-6 h-6" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1306,183 +1319,174 @@ export default function EmployeeWeeklyEvaluation() {
       ) : (
         // Modern Card View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {evaluations.map((ev) => {
-            const score = ev.totalScoreSum || 0;
-            const weighted = ev.totalWeightedRatingSum || 0;
+  {evaluations.map((ev) => {
+    const score = ev.totalScoreSum || 0;
+    const weighted = ev.totalWeightedRatingSum || 0;
 
-            let performance = ev.performance || "N/A";
-            let badgeClass = "bg-gray-200 text-gray-600";
-            if (performance === "Poor")
-              badgeClass = "bg-red-200/80 text-red-900";
-            else if (performance === "Partial")
-              badgeClass = "bg-orange-200/80 text-orange-900";
-            else if (performance === "Normal")
-              badgeClass = "bg-yellow-200/80 text-yellow-900";
-            else if (performance === "Good")
-              badgeClass = "bg-green-200/80 text-green-900";
-            else if (performance === "Excellent")
-              badgeClass = "bg-blue-200/80 text-blue-900";
+    let performance = ev.performance || "N/A";
+    let badgeClass = "bg-gray-200 text-gray-600";
+    if (performance === "Poor")
+      badgeClass = "bg-red-200/80 text-red-900";
+    else if (performance === "Partial")
+      badgeClass = "bg-orange-200/80 text-orange-900";
+    else if (performance === "Normal")
+      badgeClass = "bg-yellow-200/80 text-yellow-900";
+    else if (performance === "Good")
+      badgeClass = "bg-green-200/80 text-green-900";
+    else if (performance === "Excellent")
+      badgeClass = "bg-blue-200/80 text-blue-900";
 
-            return (
-              <div
-                key={ev._id}
-                className="relative bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl border border-gray-200/50 shadow-lg hover:shadow-2xl transition rounded-2xl p-6 group overflow-hidden"
-              >
-                {/* Gradient Accent Bar */}
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+    return (
+      <div
+        key={ev._id}
+        className="relative bg-white backdrop-blur-xl border border-gray-200/50 shadow-lg hover:shadow-2xl transition rounded-2xl p-6 group overflow-hidden"
+      >
+        {/* Gradient Accent Bar */}
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
 
-                {/* Header */}
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                    {ev.fullName?.charAt(0) || "U"}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-lg group-hover:text-indigo-600 transition">
-                      {ev.fullName || "N/A"}
-                    </h3>
-                    {/* Weeks Inline */}
-                    <div className="flex items-center gap-2 mt-2">
-                      {/* Icon + label */}
-                      <div className="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
-                        <Calendar className="w-3 h-3 text-indigo-500" />
-                        Weeks
-                      </div>
-
-                      {/* Equal-size smaller bars */}
-                      <div className="flex gap-1.5">
-                        {[1, 2, 3, 4].map((week) => {
-                          const isActive = ev.weekNumbers?.includes(week);
-                          return (
-                            <div
-                              key={week}
-                              className={`w-5 h-1.5 rounded-full transition
-            ${isActive ? "bg-indigo-500 shadow-md" : "bg-gray-200"}
-          `}
-                              title={`Week ${week}`}
-                            ></div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="mt-6 space-y-4 text-sm text-gray-700 dark:text-gray-300">
-                  {/* Dates */}
-                  <div className="flex justify-between items-center gap-4">
-                    <p className="flex items-center gap-2 font-medium">
-                      <Calendar className="w-4 h-4 text-indigo-500" />
-                      {ev.weekStart
-                        ? new Date(ev.weekStart).toLocaleDateString("en-US", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "-"}
-                    </p>
-
-                    <span className="text-gray-500 dark:text-gray-400">→</span>
-
-                    <p className="flex items-center gap-2 font-medium">
-                      <Calendar className="w-4 h-4 text-purple-500" />
-                      {ev.weekEnd
-                        ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "-"}
-                    </p>
-                  </div>
-
-                  {/* Score */}
-                  <p className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 font-medium">
-                      <Star className="w-4 h-4 text-yellow-500" /> Score
-                    </span>
-                    <span className="font-medium text-indigo-700 dark:text-indigo-400">
-                      {score}
-                    </span>
-                  </p>
-
-                  {/* Weighted */}
-                  <p className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 font-medium">
-                      <TrendingUp className="w-4 h-4 text-green-500" /> Weighted
-                    </span>
-                    <span className="font-medium text-green-700 dark:text-green-400">
-                      {weighted.toFixed(2)}
-                    </span>
-                  </p>
-
-                  {/* Performance */}
-                  <p className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 font-medium">
-                      <Award className="w-4 h-4 text-pink-500" /> Performance
-                    </span>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}
-                    >
-                      {performance}
-                    </span>
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                  {/* Add Record */}
-                  {(currentUserRole === "Super Admin" ||
-                    currentUserRole === "HR" ||
-                    currentUserRole === "Management") && (
-                    <button
-                      onClick={() => handleAddUser(ev._id)}
-                      className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
-                      title="Add Record"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  )}
-
-                  {/* Edit (restricted roles) */}
-                  {(currentUserRole === "Super Admin" ||
-                    currentUserRole === "HR" ||
-                    currentUserRole === "Management") && (
-                    <button
-                      onClick={() => handleEditEvaluation(ev._id)}
-                      className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                  )}
-
-                  {/* View */}
-                  <button
-                    onClick={() => handleViewEvaluation(ev._id)}
-                    className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
-                    title="View"
-                  >
-                    <Glasses className="w-4 h-4" />
-                  </button>
-
-                  {/* Delete (restricted roles) */}
-                  {(currentUserRole === "Super Admin" ||
-                    currentUserRole === "HR" ||
-                    currentUserRole === "Management") && (
-                    <button
-                      onClick={() => handleDeleteEvaluation(ev._id)}
-                      className="p-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+            {ev.fullName?.charAt(0) || "U"}
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 text-lg group-hover:text-indigo-600 transition">
+              {ev.fullName || "N/A"}
+            </h3>
+            {/* Weeks Inline */}
+            <div className="flex items-center gap-2 mt-2">
+              {/* Icon + label */}
+              <div className="flex items-center gap-1 text-xs font-medium text-gray-600">
+                <Calendar className="w-3 h-3 text-indigo-500" />
+                Weeks
               </div>
-            );
-          })}
+
+              {/* Equal-size smaller bars */}
+              <div className="flex gap-1.5">
+                {[1, 2, 3, 4].map((week) => {
+                  const isActive = ev.weekNumbers?.includes(week);
+                  return (
+                    <div
+                      key={week}
+                      className={`w-5 h-1.5 rounded-full transition ${
+                        isActive ? "bg-indigo-500 shadow-md" : "bg-gray-200"
+                      }`}
+                      title={`Week ${week}`}
+                    ></div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Details */}
+        <div className="mt-6 space-y-4 text-sm text-gray-700">
+          {/* Dates */}
+          <div className="flex justify-between items-center gap-4">
+            <p className="flex items-center gap-2 font-medium">
+              <Calendar className="w-4 h-4 text-indigo-500" />
+              {ev.weekStart
+                ? new Date(ev.weekStart).toLocaleDateString("en-US", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "-"}
+            </p>
+
+            <span className="text-gray-500">→</span>
+
+            <p className="flex items-center gap-2 font-medium">
+              <Calendar className="w-4 h-4 text-purple-500" />
+              {ev.weekEnd
+                ? new Date(ev.weekEnd).toLocaleDateString("en-US", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "-"}
+            </p>
+          </div>
+
+          {/* Score */}
+          <p className="flex justify-between items-center">
+            <span className="flex items-center gap-2 font-medium">
+              <Star className="w-4 h-4 text-yellow-500" /> Score
+            </span>
+            <span className="font-medium text-indigo-700">{score}</span>
+          </p>
+
+          {/* Weighted */}
+          <p className="flex justify-between items-center">
+            <span className="flex items-center gap-2 font-medium">
+              <TrendingUp className="w-4 h-4 text-green-500" /> Weighted
+            </span>
+            <span className="font-medium text-green-700">
+              {weighted.toFixed(2)}
+            </span>
+          </p>
+
+          {/* Performance */}
+          <p className="flex justify-between items-center">
+            <span className="flex items-center gap-2 font-medium">
+              <Award className="w-4 h-4 text-pink-500" /> Performance
+            </span>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}
+            >
+              {performance}
+            </span>
+          </p>
+
+          
+          
+        </div>
+
+        {/* ✅ Actions */}
+        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+          {canAdd && (
+            <button
+              onClick={() => handleAddUser(ev._id)}
+              className="p-1.5 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition shadow-sm"
+              title="Add Record"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
+          {canEdit && (
+            <button
+              onClick={() => handleEditEvaluation(ev._id)}
+              className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+              title="Edit"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {canView && (
+            <button
+              onClick={() => handleViewEvaluation(ev._id)}
+              className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition shadow-sm"
+              title="View"
+            >
+              <Glasses className="w-4 h-4" />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => handleDeleteEvaluation(ev._id)}
+              className="p-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition shadow-sm"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  })}
+</div>
+
       )}
     </div>
   );

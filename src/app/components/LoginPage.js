@@ -47,108 +47,107 @@ export default function LoginPage() {
     fetchForms();
   }, []);
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      const fullName = `${data.user.firstName || ""} ${
-        data.user.lastName || ""
-      }`.trim();
-      setMessage("✅ Login successful! Welcome " + fullName);
-
-      // ✅ Save basic user info
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("loginID", data.user.id);
-      localStorage.setItem("userName", fullName);
-      localStorage.setItem("userRole", data.user.role);
-
-      // 🔥 Step 2: Check user access control
-      const accessRes = await fetch(
-        `/api/login/getUserAccessControl?userId=${data.user.id}&roleId=${data.user.roleID}`,
-        { method: "GET" }
-      );
-
-      const accessData = await accessRes.json();
-
-      if (!accessRes.ok) {
-        setMessage("❌ Access control check failed.");
-        return;
-      }
-
-      // 🚫 Check login permission
-      if (!accessData.login) {
-        setMessage(
-          "❌ You don’t have permission to log in. Please contact admin."
-        );
-        return;
-      }
-
-      // ✅ Save user access data
-      localStorage.setItem("userAccess", JSON.stringify(accessData));
-
-      // ✅ Update 'notified' flag (non-blocking)
-      fetch("/api/login/update-notified", {
+    try {
+      const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: data.user.id }),
-      }).catch((err) => console.error("Failed to update notified:", err));
-
-      // ✅ Determine redirect path
-      const formAccess = accessData.formAccess || [];
-
-      // ✅ Find the first allowed form
-      const firstAllowed = formAccess.find((f) => {
-        if (f.noAccess) return false;
-        if (f.fullAccess) return true;
-        if (f.partialAccess?.enabled) {
-          const perms = f.partialAccess.permissions || {};
-          return Object.values(perms).some((val) => val === true);
-        }
-        return false;
+        body: JSON.stringify({ email, password }),
       });
 
-      // ✅ Match formId to form name
-      let formName = null;
-      let matchedForm = null;
+      const data = await res.json();
 
-      if (firstAllowed) {
-        matchedForm = forms.find((form) => form._id === firstAllowed.formId);
-        formName = matchedForm?.name || null;
-      }
+      if (res.ok) {
+        const fullName = `${data.user.firstName || ""} ${
+          data.user.lastName || ""
+        }`.trim();
+        setMessage("✅ Login successful! Welcome " + fullName);
 
-      // ✅ Redirect user and save active form ID
-      if (formName) {
-        let path = formName.toLowerCase().replace(/\s+/g, "");
-        if (formName === "Report") path = "weeklyevaluation";
+        // ✅ Save basic user info
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("loginID", data.user.id);
+        localStorage.setItem("userName", fullName);
+        localStorage.setItem("userRole", data.user.role);
 
-        // ✅ Save active form for Sidebar
-        if (matchedForm?._id) {
-          localStorage.setItem("activeForm", matchedForm._id);
+        // 🔥 Step 2: Check user access control
+        const accessRes = await fetch(
+          `/api/login/getUserAccessControl?userId=${data.user.id}&roleId=${data.user.roleID}`,
+          { method: "GET" }
+        );
+
+        const accessData = await accessRes.json();
+
+        if (!accessRes.ok) {
+          setMessage("❌ Access control check failed.");
+          return;
         }
 
-        router.replace(`/main/${path}`);
-      } else {
-        // Default fallback
-        router.replace("/main/dashboard");
-      }
-    } else {
-      setMessage("❌ " + data.error);
-    }
-  } catch (err) {
-    console.error("⚠️ Login Error:", err);
-    setMessage("⚠️ Something went wrong.");
-  }
-};
+        // 🚫 Check login permission
+        if (!accessData.login) {
+          setMessage(
+            "❌ You don’t have permission to log in. Please contact admin."
+          );
+          return;
+        }
 
+        // ✅ Save user access data
+        localStorage.setItem("userAccess", JSON.stringify(accessData));
+
+        // ✅ Update 'notified' flag (non-blocking)
+        fetch("/api/login/update-notified", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: data.user.id }),
+        }).catch((err) => console.error("Failed to update notified:", err));
+
+        // ✅ Determine redirect path
+        const formAccess = accessData.formAccess || [];
+
+        // ✅ Find the first allowed form
+        const firstAllowed = formAccess.find((f) => {
+          if (f.noAccess) return false;
+          if (f.fullAccess) return true;
+          if (f.partialAccess?.enabled) {
+            const perms = f.partialAccess.permissions || {};
+            return Object.values(perms).some((val) => val === true);
+          }
+          return false;
+        });
+
+        // ✅ Match formId to form name
+        let formName = null;
+        let matchedForm = null;
+
+        if (firstAllowed) {
+          matchedForm = forms.find((form) => form._id === firstAllowed.formId);
+          formName = matchedForm?.name || null;
+        }
+
+        // ✅ Redirect user and save active form ID
+        if (formName) {
+          let path = formName.toLowerCase().replace(/\s+/g, "");
+          if (formName === "Report") path = "weeklyevaluation";
+
+          // ✅ Save active form for Sidebar
+          if (matchedForm?._id) {
+            localStorage.setItem("activeForm", matchedForm._id);
+          }
+
+          router.replace(`/main/${path}`);
+        } else {
+          // Default fallback
+          router.replace("/main/dashboard");
+        }
+      } else {
+        setMessage("❌ " + data.error);
+      }
+    } catch (err) {
+      console.error("⚠️ Login Error:", err);
+      setMessage("⚠️ Something went wrong.");
+    }
+  };
 
   return (
     // Outer container: Full screen, relative for absolute children positioning.
@@ -488,7 +487,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none bg-white text-gray-900"
               placeholder="you@example.com"
             />
           </div>
@@ -503,7 +502,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none bg-white text-gray-900"
               placeholder="••••••••"
             />
           </div>
