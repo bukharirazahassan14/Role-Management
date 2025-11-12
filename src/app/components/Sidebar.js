@@ -17,11 +17,14 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [forms, setForms] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState("");
+  const [userID, setUserID] = useState("");
 
   // ✅ Fetch role from localStorage when component mounts
   useEffect(() => {
     if (typeof window !== "undefined") {
       const role = localStorage.getItem("userRole");
+      const loginID = localStorage.getItem("loginID");
+      setUserID(loginID);
       setCurrentUserRole(role);
     }
   }, []);
@@ -75,6 +78,13 @@ export default function Sidebar() {
         let path = f.name.toLowerCase().replace(/\s+/g, "");
         if (f.name === "Report") path = "weeklyevaluation";
 
+        if (
+          f.name === "Users" &&
+          !["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
+        ) {
+          path = `UserProfile?userID=${userID}`;
+        }
+
         return {
           _id: f._id,
           name: f.name,
@@ -89,7 +99,7 @@ export default function Sidebar() {
               : ClipboardCheck,
         };
       });
-  }, [forms]);
+  }, [forms,userID,currentUserRole]);
 
   const sidebarWidth = isCollapsed ? "w-17" : "w-40";
   const sidebarPadding = isCollapsed ? "px-2" : "px-3";

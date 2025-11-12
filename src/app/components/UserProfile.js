@@ -16,6 +16,8 @@ import {
   Paperclip,
   Star,
   TrendingUp,
+  Lock,
+  DollarSign,
 } from "lucide-react";
 
 import { Doughnut, Bar } from "react-chartjs-2";
@@ -228,12 +230,12 @@ export default function UserProfile({ searchParams }) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [monthlyRatings, setMonthlyRatings] = useState([]);
   const [incrementState, setIncrementState] = useState(0);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(true);
+  const [originalUser, setOriginalUser] = useState(null);
 
   // ✅ Calculate Yearly Average Rating including all 12 months
   const yearAvgRating = useMemo(() => {
-
-    console.log('monthlyRatings>>>>>>>>',monthlyRatings);
-
     if (!monthlyRatings || monthlyRatings.length === 0) return 0;
 
     // Always calculate for all 12 months
@@ -278,8 +280,7 @@ export default function UserProfile({ searchParams }) {
       });
 
       setMonthlyRatings(filledData);
-      console.log('filledData',filledData);
- 
+      console.log("filledData", filledData);
     } catch {
       setMonthlyRatings([]);
     }
@@ -313,6 +314,8 @@ export default function UserProfile({ searchParams }) {
         const filesData = await filesRes.json();
 
         setUser(userData);
+        setOriginalUser(userData);
+
         setFiles(filesData);
       } catch (err) {
         console.error(err);
@@ -330,31 +333,31 @@ export default function UserProfile({ searchParams }) {
   }, [user, selectedYear, fetchMonthlyRatings]);
 
   // ✅ Compute total eligible increment based on each month's rating
-useEffect(() => {
-  if (!monthlyRatings || monthlyRatings.length === 0) {
-    setIncrementState(0);
-    return;
-  }
-
-  const getIncrementValue = (rating) => {
-    if (rating <= 1) return 0;
-    if (rating <= 2) return 0.5;
-    if (rating <= 3) return 1;
-    if (rating <= 4) return 1.5;
-    if (rating <= 5) return 2;
-    return 0;
-  };
-
-  let totalIncrement = 0;
-
-  monthlyRatings.forEach((m) => {
-    if (m.rating > 0) {
-      totalIncrement += getIncrementValue(m.rating);
+  useEffect(() => {
+    if (!monthlyRatings || monthlyRatings.length === 0) {
+      setIncrementState(0);
+      return;
     }
-  });
 
-  setIncrementState(totalIncrement);
-}, [monthlyRatings]);
+    const getIncrementValue = (rating) => {
+      if (rating <= 1) return 0;
+      if (rating <= 2) return 0.5;
+      if (rating <= 3) return 1;
+      if (rating <= 4) return 1.5;
+      if (rating <= 5) return 2;
+      return 0;
+    };
+
+    let totalIncrement = 0;
+
+    monthlyRatings.forEach((m) => {
+      if (m.rating > 0) {
+        totalIncrement += getIncrementValue(m.rating);
+      }
+    });
+
+    setIncrementState(totalIncrement);
+  }, [monthlyRatings]);
 
   if (loading || !user)
     return (
@@ -364,33 +367,6 @@ useEffect(() => {
         </p>
       </div>
     );
-
-  // --- Info Components ---
-  // Updated InfoRow and HorizontalInfoItem for a more structured, modern look
-
-  const InfoRow = ({ icon: Icon, label, value }) => (
-    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 flex items-start space-x-3">
-      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5 text-indigo-400" />
-      <div>
-        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-0.5">
-          {label}
-        </h3>
-        <p className="text-sm font-semibold text-gray-800 break-words">
-          {value || "N/A"}
-        </p>
-      </div>
-    </div>
-  );
-
-  const HorizontalInfoItem = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center p-2 rounded-md bg-red-50/50 border border-red-100">
-      <Icon className="w-4 h-4 mr-2 flex-shrink-0 text-red-500" />
-      <h3 className="text-xs font-medium text-red-600 uppercase tracking-wider mr-2">
-        {label}:
-      </h3>
-      <p className="text-sm font-semibold text-gray-800">{value || "N/A"}</p>
-    </div>
-  );
 
   // Custom Rating Card component for the "Year AVG Rating"
   const YearAvgRatingCard = ({ avgRating }) => {
@@ -436,61 +412,131 @@ useEffect(() => {
     );
   };
 
-const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
-  const eligible = incrementState > 0;
+  const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
+    const eligible = incrementState > 0;
 
-  return (
-    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
-      {/* Header */}
-      <div className="flex items-center justify-center mb-6 text-center pb-3 border-b border-gray-100">
-        <TrendingUp
-          className={`w-6 h-6 mr-2 ${
-            eligible ? "text-green-600" : "text-red-500"
-          }`}
-        />
-        <h2 className="text-xl font-bold text-gray-800">
-          Eligible for Increment
-        </h2>
-      </div>
+    return (
+      <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-center mb-6 text-center pb-3 border-b border-gray-100">
+          <TrendingUp
+            className={`w-6 h-6 mr-2 ${
+              eligible ? "text-green-600" : "text-red-500"
+            }`}
+          />
+          <h2 className="text-xl font-bold text-gray-800">
+            Eligible for Increment
+          </h2>
+        </div>
 
-      {/* Increment Display */}
-      <div className="flex flex-col items-center justify-center flex-grow">
-        <span
-          className={`text-6xl font-extrabold ${
-            eligible ? "text-green-600" : "text-red-500"
-          }`}
-        >
-          {eligible ? `${incrementState.toFixed(1)}%` : "NO"}
-        </span>
-        <p className="mt-2 text-base text-gray-500 font-medium">
-          Total Annual Increment based on Monthly Ratings
-        </p>
-        <p className="text-sm text-gray-400 mt-1">
-          Performance Year: {selectedYear}
-        </p>
-      </div>
-
-      {/* Footer / Status */}
-      <div className="mt-6 border-t border-gray-100 pt-3 text-center">
-        {eligible ? (
-          <p className="text-green-700 font-medium">
-            ✅ Eligible for yearly increment
+        {/* Increment Display */}
+        <div className="flex flex-col items-center justify-center flex-grow">
+          <span
+            className={`text-6xl font-extrabold ${
+              eligible ? "text-green-600" : "text-red-500"
+            }`}
+          >
+            {eligible ? `${incrementState.toFixed(1)}%` : "NO"}
+          </span>
+          <p className="mt-2 text-base text-gray-500 font-medium">
+            Total Annual Increment based on Monthly Ratings
           </p>
-        ) : (
-          <p className="text-red-600 font-medium">
-            ❌ Not eligible for increment
+          <p className="text-sm text-gray-400 mt-1">
+            Performance Year: {selectedYear}
           </p>
-        )}
+        </div>
+
+        {/* Footer / Status */}
+        <div className="mt-6 border-t border-gray-100 pt-3 text-center">
+          {eligible ? (
+            <p className="text-green-700 font-medium">
+              ✅ Eligible for yearly increment
+            </p>
+          ) : (
+            <p className="text-red-600 font-medium">
+              ❌ Not eligible for increment
+            </p>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const handleFieldChange = (field, value) => {
+    setUser((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // --- Save to server on blur only if value changed
+  const handleFieldBlur = async (field, value) => {
+    if (!originalUser) return;
+
+    // Only update if value actually changed
+    if (value === originalUser[field]) return;
+
+    try {
+      const res = await fetch(`/api/users/profile/?userID=${user._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Update failed");
+
+      setMessage("User updated successfully!");
+      setSuccess(true);
+
+      // Update originalUser so next edits are compared correctly
+      setOriginalUser((prev) => ({ ...prev, [field]: value }));
+
+      setTimeout(() => setMessage(""), 4000);
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message || "Failed to update user");
+      setSuccess(false);
+      setTimeout(() => setMessage(""), 4000);
+    }
+  };
+
+  const calculateTenure = (joiningDate) => {
+  if (!joiningDate) return "";
+
+  const start = new Date(joiningDate);
+  const now = new Date();
+
+  let years = now.getFullYear() - start.getFullYear();
+  let months = now.getMonth() - start.getMonth();
+  let days = now.getDate() - start.getDate();
+
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  return `${years} Years, ${months} Months, ${days} Days`;
 };
-
-
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
+      {/* ✅ Toast Message */}
+      {message && (
+        <div className="fixed top-5 right-5 z-50">
+          <div
+            className={`px-4 py-2 rounded shadow-lg text-white ${
+              success ? "bg-green-500" : "bg-red-500"
+            }`}
+          >
+            {message}
+          </div>
+        </div>
+      )}
+
       {/* Top Section */}
       <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
         <div className="flex items-center space-x-6">
@@ -531,40 +577,94 @@ const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
       </div>
 
       {/* Middle Info - Grouped and Cleaned */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Job Description Card */}
-        <div className="bg-white rounded-xl shadow-md p-5 lg:col-span-2 border border-gray-100">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        {/* Role Card (Read-only) */}
+        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
           <div className="flex items-center mb-3 pb-2 border-b border-gray-100">
-            {" "}
-            {/* Subtle border */}
             <FileText className="w-5 h-5 mr-2 text-indigo-500" />
             <h2 className="text-lg font-bold text-gray-800">Role</h2>
           </div>
           <p className="text-gray-700 text-sm leading-relaxed">
-            {user.role?.description || "No rule provided."}
+            {user.role?.description || "No role provided."}
           </p>
+        </div>
+
+        {/* Password Card */}
+        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+          <div className="flex items-center mb-3 pb-2 border-b border-gray-100">
+            <Lock className="w-5 h-5 mr-2 text-indigo-500" />
+            <h2 className="text-lg font-bold text-gray-800">Password</h2>
+          </div>
+          <input
+            type="password"
+            value={user.password || ""}
+            onChange={(e) => handleFieldChange("password", e.target.value)}
+            onBlur={(e) =>
+              handleFieldBlur("password", e.target.value, user.password)
+            }
+            placeholder="••••••••"
+            className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+          />
+        </div>
+
+        {/* Salary Card */}
+        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+          <div className="flex items-center mb-3 pb-2 border-b border-gray-100">
+            <DollarSign className="w-5 h-5 mr-2 text-indigo-500" />
+            <h2 className="text-lg font-bold text-gray-800">Salary</h2>
+          </div>
+          <input
+            type="text"
+            value={user.salary || ""}
+            onChange={(e) => handleFieldChange("salary", e.target.value)}
+            onBlur={(e) =>
+              handleFieldBlur("salary", e.target.value, user.salary)
+            }
+            placeholder="Enter salary"
+            className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
+          />
         </div>
 
         {/* Emergency Contact Card */}
         <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
           <div className="flex items-center mb-3 pb-2 border-b border-gray-100">
-            {" "}
-            {/* Subtle border */}
             <Tag className="w-5 h-5 mr-2 text-red-500" />
             <h2 className="text-lg font-bold text-gray-800">
               Emergency Contact
             </h2>
           </div>
           <div className="space-y-3">
-            <HorizontalInfoItem
-              icon={Phone}
-              label="Contact No."
-              value={user.emergencyContact}
+            <input
+              type="text"
+              value={user.emergencyContact || ""}
+              onChange={(e) =>
+                handleFieldChange("emergencyContact", e.target.value)
+              }
+              onBlur={(e) =>
+                handleFieldBlur(
+                  "emergencyContact",
+                  e.target.value,
+                  user.emergencyContact
+                )
+              }
+              placeholder="Contact No."
+              className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all"
             />
-            <HorizontalInfoItem
-              icon={User}
-              label="Relationship"
-              value={user.emergencyRelation}
+            <input
+              type="text"
+              value={user.emergencyRelation || ""}
+              onChange={(e) =>
+                handleFieldChange("emergencyRelation", e.target.value)
+              }
+              onBlur={(e) =>
+                handleFieldBlur(
+                  "emergencyRelation",
+                  e.target.value,
+                  user.emergencyRelation
+                )
+              }
+              placeholder="Relationship"
+              className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all"
             />
           </div>
         </div>
@@ -572,38 +672,175 @@ const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
 
       {/* Primary Info & Files */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-          <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
-            {" "}
-            {/* Subtle border */}
-            <UserCheck className="w-6 h-6 mr-2 text-indigo-500" />
-            <h2 className="text-xl font-bold text-gray-800">
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <div className="flex items-center mb-6">
+            <UserCheck className="w-7 h-7 mr-3 text-indigo-500" />
+            <h2 className="text-2xl font-semibold text-gray-800">
               Primary Information
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InfoRow
-              icon={Mail}
-              label="Primary Email"
-              value={user.primaryEmail}
-            />
-            <InfoRow icon={Phone} label="Phone Number" value={user.phone} />
-            <InfoRow icon={Shield} label="CNIC / ID" value={user.cnic} />
-            <InfoRow icon={Clock} label="Experience (Years)" value={user.exp} />
-            <InfoRow
-              icon={User}
-              label="Father's Name"
-              value={user.fatherName}
-            />
-            <InfoRow
-              icon={Calendar}
-              label="Date Joined"
-              value={new Date(user.joiningDate).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Primary Email */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">
+                Primary Email
+              </label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <Mail className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="email"
+                  value={user.primaryEmail || ""}
+                  readOnly
+                  placeholder="Primary Email"
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Secondary Email */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">
+                Secondary Email
+              </label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <Mail className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="email"
+                  value={user.secondaryEmail || ""}
+                  onChange={(e) =>
+                    handleFieldChange("secondaryEmail", e.target.value)
+                  }
+                  onBlur={(e) =>
+                    handleFieldBlur(
+                      "secondaryEmail",
+                      e.target.value,
+                      user.secondaryEmail
+                    )
+                  }
+                  placeholder="Secondary Email"
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Phone Number */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">
+                Phone Number
+              </label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <Phone className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="text"
+                  value={user.phone || ""}
+                  onChange={(e) => handleFieldChange("phone", e.target.value)}
+                  onBlur={(e) =>
+                    handleFieldBlur("phone", e.target.value, user.phone)
+                  }
+                  placeholder="Phone Number"
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* CNIC / ID */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">
+                CNIC / ID
+              </label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <Shield className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="text"
+                  value={user.cnic || ""}
+                  onChange={(e) => handleFieldChange("cnic", e.target.value)}
+                  onBlur={(e) =>
+                    handleFieldBlur("cnic", e.target.value, user.cnic)
+                  }
+                  placeholder="CNIC / ID"
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Experience */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">
+                Experience (Years)
+              </label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <Clock className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="text"
+                  value={user.exp || ""}
+                  placeholder="Experience"
+                  readOnly
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Father's Name */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">
+                Father&apos;s Name
+              </label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <User className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="text"
+                  value={user.fatherName || ""}
+                  onChange={(e) =>
+                    handleFieldChange("fatherName", e.target.value)
+                  }
+                  onBlur={(e) =>
+                    handleFieldBlur(
+                      "fatherName",
+                      e.target.value,
+                      user.fatherName
+                    )
+                  }
+                  placeholder="Father's Name"
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Joining Date */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">
+                Joining Date
+              </label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <Calendar className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="date"
+                  value={
+                    user.joiningDate
+                      ? new Date(user.joiningDate).toISOString().split("T")[0]
+                      : ""
+                  }
+                  readOnly
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
+
+{/* Tenure */}
+<div className="flex flex-col">
+  <label className="text-gray-500 font-medium mb-2">Tenure</label>
+  <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+    <Calendar className="w-5 h-5 ml-3 text-indigo-500" />
+    <input
+      type="text"
+      value={calculateTenure(user.joiningDate)}
+      placeholder="Tenure"
+      readOnly
+      className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+    />
+  </div>
+</div>
           </div>
         </div>
 
@@ -682,7 +919,10 @@ const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
 
         {/* Year AVG Rating Card (Using the new component) */}
         <YearAvgRatingCard avgRating={yearAvgRating} />
-        <YearlyIncrementCard incrementState={incrementState} selectedYear={selectedYear} />
+        <YearlyIncrementCard
+          incrementState={incrementState}
+          selectedYear={selectedYear}
+        />
       </div>
     </div>
   );

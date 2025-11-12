@@ -1,5 +1,8 @@
+
+// app/api/users/profile/route.js
 import connectToDB from "@/lib/mongodb";
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 export async function GET(req) {
   try {
@@ -39,6 +42,8 @@ export async function GET(req) {
           firstName: 1,
           lastName: 1,
           primaryEmail: 1,
+          secondaryEmail: 1,
+          password: 1,
           fatherName: 1,
           phone: 1,
           emergencyContact: 1,
@@ -54,6 +59,7 @@ export async function GET(req) {
             name: "$roleDetails.name",
             description: "$roleDetails.description",
           },
+          salary: 1,
         },
       },
     ]).toArray();
@@ -75,5 +81,44 @@ export async function GET(req) {
       JSON.stringify({ error: err.message }),
       { status: 500 }
     );
+  }
+}
+
+// PATCH: update user profile
+export async function PATCH(req) {
+  try {
+    await connectToDB();
+
+    const { searchParams } = new URL(req.url);
+    const userID = searchParams.get("userID");
+
+    if (!userID) {
+      return new Response(JSON.stringify({ error: "userID is required" }), { status: 400 });
+    }
+
+    const body = await req.json();
+
+    // Prevent role from being changed here
+    const { role, _id, password, ...updateFields } = body;
+
+    // ✅ Encrypt password if it is provided
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updateFields.password = await bcrypt.hash(password, salt);
+    }
+
+    const result = await mongoose.connection.collection("users").updateOne(
+      { _id: new mongoose.Types.ObjectId(userID) },
+      { $set: updateFields }
+    );
+
+    if (result.matchedCount === 0) {
+      return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
+    }
+
+    return new Response(JSON.stringify({ message: "User updated successfully" }), { status: 200 });
+  } catch (err) {
+    console.error("❌ Error updating user profile:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }

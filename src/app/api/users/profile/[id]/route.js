@@ -22,6 +22,7 @@ export async function GET(req, context) {
       id: u._id.toString(),
       fullName: `${u.firstName} ${u.lastName}`,
       email: u.primaryEmail,
+      secondaryEmail: u.secondaryEmail,
       role: u.role
         ? {
             _id: u.role._id.toString(),
@@ -29,7 +30,8 @@ export async function GET(req, context) {
             description: u.role.description || null, // ✅ include description
           }
         : null,
-      jd: u.jd,  
+      jd: u.jd,
+      password: u.password,  
       createdAt: u.created_at,
       joiningDate: u.joiningDate,
       isActive: u.isActive,
