@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo,memo,useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield,
@@ -13,6 +13,7 @@ import {
   List,
   PieChart as PieChartIcon,
   Bell, // Added Bell icon
+  Loader2, AlertTriangle, Activity, ThumbsUp, XCircle, Zap,
 } from "lucide-react";
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
@@ -122,6 +123,176 @@ const TeamMemberListRow = ({ member, index }) => {
   );
 };
 
+const getActionStyles = (action) => {
+  switch (action) {
+    case "Bonus":
+      return "bg-green-100 text-green-700 border-green-200";
+    case "Nothing":
+      return "bg-blue-100 text-blue-700 border-blue-200";
+    case "Motivate":
+      return "bg-yellow-100 text-yellow-700 border-yellow-200";
+    case "Hr Meeting":
+      return "bg-orange-100 text-orange-700 border-orange-200";
+    case "Urgent Meeting":
+      return "bg-red-100 text-red-700 border-red-200";
+    default:
+      return "bg-gray-100 text-gray-700 border-gray-200";
+  }
+};
+
+const getActionIcon = (action) => {
+    switch (action) {
+      case 'Bonus':
+        return ThumbsUp;
+      case 'Urgent Meeting':
+        return XCircle;
+      case 'Motivate':
+        return Zap;
+      default:
+        return Activity;
+    }
+};
+
+// Ensure getActionStyles is defined outside this component
+const WeeklySummaryCard = memo(({ weekNumber, month, year }) => {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      // Use the first month in the selected array (or the current month)
+      const selectedMonthNumber =
+        Array.isArray(month) && month.length > 0
+          ? month[0]
+          : new Date().getMonth() + 1;
+
+      // Construct the API URL with query parameters
+      const queryParams = new URLSearchParams({
+        month: selectedMonthNumber,
+        year: year,
+        weekNumber: weekNumber || 1, // USE THE PASSED PROP
+      }).toString();
+
+      try {
+        const response = await fetch(
+          `/api/dashboard/weeklysummary?${queryParams}`
+        );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setResults(data);
+      } catch (err) {
+        console.error("Error fetching weekly summary:", err);
+        setError(err.message || "Failed to load data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [month, year, weekNumber]);
+
+  // 👇 useMemo to process data (add icons and style classes) only when 'results' changes
+  const formattedUsers = useMemo(
+    () =>
+      results.map((user) => {
+        const Icon = getActionIcon(user.Action);
+        const styleClass = getActionStyles(user.Action);
+        
+        return {
+          ...user,
+          IconComponent: Icon,
+          styleClass: styleClass,
+        };
+      }),
+    [results] // Dependency array: only re-calculate if fetched results change
+  );
+
+  // --- Render Logic ---
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-indigo-600">
+          <Loader2 className="h-6 w-6 animate-spin mb-2" />
+          <p className="text-sm font-medium">Loading Weekly Data...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-red-500 p-4 text-center">
+          <AlertTriangle className="h-6 w-6 mb-2" />
+          <p className="text-sm font-medium">Error: {error}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Could not fetch weekly summary.
+          </p>
+        </div>
+      );
+    }
+
+    if (results.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-gray-500 italic p-4 text-center">
+          <p className="text-sm">No weekly summary found for this selection.</p>
+        </div>
+      );
+    }
+
+    // LIST CONTENT - SCROLLABLE WRAPPER
+    return (
+      <div className="space-y-3">
+        {formattedUsers.map((user) => ( // 👈 Use formattedUsers array
+          <div
+            key={user.userId}
+            className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border border-gray-100"
+          >
+            {/* User Info (Full Name) */}
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <User className="h-5 w-5 text-indigo-500 flex-shrink-0" />
+              <p className="font-semibold text-gray-900 truncate">
+                {user.fullName}
+              </p>
+            </div>
+
+            {/* Score and Action */}
+            <div className="flex items-center space-x-4 flex-shrink-0">
+              {/* Total Score */}
+              <div className="flex items-center text-sm font-medium text-gray-600 space-x-1">
+                <user.IconComponent className="h-4 w-4 text-gray-400" /> {/* 👈 Dynamic Icon */}
+                <span>Score: {user.totalScore}</span>
+              </div>
+
+              {/* Action Tag (Colored Rectangle Border Adage) */}
+              <span
+                className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${user.styleClass}`} 
+              >
+                {user.Action}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full h-full overflow-y-auto pr-2">{renderContent()}</div>
+  );
+});
+
+// 👇 Fixes the ESLint warning: Component definition is missing display name
+WeeklySummaryCard.displayName = 'WeeklySummaryCard';
+
+
+
 /* ---------------- Main Dashboard ---------------- */
 export default function Dashboard() {
   const router = useRouter();
@@ -131,6 +302,18 @@ export default function Dashboard() {
   const [monthlyPerformance, setMonthlyPerformance] = useState([]);
   const didFetch = useRef(false);
   const [teamMembers, setTeamMembers] = useState([]);
+
+  const [selectedWeek, setSelectedWeek] = useState(1);
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+const currentMonthArray = useMemo(() => [new Date().getMonth() + 1], []);
+
+  // Helper function to handle week change
+const handleWeekChange = useCallback((newWeek) => {
+    // Ensure the new week is between 1 and 4
+    if (newWeek >= 1 && newWeek <= 4) {
+        setSelectedWeek(newWeek);
+    }
+}, []);
 
   // Months
   const months = [
@@ -424,7 +607,6 @@ export default function Dashboard() {
         }));
 
         setEvaluationPrograms(formattedData);
-        
       } catch (err) {
         console.error("❌ Error fetching programs:", err);
       }
@@ -738,6 +920,67 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
+        
+        {/* Card 3: Weekly Summary (4/12 width) */}
+        <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 lg:col-span-1">
+          {/* Combined Title and Navigation Header */}
+          <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">
+            {/* Title */}
+            <h3 className="text-xl font-extrabold text-gray-900 flex items-center space-x-2 flex-1">
+              <TrendingUp className="h-5 w-5 text-indigo-600" />
+              <span>Weekly Summary Performance</span>
+            </h3>
+
+            {/* Week Navigation Arrows (< >) */}
+            <div className="flex space-x-1.5 flex-shrink-0 pt-0.5 items-center">
+              {/* Left Arrow: Decrement Week */}
+              <button
+                onClick={() => handleWeekChange(selectedWeek - 1)}
+                disabled={selectedWeek === 1}
+                className={`p-1 rounded-lg text-sm font-bold transition-all duration-200 
+          ${
+            selectedWeek === 1
+              ? "text-gray-400 cursor-not-allowed bg-gray-50"
+              : "text-indigo-600 bg-indigo-100 hover:bg-indigo-200 shadow-sm"
+          }`}
+              >
+                &lt;
+              </button>
+
+              {/* Current Week Display */}
+              <span className="px-3 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-md flex-shrink-0">
+                Week {selectedWeek}
+              </span>
+
+              {/* Right Arrow: Increment Week */}
+              <button
+                onClick={() => handleWeekChange(selectedWeek + 1)}
+                disabled={selectedWeek === 4}
+                className={`p-1 rounded-lg text-sm font-bold transition-all duration-200 
+          ${
+            selectedWeek === 4
+              ? "text-gray-400 cursor-not-allowed bg-gray-50"
+              : "text-indigo-600 bg-indigo-100 hover:bg-indigo-200 shadow-sm"
+          }`}
+              >
+                &gt;
+              </button>
+            </div>
+          </div>
+
+          <div className="w-full h-70 flex items-center justify-center mb-3">
+            {/* 🎯 CHANGE HERE: Use new Date() to get the current system date/month/year */}
+            <WeeklySummaryCard
+    year={currentYear}      // 👈 Use stable memoized value
+    month={currentMonthArray} // 👈 Use stable memoized array
+    weekNumber={selectedWeek}
+/>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+        {" "}
         {/* Card 3: Evaluation Programs Weightage (4/12 width) */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 lg:col-span-1">
           <h3 className="text-xl font-extrabold text-gray-900 mb-4 pb-2 border-b border-gray-100 flex items-center space-x-2">

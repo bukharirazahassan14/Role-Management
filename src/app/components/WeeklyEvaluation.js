@@ -1130,17 +1130,22 @@ export default function EmployeeWeeklyEvaluation() {
           )}
 
           {/* ✅ Always visible on mobile & desktop, with left margin */}
-          <button
-            onClick={() => router.push(`/main/EvaluationPrograms`)}
-            className={`p-2 rounded-lg border transition ml-3 ${
-              viewMode === "programs"
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
-            title="Evaluation Programs"
-          >
-            <BarChart3 className="w-5 h-5" />
-          </button>
+          {(currentUserRole === "Super Admin" ||
+            currentUserRole === "Management" ||
+            currentUserRole === "HR" ||
+            currentUserRole === "Admin") && (
+            <button
+              onClick={() => router.push(`/main/EvaluationPrograms`)}
+              className={`p-2 rounded-lg border transition ml-3 ${
+                viewMode === "programs"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+              title="Evaluation Programs"
+            >
+              <BarChart3 className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -1196,7 +1201,6 @@ export default function EmployeeWeeklyEvaluation() {
                       {/* Action buttons */}
                       <td className="px-4 py-5 text-center align-middle rounded-l-2xl">
                         <div className="flex justify-center items-center gap-4">
-                          
                           {/* ➕ Add Record Button */}
                           {canAdd && (
                             <button
@@ -1218,7 +1222,7 @@ export default function EmployeeWeeklyEvaluation() {
                               <Edit className="w-6 h-6" />
                             </button>
                           )}
-                          
+
                           {/* 👁️ View Button */}
                           {canView && (
                             <button
@@ -1229,8 +1233,6 @@ export default function EmployeeWeeklyEvaluation() {
                               <Glasses className="w-6 h-6" />
                             </button>
                           )}
-                                                   
-
                         </div>
                       </td>
 
