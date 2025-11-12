@@ -68,7 +68,7 @@ export default function Users() {
   const [fileCounts, setFileCounts] = useState({});
 
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5; // change number of rows per page
+  const usersPerPage = 8; // change number of rows per page
 
   const [userFormData, setUserFormData] = useState({
     firstName: "",
