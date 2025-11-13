@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Mail,
@@ -221,6 +221,95 @@ const handleImageError = (e) => {
   e.target.src = DEFAULT_AVATAR;
 };
 
+// 1. MONTH TOGGLE HELPER (Defined outside or just before the main function)
+const MonthToggle = ({ monthName, monthNumber, isSelected, onClick }) => {
+    // Added flex items-center justify-center for centered text
+    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full shadow-inner transition-all duration-200 ease-in-out cursor-pointer flex-shrink-0 flex items-center justify-center";
+    
+    const activeClasses = "bg-indigo-600 text-white shadow-xl shadow-indigo-300/50 transform scale-105";
+    const inactiveClasses = "bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 shadow-md border border-gray-200";
+
+    return (
+      <div
+        onClick={() => onClick(monthNumber)}
+        className={`${baseClasses} ${isSelected ? activeClasses : inactiveClasses}`}
+      >
+        {monthName}
+      </div>
+    );
+};
+
+// 2. YEAR AVERAGE RATING CARD (Defined outside or just before the main function)
+// Use memo for performance
+const YearAvgRatingCard = memo(({ avgRating, selectedYear, selectedMonths, onMonthSelect }) => {
+    const ratingValue = parseFloat(avgRating);
+    const percentage = (ratingValue / 5) * 100;
+
+    const months = [
+        { name: 'Jan', num: 1 }, { name: 'Feb', num: 2 }, { name: 'Mar', num: 3 }, 
+        { name: 'Apr', num: 4 }, { name: 'May', num: 5 }, { name: 'Jun', num: 6 }, 
+        { name: 'Jul', num: 7 }, { name: 'Aug', num: 8 }, { name: 'Sep', num: 9 }, 
+        { name: 'Oct', num: 10 }, { name: 'Nov', num: 11 }, { name: 'Dec', num: 12 },
+    ];
+
+    return (
+      <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
+        
+        {/* HEADER SECTION: Title and Month Toggles */}
+        <div className="mb-6">
+          {/* Title */}
+          <div className="flex items-center justify-center mb-4 text-center pb-3 border-b border-gray-100">
+            <Star className="w-6 h-6 mr-2 text-yellow-500 fill-yellow-400" />
+            <h2 className="text-xl font-bold text-gray-800">Year AVG Rating</h2>
+          </div>
+
+          {/* Grid Layout: 6 columns for 2 rows of buttons */}
+          <div className="grid grid-cols-6 gap-2">
+            {months.map((month) => (
+              <MonthToggle
+                key={month.num}
+                monthName={month.name}
+                monthNumber={month.num}
+                // Check if the month number is IN the array of selected months
+                isSelected={selectedMonths.includes(month.num)}
+                onClick={onMonthSelect}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Metric Display */}
+        <div className="flex flex-col items-center flex-grow mt-15">
+          <div className="flex items-baseline gap-2">
+            <span className="text-7xl font-extrabold text-indigo-600 leading-none">
+              {avgRating}
+            </span>
+            <span className="text-2xl text-gray-500">/ 5.0</span>
+          </div>
+          <p className="mt-2 text-base text-gray-500 font-medium text-center">
+            Performance Score for **{selectedYear}**
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-8">
+          <div className="flex justify-between text-sm font-medium text-gray-600 mb-1">
+            <span>Overall Progress</span>
+            <span className="text-indigo-600">{percentage.toFixed(0)}%</span>
+          </div>
+          <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="absolute top-0 left-0 h-3 rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 shadow-md transition-all duration-700 ease-out"
+              style={{ width: `${percentage}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+    );
+});
+YearAvgRatingCard.displayName = 'YearAvgRatingCard';
+
+
 export default function UserProfile({ searchParams }) {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -234,14 +323,56 @@ export default function UserProfile({ searchParams }) {
   const [success, setSuccess] = useState(true);
   const [originalUser, setOriginalUser] = useState(null);
 
-  // ✅ Calculate Yearly Average Rating including all 12 months
-  const yearAvgRating = useMemo(() => {
-    if (!monthlyRatings || monthlyRatings.length === 0) return 0;
+const currentMonth = new Date().getMonth() + 1; 
 
-    // Always calculate for all 12 months
-    const total = monthlyRatings.reduce((sum, m) => sum + (m.rating || 0), 0);
-    return (total / 12).toFixed(2);
-  }, [monthlyRatings]);
+    // State initialized with the current month selected by default
+    const [selectedMonths, setSelectedMonths] = useState([currentMonth]);
+
+  // Handler for toggling month selection (useCallback for stability)
+    const handleMonthSelect = useCallback((monthNumber) => {
+        setSelectedMonths(prevMonths => {
+            if (prevMonths.includes(monthNumber)) {
+                // Remove month if already present
+                return prevMonths.filter(m => m !== monthNumber);
+            } else {
+                // Add month if not present
+                return [...prevMonths, monthNumber];
+            }
+        });
+    }, []);
+
+  // Helper function to map month number (1-12) to month name ('Jan', 'Feb', etc.)
+    const getMonthName = (monthNum) => {
+        const date = new Date(2000, monthNum - 1, 1);
+        return date.toLocaleString('en-US', { month: 'short' });
+    };
+
+  // Calculation of the average rating for the selected months
+    const selectedMonthsAvgRating = useMemo(() => {
+        if (!monthlyRatings || monthlyRatings.length === 0 || selectedMonths.length === 0) {
+            return (0).toFixed(2);
+        }
+        
+        const selectedMonthNames = selectedMonths.map(getMonthName);
+        
+        let totalRating = 0;
+        let validMonthsCount = 0;
+        
+        monthlyRatings.forEach(m => {
+            if (selectedMonthNames.includes(m.month)) {
+                totalRating += m.rating || 0;
+                validMonthsCount++; 
+            }
+        });
+
+        if (validMonthsCount === 0) {
+            return (0).toFixed(2);
+        }
+
+        const average = totalRating / validMonthsCount;
+        return average.toFixed(2);
+        
+    }, [monthlyRatings, selectedMonths]);
 
   // --- Fetch monthly ratings from API ---
   const fetchMonthlyRatings = useCallback(async (userID, year) => {
@@ -256,7 +387,7 @@ export default function UserProfile({ searchParams }) {
       }
       const apiData = await res.json();
 
-      // console.log("apiData>>>", apiData); // Keep for debugging if needed
+      console.log("apiData>>>", apiData); // Keep for debugging if needed
 
       // Ensure 12 months
       const monthNames = [
@@ -280,7 +411,6 @@ export default function UserProfile({ searchParams }) {
       });
 
       setMonthlyRatings(filledData);
-      console.log("filledData", filledData);
     } catch {
       setMonthlyRatings([]);
     }
@@ -368,49 +498,6 @@ export default function UserProfile({ searchParams }) {
       </div>
     );
 
-  // Custom Rating Card component for the "Year AVG Rating"
-  const YearAvgRatingCard = ({ avgRating }) => {
-    const ratingValue = parseFloat(avgRating);
-    const percentage = (ratingValue / 5) * 100;
-
-    return (
-      <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
-        <div className="flex items-center justify-center mb-6 text-center pb-3 border-b border-gray-100">
-          {" "}
-          {/* Subtle border for separation */}
-          <Star className="w-6 h-6 mr-2 text-yellow-500 fill-yellow-400" />
-          <h2 className="text-xl font-bold text-gray-800">Year AVG Rating</h2>
-        </div>
-
-        {/* Metric Display */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-baseline gap-2">
-            <span className="text-7xl font-extrabold text-indigo-600 leading-none">
-              {avgRating}
-            </span>
-            <span className="text-2xl text-gray-500">/ 5.0</span>
-          </div>
-          <p className="mt-2 text-base text-gray-500 font-medium">
-            Performance Score for {selectedYear}
-          </p>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mt-8">
-          <div className="flex justify-between text-sm font-medium text-gray-600 mb-1">
-            <span>Overall Progress</span>
-            <span className="text-indigo-600">{percentage.toFixed(0)}%</span>
-          </div>
-          <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="absolute top-0 left-0 h-3 rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 shadow-md transition-all duration-700 ease-out"
-              style={{ width: `${percentage}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
     const eligible = incrementState > 0;
@@ -920,7 +1007,13 @@ export default function UserProfile({ searchParams }) {
         </div>
 
         {/* Year AVG Rating Card (Using the new component) */}
-        <YearAvgRatingCard avgRating={yearAvgRating} />
+       <YearAvgRatingCard 
+                        avgRating={selectedMonthsAvgRating} 
+                        selectedYear={selectedYear} 
+                        selectedMonths={selectedMonths} 
+                        onMonthSelect={handleMonthSelect} 
+                    />
+
         <YearlyIncrementCard
           incrementState={incrementState}
           selectedYear={selectedYear}

@@ -276,7 +276,7 @@ const WeeklySummaryCard = memo(({ weekNumber, month, year }) => {
                 <div className="flex items-center text-sm font-medium text-gray-600 space-x-1">
                   <user.IconComponent className="h-4 w-4 text-gray-400" />{" "}
                   {/* 👈 Dynamic Icon */}
-                  <span>Weighted: {user.totalWeightedRating}</span>
+                  <span>Score: {user.totalWeightedRating.toFixed(2)}</span>
                 </div>
 
                 {/* Action Tag (Colored Rectangle Border Adage) */}
@@ -314,6 +314,11 @@ export default function Dashboard() {
   const [selectedWeek, setSelectedWeek] = useState(1);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
   const currentMonthArray = useMemo(() => [new Date().getMonth() + 1], []);
+
+  const currentDate = new Date();
+  const currentMonthName = currentDate.toLocaleString("en-US", {
+    month: "short",
+  });
 
   // Helper function to handle week change
   const handleWeekChange = useCallback((newWeek) => {
@@ -931,49 +936,74 @@ export default function Dashboard() {
         {/* Card 3: Weekly Summary (4/12 width) */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 lg:col-span-1">
           {/* Combined Title and Navigation Header */}
-          <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">
-            {/* Title */}
-            <h3 className="text-xl font-extrabold text-gray-900 flex items-center space-x-2 flex-1">
-              <TrendingUp className="h-5 w-5 text-indigo-600" />
-              <span>Weekly Performance Scoreboard</span>
-            </h3>
 
-            {/* Week Navigation Arrows (< >) */}
-            <div className="flex space-x-1.5 flex-shrink-0 pt-0.5 items-center">
-              {/* Left Arrow: Decrement Week */}
-              <button
-                onClick={() => handleWeekChange(selectedWeek - 1)}
-                disabled={selectedWeek === 1}
-                className={`p-1 rounded-lg text-sm font-bold transition-all duration-200 
-          ${
-            selectedWeek === 1
-              ? "text-gray-400 cursor-not-allowed bg-gray-50"
-              : "text-indigo-600 bg-indigo-100 hover:bg-indigo-200 shadow-sm"
-          }`}
-              >
-                &lt;
-              </button>
+<div className="flex flex-col items-center mb-4 pb-2 border-b border-gray-100 w-full">
+    
+    {/* FIRST ROW: Title (Centered) */}
+    <div className="w-full flex justify-center mb-3">
+        <h3 className="text-xl font-extrabold text-gray-900 flex items-center space-x-2">
+            <TrendingUp className="h-5 w-5 text-indigo-600" />
+            <span>Weekly Performance Scoreboard</span>
+        </h3>
+    </div>
 
-              {/* Current Week Display */}
-              <span className="px-3 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-md flex-shrink-0">
-                Week {selectedWeek}
-              </span>
+    {/* SECOND ROW: Unified Week Navigation and Month Display (Centered) */}
+    <div className="w-full flex justify-center">
+        
+        {/* Unified Pill Container for Nav and Month */}
+        <div className="flex items-center space-x-3 bg-gray-50 p-1.5 rounded-xl shadow-inner border border-gray-100">
+            
+            {/* Week Navigation Arrows and Week Display */}
+            <div className="flex space-x-1.5 flex-shrink-0 items-center">
+                {/* Left Arrow: Decrement Week */}
+                <button
+                    onClick={() => handleWeekChange(selectedWeek - 1)}
+                    disabled={selectedWeek === 1}
+                    className={`p-1 rounded-lg text-sm font-bold transition-all duration-200 
+              ${
+                selectedWeek === 1
+                  ? "text-gray-400 cursor-not-allowed bg-gray-50"
+                  : "text-indigo-600 hover:bg-indigo-100" // Subtle hover on interaction
+              }`}
+                >
+                    &lt;
+                </button>
 
-              {/* Right Arrow: Increment Week */}
-              <button
-                onClick={() => handleWeekChange(selectedWeek + 1)}
-                disabled={selectedWeek === 4}
-                className={`p-1 rounded-lg text-sm font-bold transition-all duration-200 
-          ${
-            selectedWeek === 4
-              ? "text-gray-400 cursor-not-allowed bg-gray-50"
-              : "text-indigo-600 bg-indigo-100 hover:bg-indigo-200 shadow-sm"
-          }`}
-              >
-                &gt;
-              </button>
+                {/* Current Week Display (Slightly less aggressive style) */}
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white shadow-md flex-shrink-0">
+                    Week {selectedWeek}
+                </span>
+
+                {/* Right Arrow: Increment Week */}
+                <button
+                    onClick={() => handleWeekChange(selectedWeek + 1)}
+                    disabled={selectedWeek === 4}
+                    className={`p-1 rounded-lg text-sm font-bold transition-all duration-200 
+              ${
+                selectedWeek === 4
+                  ? "text-gray-400 cursor-not-allowed bg-gray-50"
+                  : "text-indigo-600 hover:bg-indigo-100"
+              }`}
+                >
+                    &gt;
+                </button>
             </div>
-          </div>
+
+            {/* Separator */}
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+
+            {/* Modern Month Display */}
+            <div className="flex items-center space-x-1 pl-1 pr-2">
+                 <span className="text-xs font-semibold uppercase text-gray-400">
+                    FOR
+                </span>
+                <span className="text-sm font-extrabold text-blue-700">
+                    {currentMonthName} 
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
 
           <div className="w-full h-70 flex items-center justify-center mb-3">
             {/* 🎯 CHANGE HERE: Use new Date() to get the current system date/month/year */}

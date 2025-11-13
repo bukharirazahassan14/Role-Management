@@ -624,6 +624,7 @@ const fetchMonthlyData = useCallback(
                       </div>
 
                       {/* Eligible for Increment */}
+                      
                       <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
                         <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
                           Increment
@@ -642,6 +643,7 @@ const fetchMonthlyData = useCallback(
                           {incrementIcon}
                         </div>
                       </div>
+                      
                     </div>
                   </div>
                 </div>
