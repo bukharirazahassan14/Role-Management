@@ -499,28 +499,28 @@ export default function UserProfile({ searchParams }) {
   };
 
   const calculateTenure = (joiningDate) => {
-  if (!joiningDate) return "";
+    if (!joiningDate) return "";
 
-  const start = new Date(joiningDate);
-  const now = new Date();
+    const start = new Date(joiningDate);
+    const now = new Date();
 
-  let years = now.getFullYear() - start.getFullYear();
-  let months = now.getMonth() - start.getMonth();
-  let days = now.getDate() - start.getDate();
+    let years = now.getFullYear() - start.getFullYear();
+    let months = now.getMonth() - start.getMonth();
+    let days = now.getDate() - start.getDate();
 
-  if (days < 0) {
-    months--;
-    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    days += prevMonth.getDate();
-  }
+    if (days < 0) {
+      months--;
+      const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      days += prevMonth.getDate();
+    }
 
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
 
-  return `${years} Years, ${months} Months, ${days} Days`;
-};
+    return `${years} Years, ${months} Months, ${days} Days`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
@@ -614,13 +614,15 @@ export default function UserProfile({ searchParams }) {
             <h2 className="text-lg font-bold text-gray-800">Salary</h2>
           </div>
           <input
-            type="text"
+            type="number"
             value={user.salary || ""}
             onChange={(e) => handleFieldChange("salary", e.target.value)}
             onBlur={(e) =>
               handleFieldBlur("salary", e.target.value, user.salary)
             }
             placeholder="Enter salary"
+            min="0"
+            step="0.01" // ✅ allows decimal values like 1000.50
             className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
           />
         </div>
@@ -827,20 +829,20 @@ export default function UserProfile({ searchParams }) {
               </div>
             </div>
 
-{/* Tenure */}
-<div className="flex flex-col">
-  <label className="text-gray-500 font-medium mb-2">Tenure</label>
-  <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
-    <Calendar className="w-5 h-5 ml-3 text-indigo-500" />
-    <input
-      type="text"
-      value={calculateTenure(user.joiningDate)}
-      placeholder="Tenure"
-      readOnly
-      className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
-    />
-  </div>
-</div>
+            {/* Tenure */}
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-2">Tenure</label>
+              <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
+                <Calendar className="w-5 h-5 ml-3 text-indigo-500" />
+                <input
+                  type="text"
+                  value={calculateTenure(user.joiningDate)}
+                  placeholder="Tenure"
+                  readOnly
+                  className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

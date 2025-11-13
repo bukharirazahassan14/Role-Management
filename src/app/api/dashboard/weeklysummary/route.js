@@ -93,6 +93,11 @@ export async function GET(req) {
         }
       },
 
+       // 7️⃣ Sort by totalWeightedRating (descending)
+      {
+        $sort: { totalWeightedRating: -1 }
+      },
+
       // 7️⃣ Final output
       {
         $project: {

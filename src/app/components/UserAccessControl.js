@@ -181,7 +181,7 @@ export default function UserAccessControl() {
                 add: true,
                 delete: true,
               };
-            if (formName === "Report")
+            if (formName === "PMS")
               reportAccess[user.userId] = {
                 view: true,
                 edit: true,
@@ -201,7 +201,7 @@ export default function UserAccessControl() {
             if (formName === "Roles") roleAccess[user.userId] = { ...perms };
             if (formName === "Users")
               profileAccess[user.userId] = { ...perms };
-            if (formName === "Report") reportAccess[user.userId] = { ...perms };
+            if (formName === "PMS") reportAccess[user.userId] = { ...perms };
           }
 
           // No Access
@@ -226,7 +226,7 @@ export default function UserAccessControl() {
 
             if (formName === "Roles") roleAccess[user.userId] = noPerms;
             if (formName === "Users") profileAccess[user.userId] = noPerms;
-            if (formName === "Report") reportAccess[user.userId] = noPerms_report;
+            if (formName === "PMS") reportAccess[user.userId] = noPerms_report;
           }
         });
       });
@@ -303,7 +303,7 @@ export default function UserAccessControl() {
   const shouldShowProfileCheck =
     activeTabName === "Users" && selectedAccessLevel === "Full Access";
   const shouldShowReportCheck =
-    activeTabName === "Report" && selectedAccessLevel === "Full Access";
+    activeTabName === "PMS" && selectedAccessLevel === "Full Access";
 
   const shouldShowCheckboxes =
     activeTabName === "Dashboard" && selectedAccessLevel === "Partial Access";
@@ -312,7 +312,7 @@ export default function UserAccessControl() {
   const shouldShowProfilePermissions =
     activeTabName === "Users" && selectedAccessLevel === "Partial Access";
   const shouldShowReportPermissions =
-    activeTabName === "Report" && selectedAccessLevel === "Partial Access";
+    activeTabName === "PMS" && selectedAccessLevel === "Partial Access";
 
   const shouldShowRedX =
     activeTabName === "Dashboard" && selectedAccessLevel === "No Access";
@@ -321,7 +321,7 @@ export default function UserAccessControl() {
   const shouldShowRedX_Profile =
     activeTabName === "Users" && selectedAccessLevel === "No Access";
   const shouldShowRedX_Report =
-    activeTabName === "Report" && selectedAccessLevel === "No Access";
+    activeTabName === "PMS" && selectedAccessLevel === "No Access";
 
   const toggleCheckbox = (userId) => {
     setUserAccess((prev) => ({ ...prev, [userId]: !prev[userId] }));
@@ -477,7 +477,7 @@ export default function UserAccessControl() {
       );
     }
 
-    // ✅ Report + Partial Access (Unified and Aligned Card Design)
+    // ✅ PMS + Partial Access (Unified and Aligned Card Design)
     if (shouldShowReportPermissions) {
       const perms = reportPermissionAccess[user.userId] || {};
 
@@ -526,13 +526,13 @@ export default function UserAccessControl() {
             </div>
 
             {/* --- 2. Divider --- */}
-            {activeTabName === "Report" &&
+            {activeTabName === "PMS" &&
               selectedAccessLevel === "Partial Access" && (
                 <div className="w-full h-px bg-indigo-100"></div>
               )}
 
             {/* --- 3. Apply KPI Scoring Row --- */}
-            {activeTabName === "Report" &&
+            {activeTabName === "PMS" &&
               selectedAccessLevel === "Partial Access" && (
                 <div
                   className="flex items-center justify-between cursor-pointer group w-full"
@@ -589,7 +589,7 @@ export default function UserAccessControl() {
       if (activeTabName === "Dashboard") accessMap = userAccess;
       else if (activeTabName === "Roles") accessMap = rolePermissionAccess;
       else if (activeTabName === "Users") accessMap = profilePermissionAccess;
-      else if (activeTabName === "Report") accessMap = reportPermissionAccess;
+      else if (activeTabName === "PMS") accessMap = reportPermissionAccess;
 
       const userAccessValue = accessMap[userId];
       console.log("🔍 Sending userAccess:", userAccessValue);

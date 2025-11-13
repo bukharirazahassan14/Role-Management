@@ -76,7 +76,7 @@ export default function Sidebar() {
       })
       .map((f) => {
         let path = f.name.toLowerCase().replace(/\s+/g, "");
-        if (f.name === "Report") path = "weeklyevaluation";
+        if (f.name === "PMS") path = "weeklyevaluation";
 
         if (
           f.name === "Users" &&

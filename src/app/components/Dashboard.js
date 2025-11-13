@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo,memo,useCallback } from "react";
+import { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Shield,
@@ -13,7 +13,12 @@ import {
   List,
   PieChart as PieChartIcon,
   Bell, // Added Bell icon
-  Loader2, AlertTriangle, Activity, ThumbsUp, XCircle, Zap,
+  Loader2,
+  AlertTriangle,
+  Activity,
+  ThumbsUp,
+  XCircle,
+  Zap,
 } from "lucide-react";
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
@@ -141,16 +146,16 @@ const getActionStyles = (action) => {
 };
 
 const getActionIcon = (action) => {
-    switch (action) {
-      case 'Bonus':
-        return ThumbsUp;
-      case 'Urgent Meeting':
-        return XCircle;
-      case 'Motivate':
-        return Zap;
-      default:
-        return Activity;
-    }
+  switch (action) {
+    case "Bonus":
+      return ThumbsUp;
+    case "Urgent Meeting":
+      return XCircle;
+    case "Motivate":
+      return Zap;
+    default:
+      return Activity;
+  }
 };
 
 // Ensure getActionStyles is defined outside this component
@@ -181,7 +186,7 @@ const WeeklySummaryCard = memo(({ weekNumber, month, year }) => {
         const response = await fetch(
           `/api/dashboard/weeklysummary?${queryParams}`
         );
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -205,7 +210,7 @@ const WeeklySummaryCard = memo(({ weekNumber, month, year }) => {
       results.map((user) => {
         const Icon = getActionIcon(user.Action);
         const styleClass = getActionStyles(user.Action);
-        
+
         return {
           ...user,
           IconComponent: Icon,
@@ -249,36 +254,41 @@ const WeeklySummaryCard = memo(({ weekNumber, month, year }) => {
     // LIST CONTENT - SCROLLABLE WRAPPER
     return (
       <div className="space-y-3">
-        {formattedUsers.map((user) => ( // 👈 Use formattedUsers array
-          <div
-            key={user.userId}
-            className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border border-gray-100"
-          >
-            {/* User Info (Full Name) */}
-            <div className="flex items-center space-x-3 min-w-0 flex-1">
-              <User className="h-5 w-5 text-indigo-500 flex-shrink-0" />
-              <p className="font-semibold text-gray-900 truncate">
-                {user.fullName}
-              </p>
-            </div>
-
-            {/* Score and Action */}
-            <div className="flex items-center space-x-4 flex-shrink-0">
-              {/* Total Score */}
-              <div className="flex items-center text-sm font-medium text-gray-600 space-x-1">
-                <user.IconComponent className="h-4 w-4 text-gray-400" /> {/* 👈 Dynamic Icon */}
-                <span>Score: {user.totalScore}</span>
+        {formattedUsers.map(
+          (
+            user // 👈 Use formattedUsers array
+          ) => (
+            <div
+              key={user.userId}
+              className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border border-gray-100"
+            >
+              {/* User Info (Full Name) */}
+              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                <User className="h-5 w-5 text-indigo-500 flex-shrink-0" />
+                <p className="font-semibold text-gray-900 truncate">
+                  {user.fullName}
+                </p>
               </div>
 
-              {/* Action Tag (Colored Rectangle Border Adage) */}
-              <span
-                className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${user.styleClass}`} 
-              >
-                {user.Action}
-              </span>
+              {/* Score and Action */}
+              <div className="flex items-center space-x-4 flex-shrink-0">
+                {/* Total Score */}
+                <div className="flex items-center text-sm font-medium text-gray-600 space-x-1">
+                  <user.IconComponent className="h-4 w-4 text-gray-400" />{" "}
+                  {/* 👈 Dynamic Icon */}
+                  <span>Weighted: {user.totalWeightedRating}</span>
+                </div>
+
+                {/* Action Tag (Colored Rectangle Border Adage) */}
+                <span
+                  className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${user.styleClass}`}
+                >
+                  {user.Action}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
     );
   };
@@ -289,9 +299,7 @@ const WeeklySummaryCard = memo(({ weekNumber, month, year }) => {
 });
 
 // 👇 Fixes the ESLint warning: Component definition is missing display name
-WeeklySummaryCard.displayName = 'WeeklySummaryCard';
-
-
+WeeklySummaryCard.displayName = "WeeklySummaryCard";
 
 /* ---------------- Main Dashboard ---------------- */
 export default function Dashboard() {
@@ -305,15 +313,15 @@ export default function Dashboard() {
 
   const [selectedWeek, setSelectedWeek] = useState(1);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
-const currentMonthArray = useMemo(() => [new Date().getMonth() + 1], []);
+  const currentMonthArray = useMemo(() => [new Date().getMonth() + 1], []);
 
   // Helper function to handle week change
-const handleWeekChange = useCallback((newWeek) => {
+  const handleWeekChange = useCallback((newWeek) => {
     // Ensure the new week is between 1 and 4
     if (newWeek >= 1 && newWeek <= 4) {
-        setSelectedWeek(newWeek);
+      setSelectedWeek(newWeek);
     }
-}, []);
+  }, []);
 
   // Months
   const months = [
@@ -920,7 +928,6 @@ const handleWeekChange = useCallback((newWeek) => {
             </p>
           </div>
         </div>
-        
         {/* Card 3: Weekly Summary (4/12 width) */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 lg:col-span-1">
           {/* Combined Title and Navigation Header */}
@@ -928,7 +935,7 @@ const handleWeekChange = useCallback((newWeek) => {
             {/* Title */}
             <h3 className="text-xl font-extrabold text-gray-900 flex items-center space-x-2 flex-1">
               <TrendingUp className="h-5 w-5 text-indigo-600" />
-              <span>Weekly Summary Performance</span>
+              <span>Weekly Performance Scoreboard</span>
             </h3>
 
             {/* Week Navigation Arrows (< >) */}
@@ -971,10 +978,10 @@ const handleWeekChange = useCallback((newWeek) => {
           <div className="w-full h-70 flex items-center justify-center mb-3">
             {/* 🎯 CHANGE HERE: Use new Date() to get the current system date/month/year */}
             <WeeklySummaryCard
-    year={currentYear}      // 👈 Use stable memoized value
-    month={currentMonthArray} // 👈 Use stable memoized array
-    weekNumber={selectedWeek}
-/>
+              year={currentYear} // 👈 Use stable memoized value
+              month={currentMonthArray} // 👈 Use stable memoized array
+              weekNumber={selectedWeek}
+            />
           </div>
         </div>
       </div>
