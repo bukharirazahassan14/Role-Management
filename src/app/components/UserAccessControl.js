@@ -188,6 +188,7 @@ export default function UserAccessControl() {
                 add: true,
                 delete: true,
                 applyKpi: false,
+                applyIncrement: false,
               };
           }
 
@@ -199,8 +200,7 @@ export default function UserAccessControl() {
             if (formName === "Dashboard")
               initialAccess[user.userId] = hasAllAccess;
             if (formName === "Roles") roleAccess[user.userId] = { ...perms };
-            if (formName === "Users")
-              profileAccess[user.userId] = { ...perms };
+            if (formName === "Users") profileAccess[user.userId] = { ...perms };
             if (formName === "PMS") reportAccess[user.userId] = { ...perms };
           }
 
@@ -214,15 +214,14 @@ export default function UserAccessControl() {
               add: false,
               delete: false,
             };
-             const noPerms_report = {
+            const noPerms_report = {
               view: false,
               edit: false,
               add: false,
               delete: false,
               applyKpi: false,
+              applyIncrement:false,
             };
-
-            
 
             if (formName === "Roles") roleAccess[user.userId] = noPerms;
             if (formName === "Users") profileAccess[user.userId] = noPerms;
@@ -390,7 +389,7 @@ export default function UserAccessControl() {
       return <CheckCircle className="w-5 h-5 text-green-500" />;
 
     // ✅ Users + Partial Access (Modern Master Design)
-     if (shouldShowProfilePermissions) {
+    if (shouldShowProfilePermissions) {
       const perms = profilePermissionAccess[user.userId] || {};
 
       // Define the permissions
@@ -571,6 +570,47 @@ export default function UserAccessControl() {
                   />
                 </div>
               )}
+
+            {/* --- 3. Apply increment Row --- */}
+            {activeTabName === "PMS" &&
+              selectedAccessLevel === "Partial Access" && (
+                <div
+                  className="flex items-center justify-between cursor-pointer group w-full"
+                  onClick={(e) => {
+                    // Prevent double trigger if user clicks checkbox
+                    if (e.target.type !== "checkbox") {
+                      toggleReportPermission(user.userId, "applyIncrement");
+                    }
+                  }}
+                >
+                  <label
+                    htmlFor={`applyIncrement-${user.userId}`}
+                    className="text-sm font-bold text-indigo-700 select-none flex items-center gap-2"
+                  >
+                    <span className="inline-block bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full text-[12px] font-extrabold">
+                      INC
+                    </span>
+                    Enable Increment
+                  </label>
+
+                  <input
+                    type="checkbox"
+                    id={`applyIncrement-${user.userId}`}
+                    className="
+                  appearance-none w-5 h-5 border-2 border-indigo-400 rounded-md 
+                  checked:bg-indigo-600 checked:border-indigo-600 
+                  hover:border-indigo-500 transition-all duration-200 
+                  cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-300
+                "
+                    checked={
+                      reportPermissionAccess[user.userId]?.applyIncrement || false
+                    }
+                    onChange={() =>
+                      toggleReportPermission(user.userId, "applyIncrement")
+                    }
+                  />
+                </div>
+              )}
           </div>
         </div>
       );
@@ -593,7 +633,7 @@ export default function UserAccessControl() {
 
       const userAccessValue = accessMap[userId];
       console.log("🔍 Sending userAccess:", userAccessValue);
-    
+      
       const res = await fetch("/api/UserAccessControl/updatesingleaccess", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

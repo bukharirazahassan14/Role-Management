@@ -6,6 +6,7 @@ const permissionSchema = new mongoose.Schema({
   add: { type: Boolean, default: false },
   delete: { type: Boolean, default: false },
   applyKpi: { type: Boolean, default: false },
+  applyIncrement: { type: Boolean, default: false },
 });
 
 const partialAccessSchema = new mongoose.Schema({

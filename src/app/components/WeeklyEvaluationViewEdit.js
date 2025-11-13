@@ -66,6 +66,56 @@ export default function WeeklyEvaluationViewEdit({ searchParams }) {
     e.target.src = DEFAULT_AVATAR;
   };
 
+  const [permissions, setPermissions] = useState({
+      applyIncrement: false,
+    });
+  
+    // ✅ Fetch and set permissions from userAccess
+    useEffect(() => {
+      const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+      const formAccess = accessData.formAccess || [];
+  
+      const activeFormId = localStorage.getItem("activeForm");
+  
+      // ✅ Extract userId from accessData
+      if (accessData.userId) {
+        //
+      } else {
+        console.warn("⚠️ No userId found in userAccess data.");
+      }
+  
+      if (!activeFormId || formAccess.length === 0) {
+        console.warn("⚠️ No form access data found for this user.");
+        return;
+      }
+  
+      const currentForm = formAccess.find(
+        (f) => String(f.formId) === String(activeFormId)
+      );
+  
+      if (currentForm) {
+        if (currentForm.fullAccess) {
+          setPermissions({
+            applyIncrement: true,
+          });
+        } else if (currentForm.partialAccess?.enabled) {
+          const perms = currentForm.partialAccess.permissions || {};
+          setPermissions({
+            applyIncrement: perms.applyIncrement || false,
+          });
+        } else {
+          setPermissions({
+            applyIncrement: false,
+          });
+        }
+      } else {
+        console.warn("⚠️ No matching form access found.");
+      }
+    }, []);
+  
+    // Example usage
+    const canApplyIncrement = permissions.applyIncrement;
+
   const toggleMonth = (monthNumber) => {
     setSelectedMonths(
       (prev) =>
@@ -624,7 +674,7 @@ const fetchMonthlyData = useCallback(
                       </div>
 
                       {/* Eligible for Increment */}
-                      
+                      {canApplyIncrement && (
                       <div className="relative flex flex-col items-center justify-center bg-white rounded-xl p-4 md:p-5 shadow-sm hover:shadow-md transition overflow-visible">
                         <div className="text-gray-800 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
                           Increment
@@ -643,7 +693,7 @@ const fetchMonthlyData = useCallback(
                           {incrementIcon}
                         </div>
                       </div>
-                      
+                      )}
                     </div>
                   </div>
                 </div>

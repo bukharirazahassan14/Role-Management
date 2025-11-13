@@ -106,7 +106,7 @@ async function seed() {
     noAccess: false,
     partialAccess: {
       enabled: false,
-      permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false },
+      permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false },
     },
   }));
 

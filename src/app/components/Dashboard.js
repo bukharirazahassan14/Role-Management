@@ -940,7 +940,7 @@ export default function Dashboard() {
 <div className="flex flex-col items-center mb-4 pb-2 border-b border-gray-100 w-full">
     
     {/* FIRST ROW: Title (Centered) */}
-    <div className="w-full flex justify-center mb-3">
+    <div className="w-full flex justify-left mb-3">
         <h3 className="text-xl font-extrabold text-gray-900 flex items-center space-x-2">
             <TrendingUp className="h-5 w-5 text-indigo-600" />
             <span>Weekly Performance Scoreboard</span>

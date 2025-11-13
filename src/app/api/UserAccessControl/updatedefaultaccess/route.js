@@ -74,7 +74,7 @@ export async function PUT(req) {
           noAccess: false,
           partialAccess: {
             enabled: false,
-            permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false },
+            permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false },
           },
         };
       } else if (index === 1) {
@@ -85,7 +85,7 @@ export async function PUT(req) {
           noAccess: false,
           partialAccess: {
             enabled: true,
-            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: false },
+            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false },
           },
         };
       } else if (index === 2) {
@@ -96,7 +96,7 @@ export async function PUT(req) {
           noAccess: false,
           partialAccess: {
             enabled: true,
-            permissions: { view: true, edit: true, add: false, delete: false, applyKpi: false },
+            permissions: { view: true, edit: true, add: false, delete: false, applyKpi: false, applyIncrement: false },
           },
         };
       } else {
@@ -107,7 +107,7 @@ export async function PUT(req) {
           noAccess: false,
           partialAccess: {
             enabled: true,
-            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: false },
+            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false },
           },
         };
       }
