@@ -953,6 +953,16 @@ export default function Dashboard() {
         {/* Unified Pill Container for Nav and Month */}
         <div className="flex items-center space-x-3 bg-gray-50 p-1.5 rounded-xl shadow-inner border border-gray-100">
             
+            {/* Modern Month Display */}
+            <div className="flex items-center space-x-1 pl-1 pr-2">
+                <span className="text-sm font-extrabold text-blue-700">
+                    {currentMonthName} 
+                </span>
+            </div>
+
+            {/* Separator */}
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+
             {/* Week Navigation Arrows and Week Display */}
             <div className="flex space-x-1.5 flex-shrink-0 items-center">
                 {/* Left Arrow: Decrement Week */}
@@ -987,20 +997,11 @@ export default function Dashboard() {
                 >
                     &gt;
                 </button>
-            </div>
+            </div>  
+            
 
-            {/* Separator */}
-            <div className="w-px h-6 bg-gray-300 mx-1"></div>
 
-            {/* Modern Month Display */}
-            <div className="flex items-center space-x-1 pl-1 pr-2">
-                 <span className="text-xs font-semibold uppercase text-gray-400">
-                    FOR
-                </span>
-                <span className="text-sm font-extrabold text-blue-700">
-                    {currentMonthName} 
-                </span>
-            </div>
+
         </div>
     </div>
 </div>
