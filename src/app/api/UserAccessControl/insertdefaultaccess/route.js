@@ -73,7 +73,7 @@ export async function POST(req) {
           noAccess: false,
           partialAccess: {
             enabled: true,
-            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false },
+            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: true, applyIncrement: false },
           },
         };
       }

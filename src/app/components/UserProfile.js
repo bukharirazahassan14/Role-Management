@@ -32,6 +32,29 @@ import {
   BarElement, // Needed for Bar
 } from "chart.js";
 
+const generateYearOptions = () => {
+  const currentYear = new Date().getFullYear();
+  
+  // Set the range based on current year and 10 years back
+  const yearsBack = 10;
+  
+  // Start year is 10 years ago (e.g., 2025 - 10 = 2015)
+  const startYear = currentYear - yearsBack;    
+  
+  // End year is the current year
+  const endYear = currentYear;                  
+  
+  const years = [];
+
+  // Generate the array from 2015 up to 2025 (in ascending order)
+  for (let y = startYear; y <= endYear; y++) {
+    years.push(y);
+  }
+  
+  // Reverse the array to show the newest year first (2025, 2024, ..., 2015)
+  return years.reverse(); 
+};
+
 // ✅ Register ALL chart types used in this file
 ChartJS.register(
   ArcElement, // For Doughnut chart
@@ -223,38 +246,51 @@ const handleImageError = (e) => {
 
 // 1. MONTH TOGGLE HELPER (Defined outside or just before the main function)
 const MonthToggle = ({ monthName, monthNumber, isSelected, onClick }) => {
-    // Added flex items-center justify-center for centered text
-    const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full shadow-inner transition-all duration-200 ease-in-out cursor-pointer flex-shrink-0 flex items-center justify-center";
-    
-    const activeClasses = "bg-indigo-600 text-white shadow-xl shadow-indigo-300/50 transform scale-105";
-    const inactiveClasses = "bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 shadow-md border border-gray-200";
+  // Added flex items-center justify-center for centered text
+  const baseClasses =
+    "px-3 py-1 text-xs font-semibold rounded-full shadow-inner transition-all duration-200 ease-in-out cursor-pointer flex-shrink-0 flex items-center justify-center";
 
-    return (
-      <div
-        onClick={() => onClick(monthNumber)}
-        className={`${baseClasses} ${isSelected ? activeClasses : inactiveClasses}`}
-      >
-        {monthName}
-      </div>
-    );
+  const activeClasses =
+    "bg-indigo-600 text-white shadow-xl shadow-indigo-300/50 transform scale-105";
+  const inactiveClasses =
+    "bg-gray-100 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 shadow-md border border-gray-200";
+
+  return (
+    <div
+      onClick={() => onClick(monthNumber)}
+      className={`${baseClasses} ${
+        isSelected ? activeClasses : inactiveClasses
+      }`}
+    >
+      {monthName}
+    </div>
+  );
 };
 
 // 2. YEAR AVERAGE RATING CARD (Defined outside or just before the main function)
 // Use memo for performance
-const YearAvgRatingCard = memo(({ avgRating, selectedYear, selectedMonths, onMonthSelect }) => {
+const YearAvgRatingCard = memo(
+  ({ avgRating, selectedYear, selectedMonths, onMonthSelect }) => {
     const ratingValue = parseFloat(avgRating);
     const percentage = (ratingValue / 5) * 100;
 
     const months = [
-        { name: 'Jan', num: 1 }, { name: 'Feb', num: 2 }, { name: 'Mar', num: 3 }, 
-        { name: 'Apr', num: 4 }, { name: 'May', num: 5 }, { name: 'Jun', num: 6 }, 
-        { name: 'Jul', num: 7 }, { name: 'Aug', num: 8 }, { name: 'Sep', num: 9 }, 
-        { name: 'Oct', num: 10 }, { name: 'Nov', num: 11 }, { name: 'Dec', num: 12 },
+      { name: "Jan", num: 1 },
+      { name: "Feb", num: 2 },
+      { name: "Mar", num: 3 },
+      { name: "Apr", num: 4 },
+      { name: "May", num: 5 },
+      { name: "Jun", num: 6 },
+      { name: "Jul", num: 7 },
+      { name: "Aug", num: 8 },
+      { name: "Sep", num: 9 },
+      { name: "Oct", num: 10 },
+      { name: "Nov", num: 11 },
+      { name: "Dec", num: 12 },
     ];
 
     return (
       <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col justify-between">
-        
         {/* HEADER SECTION: Title and Month Toggles */}
         <div className="mb-6">
           {/* Title */}
@@ -306,9 +342,9 @@ const YearAvgRatingCard = memo(({ avgRating, selectedYear, selectedMonths, onMon
         </div>
       </div>
     );
-});
-YearAvgRatingCard.displayName = 'YearAvgRatingCard';
-
+  }
+);
+YearAvgRatingCard.displayName = "YearAvgRatingCard";
 
 export default function UserProfile({ searchParams }) {
   const router = useRouter();
@@ -322,57 +358,110 @@ export default function UserProfile({ searchParams }) {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(true);
   const [originalUser, setOriginalUser] = useState(null);
+const availableYears = useMemo(generateYearOptions, []);
 
-const currentMonth = new Date().getMonth() + 1; 
+  const [permissions, setPermissions] = useState({
+      applyIncrement: false,
+    });
+  
+    // ✅ Fetch and set permissions from userAccess
+    useEffect(() => {
+      const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+      const formAccess = accessData.formAccess || [];
+  
+      const activeFormId = localStorage.getItem("activeForm");
+  
+      // ✅ Extract userId from accessData
+      if (accessData.userId) {
+        //
+      } else {
+        console.warn("⚠️ No userId found in userAccess data.");
+      }
+  
+      if (!activeFormId || formAccess.length === 0) {
+        console.warn("⚠️ No form access data found for this user.");
+        return;
+      }
+  
+      const currentForm = formAccess.find(
+        (f) => String(f.formId) === String(activeFormId)
+      );
+  
+      if (currentForm) {
+        if (currentForm.fullAccess) {
+          setPermissions({
+            applyIncrement: true,
+          });
+        } else if (currentForm.partialAccess?.enabled) {
+          const perms = currentForm.partialAccess.permissions || {};
+          setPermissions({
+            applyIncrement: perms.applyIncrement || false,
+          });
+        } else {
+          setPermissions({
+            applyIncrement: false,
+          });
+        }
+      } else {
+        console.warn("⚠️ No matching form access found.");
+      }
+    }, []);
+  
+    // Example usage
+    const canApplyIncrement = permissions.applyIncrement;
 
-    // State initialized with the current month selected by default
-    const [selectedMonths, setSelectedMonths] = useState([currentMonth]);
+  const currentMonth = new Date().getMonth() + 1;
+  // State initialized with the current month selected by default
+  const [selectedMonths, setSelectedMonths] = useState([currentMonth]);
 
   // Handler for toggling month selection (useCallback for stability)
-    const handleMonthSelect = useCallback((monthNumber) => {
-        setSelectedMonths(prevMonths => {
-            if (prevMonths.includes(monthNumber)) {
-                // Remove month if already present
-                return prevMonths.filter(m => m !== monthNumber);
-            } else {
-                // Add month if not present
-                return [...prevMonths, monthNumber];
-            }
-        });
-    }, []);
+  const handleMonthSelect = useCallback((monthNumber) => {
+    setSelectedMonths((prevMonths) => {
+      if (prevMonths.includes(monthNumber)) {
+        // Remove month if already present
+        return prevMonths.filter((m) => m !== monthNumber);
+      } else {
+        // Add month if not present
+        return [...prevMonths, monthNumber];
+      }
+    });
+  }, []);
 
   // Helper function to map month number (1-12) to month name ('Jan', 'Feb', etc.)
-    const getMonthName = (monthNum) => {
-        const date = new Date(2000, monthNum - 1, 1);
-        return date.toLocaleString('en-US', { month: 'short' });
-    };
+  const getMonthName = (monthNum) => {
+    const date = new Date(2000, monthNum - 1, 1);
+    return date.toLocaleString("en-US", { month: "short" });
+  };
 
   // Calculation of the average rating for the selected months
-    const selectedMonthsAvgRating = useMemo(() => {
-        if (!monthlyRatings || monthlyRatings.length === 0 || selectedMonths.length === 0) {
-            return (0).toFixed(2);
-        }
-        
-        const selectedMonthNames = selectedMonths.map(getMonthName);
-        
-        let totalRating = 0;
-        let validMonthsCount = 0;
-        
-        monthlyRatings.forEach(m => {
-            if (selectedMonthNames.includes(m.month)) {
-                totalRating += m.rating || 0;
-                validMonthsCount++; 
-            }
-        });
+  const selectedMonthsAvgRating = useMemo(() => {
+    if (
+      !monthlyRatings ||
+      monthlyRatings.length === 0 ||
+      selectedMonths.length === 0
+    ) {
+      return (0).toFixed(2);
+    }
 
-        if (validMonthsCount === 0) {
-            return (0).toFixed(2);
-        }
+    const selectedMonthNames = selectedMonths.map(getMonthName);
 
-        const average = totalRating / validMonthsCount;
-        return average.toFixed(2);
-        
-    }, [monthlyRatings, selectedMonths]);
+    let totalRating = 0;
+    let validMonthsCount = 0;
+
+    monthlyRatings.forEach((m) => {
+      if (selectedMonthNames.includes(m.month)) {
+        totalRating += m.rating || 0;
+        validMonthsCount++;
+      }
+    });
+
+    if (validMonthsCount === 0) {
+      return (0).toFixed(2);
+    }
+
+    const average = totalRating / validMonthsCount;
+    return average.toFixed(2);
+  }, [monthlyRatings, selectedMonths]);
 
   // --- Fetch monthly ratings from API ---
   const fetchMonthlyRatings = useCallback(async (userID, year) => {
@@ -498,7 +587,6 @@ const currentMonth = new Date().getMonth() + 1;
       </div>
     );
 
-
   const YearlyIncrementCard = ({ incrementState, selectedYear }) => {
     const eligible = incrementState > 0;
 
@@ -609,6 +697,8 @@ const currentMonth = new Date().getMonth() + 1;
     return `${years} Years, ${months} Months, ${days} Days`;
   };
 
+  
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
       {/* ✅ Toast Message */}
@@ -710,6 +800,7 @@ const currentMonth = new Date().getMonth() + 1;
             placeholder="Enter salary"
             min="0"
             step="0.01" // ✅ allows decimal values like 1000.50
+            readOnly
             className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
           />
         </div>
@@ -724,7 +815,7 @@ const currentMonth = new Date().getMonth() + 1;
           </div>
           <div className="space-y-3">
             <input
-              type="text"
+              type="number"
               value={user.emergencyContact || ""}
               onChange={(e) =>
                 handleFieldChange("emergencyContact", e.target.value)
@@ -821,7 +912,7 @@ const currentMonth = new Date().getMonth() + 1;
               <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-400 transition-all">
                 <Phone className="w-5 h-5 ml-3 text-indigo-500" />
                 <input
-                  type="text"
+                  type="number"
                   value={user.phone || ""}
                   onChange={(e) => handleFieldChange("phone", e.target.value)}
                   onBlur={(e) =>
@@ -986,17 +1077,18 @@ const currentMonth = new Date().getMonth() + 1;
                 Monthly AVG Rating
               </h2>
             </div>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm bg-gray-50 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 z-50"
-            >
-              {availableYears.map((y) => (
+           <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm bg-gray-50 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 z-50"
+        >
+            {/* This is now a valid array, so .map() works */}
+            {availableYears.map((y) => ( 
                 <option key={y} value={y}>
-                  {y}
+                    {y}
                 </option>
-              ))}
-            </select>
+            ))}
+        </select>
           </div>
           <div className="w-full h-[400px] relative z-0">
             <MonthlyRatingPieChart
@@ -1007,17 +1099,20 @@ const currentMonth = new Date().getMonth() + 1;
         </div>
 
         {/* Year AVG Rating Card (Using the new component) */}
-       <YearAvgRatingCard 
-                        avgRating={selectedMonthsAvgRating} 
-                        selectedYear={selectedYear} 
-                        selectedMonths={selectedMonths} 
-                        onMonthSelect={handleMonthSelect} 
-                    />
+        <YearAvgRatingCard
+          avgRating={selectedMonthsAvgRating}
+          selectedYear={selectedYear}
+          selectedMonths={selectedMonths}
+          onMonthSelect={handleMonthSelect}
+        />
 
+        {canApplyIncrement && (
         <YearlyIncrementCard
           incrementState={incrementState}
           selectedYear={selectedYear}
         />
+        )}
+
       </div>
     </div>
   );

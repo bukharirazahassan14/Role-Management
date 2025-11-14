@@ -344,11 +344,25 @@ export default function Dashboard() {
     "Dec",
   ];
 
-  // Years range: current ± 5
-  const SerYears = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    return Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
-  }, []);
+ const SerYears = useMemo(() => {
+    const currentYear = new Date().getFullYear(); // 2025
+    
+    // Define the range: 10 years back, plus the current year (11 total options)
+    const yearsBack = 10;
+    
+    const startYear = currentYear - yearsBack;    // 2025 - 10 = 2015
+    const endYear = currentYear;                  // 2025
+    
+    const years = [];
+
+    // Generate the array in ascending order (2015, 2016, ... 2025)
+    for (let y = startYear; y <= endYear; y++) {
+      years.push(y);
+    }
+    
+    // Reverse the array to show the newest year first (2025, 2024, ... 2015)
+    return years.reverse(); 
+}, []); // Runs only on mount.
 
   // States
   const [SerSelectedYear, setSerSelectedYear] = useState(
@@ -525,7 +539,7 @@ export default function Dashboard() {
         const monthsParam = validMonths.join(",");
 
         const res = await fetch(
-          `/api/weeklyevaluation/performance/monthly?year=${SerSelectedYear}&months=${monthsParam}`
+          `/api/weeklyevaluation/performance/monthly/TeamPerformanceMetrics?year=${SerSelectedYear}&months=${monthsParam}`
         );
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
