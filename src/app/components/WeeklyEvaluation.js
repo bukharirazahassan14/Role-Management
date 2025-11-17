@@ -23,6 +23,29 @@ import {
 
 import useIsMobile from "../hooks/useIsMobile";
 
+const generateYearOptions = () => {
+  const currentYear = new Date().getFullYear();
+
+  // Set the range based on current year and 10 years back
+  const yearsBack = 10;
+
+  // Start year is 10 years ago (e.g., 2025 - 10 = 2015)
+  const startYear = currentYear - yearsBack;
+
+  // End year is the current year
+  const endYear = currentYear;
+
+  const years = [];
+
+  // Generate the array from 2015 up to 2025 (in ascending order)
+  for (let y = startYear; y <= endYear; y++) {
+    years.push(y);
+  }
+
+  // Reverse the array to show the newest year first (2025, 2024, ..., 2015)
+  return years.reverse();
+};
+
 export default function EmployeeWeeklyEvaluation() {
   const router = useRouter();
   const [evaluations, setEvaluations] = useState([]);
@@ -56,12 +79,7 @@ export default function EmployeeWeeklyEvaluation() {
   );
   const [SerSelectedWeeks, setSerSelectedWeeks] = useState([]); // multiple selectable
 
-  // Years range: current ± 5
-  const SerYears = useMemo(() => {
-    const SerNow = new Date();
-    const SerStart = SerNow.getFullYear() - 5;
-    return Array.from({ length: 11 }, (_, SerIndex) => SerStart + SerIndex);
-  }, []);
+  const availableYears = useMemo(generateYearOptions, []);
 
   const SerMonths = [
     { SerValue: 1, SerLabel: "January" },
@@ -1021,12 +1039,13 @@ export default function EmployeeWeeklyEvaluation() {
                   }}
                   className="appearance-none px-4 py-2 pr-8 rounded-lg border border-gray-200 bg-white text-gray-900 shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  {SerYears.map((SerY) => (
-                    <option key={SerY} value={SerY}>
-                      {SerY}
+                  {availableYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
                     </option>
                   ))}
                 </select>
+
                 <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
                   ▾
                 </span>

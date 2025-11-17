@@ -216,9 +216,9 @@ export default function Header({ title = "Dashboard Overview", userName = "Super
           {/* Dropdown Menu */}
           {open && (
             <div className="absolute right-0 mt-3 w-44 bg-white rounded-xl shadow-lg border overflow-hidden">
-              <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
+            {/*   <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
                 📤 Export User
-              </button>
+              </button> */}
               <button
                 onClick={handleSignOut}
                 className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"

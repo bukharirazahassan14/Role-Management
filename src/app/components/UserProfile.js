@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Lock,
   DollarSign,
+  Banknote,
 } from "lucide-react";
 
 import { Doughnut, Bar } from "react-chartjs-2";
@@ -34,25 +35,25 @@ import {
 
 const generateYearOptions = () => {
   const currentYear = new Date().getFullYear();
-  
+
   // Set the range based on current year and 10 years back
   const yearsBack = 10;
-  
+
   // Start year is 10 years ago (e.g., 2025 - 10 = 2015)
-  const startYear = currentYear - yearsBack;    
-  
+  const startYear = currentYear - yearsBack;
+
   // End year is the current year
-  const endYear = currentYear;                  
-  
+  const endYear = currentYear;
+
   const years = [];
 
   // Generate the array from 2015 up to 2025 (in ascending order)
   for (let y = startYear; y <= endYear; y++) {
     years.push(y);
   }
-  
+
   // Reverse the array to show the newest year first (2025, 2024, ..., 2015)
-  return years.reverse(); 
+  return years.reverse();
 };
 
 // ✅ Register ALL chart types used in this file
@@ -358,57 +359,57 @@ export default function UserProfile({ searchParams }) {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(true);
   const [originalUser, setOriginalUser] = useState(null);
-const availableYears = useMemo(generateYearOptions, []);
+  const availableYears = useMemo(generateYearOptions, []);
 
   const [permissions, setPermissions] = useState({
-      applyIncrement: false,
-    });
-  
-    // ✅ Fetch and set permissions from userAccess
-    useEffect(() => {
-      const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
-      const formAccess = accessData.formAccess || [];
-  
-      const activeFormId = localStorage.getItem("activeForm");
-  
-      // ✅ Extract userId from accessData
-      if (accessData.userId) {
-        //
+    applyIncrement: false,
+  });
+
+  // ✅ Fetch and set permissions from userAccess
+  useEffect(() => {
+    const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+    const formAccess = accessData.formAccess || [];
+
+    const activeFormId = localStorage.getItem("activeForm");
+
+    // ✅ Extract userId from accessData
+    if (accessData.userId) {
+      //
+    } else {
+      console.warn("⚠️ No userId found in userAccess data.");
+    }
+
+    if (!activeFormId || formAccess.length === 0) {
+      console.warn("⚠️ No form access data found for this user.");
+      return;
+    }
+
+    const currentForm = formAccess.find(
+      (f) => String(f.formId) === String(activeFormId)
+    );
+
+    if (currentForm) {
+      if (currentForm.fullAccess) {
+        setPermissions({
+          applyIncrement: true,
+        });
+      } else if (currentForm.partialAccess?.enabled) {
+        const perms = currentForm.partialAccess.permissions || {};
+        setPermissions({
+          applyIncrement: perms.applyIncrement || false,
+        });
       } else {
-        console.warn("⚠️ No userId found in userAccess data.");
+        setPermissions({
+          applyIncrement: false,
+        });
       }
-  
-      if (!activeFormId || formAccess.length === 0) {
-        console.warn("⚠️ No form access data found for this user.");
-        return;
-      }
-  
-      const currentForm = formAccess.find(
-        (f) => String(f.formId) === String(activeFormId)
-      );
-  
-      if (currentForm) {
-        if (currentForm.fullAccess) {
-          setPermissions({
-            applyIncrement: true,
-          });
-        } else if (currentForm.partialAccess?.enabled) {
-          const perms = currentForm.partialAccess.permissions || {};
-          setPermissions({
-            applyIncrement: perms.applyIncrement || false,
-          });
-        } else {
-          setPermissions({
-            applyIncrement: false,
-          });
-        }
-      } else {
-        console.warn("⚠️ No matching form access found.");
-      }
-    }, []);
-  
-    // Example usage
-    const canApplyIncrement = permissions.applyIncrement;
+    } else {
+      console.warn("⚠️ No matching form access found.");
+    }
+  }, []);
+
+  // Example usage
+  const canApplyIncrement = permissions.applyIncrement;
 
   const currentMonth = new Date().getMonth() + 1;
   // State initialized with the current month selected by default
@@ -697,8 +698,6 @@ const availableYears = useMemo(generateYearOptions, []);
     return `${years} Years, ${months} Months, ${days} Days`;
   };
 
-  
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6 font-sans">
       {/* ✅ Toast Message */}
@@ -780,6 +779,7 @@ const availableYears = useMemo(generateYearOptions, []);
               handleFieldBlur("password", e.target.value, user.password)
             }
             placeholder="••••••••"
+            readOnly
             className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all"
           />
         </div>
@@ -828,6 +828,7 @@ const availableYears = useMemo(generateYearOptions, []);
                 )
               }
               placeholder="Contact No."
+              readOnly
               className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all"
             />
             <input
@@ -844,6 +845,7 @@ const availableYears = useMemo(generateYearOptions, []);
                 )
               }
               placeholder="Relationship"
+              readOnly
               className="w-full p-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all"
             />
           </div>
@@ -852,6 +854,7 @@ const availableYears = useMemo(generateYearOptions, []);
 
       {/* Primary Info & Files */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* LEFT SIDE: Primary Information */}
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
           <div className="flex items-center mb-6">
             <UserCheck className="w-7 h-7 mr-3 text-indigo-500" />
@@ -899,6 +902,7 @@ const availableYears = useMemo(generateYearOptions, []);
                     )
                   }
                   placeholder="Secondary Email"
+                  readOnly
                   className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
                 />
               </div>
@@ -919,6 +923,7 @@ const availableYears = useMemo(generateYearOptions, []);
                     handleFieldBlur("phone", e.target.value, user.phone)
                   }
                   placeholder="Phone Number"
+                  readOnly
                   className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
                 />
               </div>
@@ -939,6 +944,7 @@ const availableYears = useMemo(generateYearOptions, []);
                     handleFieldBlur("cnic", e.target.value, user.cnic)
                   }
                   placeholder="CNIC / ID"
+                  readOnly
                   className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
                 />
               </div>
@@ -982,6 +988,7 @@ const availableYears = useMemo(generateYearOptions, []);
                     )
                   }
                   placeholder="Father's Name"
+                  readOnly
                   className="w-full p-3 bg-transparent text-gray-900 placeholder-gray-400 rounded-xl focus:outline-none"
                 />
               </div>
@@ -1024,44 +1031,114 @@ const availableYears = useMemo(generateYearOptions, []);
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-          <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
-            {" "}
-            {/* Subtle border */}
-            <Paperclip className="w-6 h-6 mr-2 text-indigo-500" />
-            <h2 className="text-xl font-bold text-gray-800">Attached Files</h2>
-          </div>
-          {files.length > 0 ? (
-            <ul className="space-y-3 max-h-72 overflow-y-auto pr-2">
-              {" "}
-              {/* Added pr-2 for scrollbar spacing */}
-              {files.map((file) => (
-                <li
-                  key={file._id}
-                  className="p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 flex flex-col transition border border-indigo-200"
-                >
-                  <span className="text-sm font-semibold text-gray-800">
-                    {file.title}
-                  </span>
-                  <p className="text-xs text-gray-500 truncate">
-                    {file.description}
-                  </p>
-                  <a
-                    href={file.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 text-xs text-indigo-600 font-medium hover:underline"
-                  >
-                    View / Download
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="flex items-center justify-center h-40 bg-gray-50 rounded-lg text-gray-500 text-sm">
-              No files attached.
+        {/* RIGHT SIDE: Bank Details + Attached Files */}
+        <div className="space-y-6">
+          {/* BANK DETAILS CARD */}
+          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+            <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
+              <Banknote className="w-6 h-6 mr-2 text-indigo-500" />
+              <h2 className="text-xl font-bold text-gray-800">Bank Details</h2>
             </div>
-          )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Account Title */}
+              <div className="flex flex-col">
+                <label className="text-gray-500 font-medium mb-1">
+                  Acc Holder Name
+                </label>
+                <input
+                  type="text"
+                  value={user.accHolderName || ""}
+                  readOnly
+                  placeholder="Account Holder Name"
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+
+              {/* Account Number */}
+              <div className="flex flex-col">
+                <label className="text-gray-500 font-medium mb-1">
+                  Account Number
+                </label>
+                <input
+                  type="text"
+                  value={user.accNumber || ""}
+                  readOnly
+                  placeholder="Account Number"
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+
+              {/* Bank Name */}
+              <div className="flex flex-col">
+                <label className="text-gray-500 font-medium mb-1">
+                  Bank Name
+                </label>
+                <input
+                  type="text"
+                  value={user.bankName || ""}
+                  readOnly
+                  placeholder="Enter Bank Name"
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+
+              {/* IBAN */}
+              <div className="flex flex-col">
+                <label className="text-gray-500 font-medium mb-1">IBAN</label>
+                <input
+                  type="text"
+                  value={user.iban || ""}
+                  readOnly
+                  placeholder="IBAN Number"
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ATTACHED FILES CARD */}
+          <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+            <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
+              <Paperclip className="w-6 h-6 mr-2 text-indigo-500" />
+              <h2 className="text-xl font-bold text-gray-800">
+                Attached Files
+              </h2>
+            </div>
+
+            {/* Scrollable list with modern scrollbar */}
+            <div className="max-h-35 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-indigo-300 scrollbar-track-gray-100">
+              {files.length > 0 ? (
+                <ul className="space-y-3">
+                  {files.map((file) => (
+                    <li
+                      key={file._id}
+                      className="p-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 flex flex-col transition border border-indigo-200"
+                    >
+                      <span className="text-sm font-semibold text-gray-800">
+                        {file.title}
+                      </span>
+                      <p className="text-xs text-gray-500 truncate">
+                        {file.description}
+                      </p>
+                      <a
+                        href={file.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 text-xs text-indigo-600 font-medium hover:underline"
+                      >
+                        View / Download
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg text-gray-500 text-sm">
+                  No files attached.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1077,18 +1154,18 @@ const availableYears = useMemo(generateYearOptions, []);
                 Monthly AVG Rating
               </h2>
             </div>
-           <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm bg-gray-50 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 z-50"
-        >
-            {/* This is now a valid array, so .map() works */}
-            {availableYears.map((y) => ( 
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm bg-gray-50 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 z-50"
+            >
+              {/* This is now a valid array, so .map() works */}
+              {availableYears.map((y) => (
                 <option key={y} value={y}>
-                    {y}
+                  {y}
                 </option>
-            ))}
-        </select>
+              ))}
+            </select>
           </div>
           <div className="w-full h-[400px] relative z-0">
             <MonthlyRatingPieChart
@@ -1107,12 +1184,11 @@ const availableYears = useMemo(generateYearOptions, []);
         />
 
         {canApplyIncrement && (
-        <YearlyIncrementCard
-          incrementState={incrementState}
-          selectedYear={selectedYear}
-        />
+          <YearlyIncrementCard
+            incrementState={incrementState}
+            selectedYear={selectedYear}
+          />
         )}
-
       </div>
     </div>
   );
