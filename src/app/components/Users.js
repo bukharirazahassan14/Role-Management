@@ -84,6 +84,10 @@ export default function Users() {
     medicalCondition: "",
     jd: "",
     exp: "",
+    accHolderName: "",
+    accNumber: "",
+    bankName: "",
+    iban: "",
     password: "",
     isActive: true,
   });
@@ -208,6 +212,10 @@ export default function Users() {
         medicalCondition: selectedUser.medicalCondition || "",
         jd: selectedUser.jd || "",
         exp: selectedUser.exp || "",
+        accHolderName: selectedUser.accHolderName || "",
+        accNumber: selectedUser.accNumber || "",
+        bankName: selectedUser.bankName || "",
+        iban: selectedUser.iban || "",
         password: "", // never prefill passwords
         isActive: selectedUser.isActive ?? true,
       });
@@ -340,6 +348,7 @@ export default function Users() {
         } else if (data && typeof data === "object") {
           setUsers([data]);
         }
+        
       } catch (err) {
         console.error("Error fetching users:", err);
       } finally {
@@ -406,10 +415,13 @@ export default function Users() {
       medicalCondition: formData.get("medicalCondition"),
       jd: formData.get("jd"),
       exp: formData.get("exp"),
+      accHolderName: formData.get("accHolderName"),
+      accNumber: formData.get("accNumber"),
+      bankName: formData.get("bankName"),
+      iban: formData.get("iban"),
       joiningDate: formData.get("joiningDate"),
       isActive: formData.get("isActive") !== null,
     };
-
     try {
       const res = await fetch(
         selectedUser ? `/api/users/${userFormData.id}` : "/api/users",
@@ -919,6 +931,71 @@ export default function Users() {
                 className="form-input-modern bg-white text-gray-900"
                 placeholder="e.g., 3 years"
               />
+            </div>
+
+            {/* 🏦 Bank Account Details */}
+            <div className="border border-gray-200 bg-gray-50 rounded-2xl p-5 shadow-sm">
+              <h3 className="text-md font-semibold text-gray-800 mb-4">
+                🏦 Bank Account Details
+              </h3>
+
+              <div className="space-y-5">
+                {/* Account Holder Name */}
+                <div>
+                  <label className="form-label">Account Holder Name</label>
+                  <input
+                    id="accHolderName"
+                    name="accHolderName"
+                    type="text"
+                    maxLength={100}
+                    defaultValue={selectedUser?.accHolderName || ""}
+                    className="form-input-modern bg-white text-gray-900"
+                    placeholder="e.g., Muhammad Ali"
+                  />
+                </div>
+
+                {/* Account Number */}
+                <div>
+                  <label className="form-label">Account Number</label>
+                  <input
+                    id="accNumber"
+                    name="accNumber"
+                    type="text"
+                    maxLength={24}
+                    defaultValue={selectedUser?.accNumber || ""}
+                    className="form-input-modern bg-white text-gray-900"
+                    placeholder="e.g., 01234567890123"
+                  />
+                </div>
+
+                {/* Bank Name */}
+                <div>
+                  <label className="form-label">Bank Name</label>
+                  <input
+                    id="bankName"
+                    name="bankName"
+                    type="text"
+                    maxLength={100}
+                    defaultValue={selectedUser?.bankName || ""}
+                    className="form-input-modern bg-white text-gray-900"
+                    placeholder="e.g., Meezan Bank"
+                  />
+                </div>
+
+                {/* IBAN */}
+                <div>
+                  <label className="form-label">IBAN</label>
+                  <input
+                    id="iban"
+                    name="iban"
+                    type="text"
+                    maxLength={34}
+                    defaultValue={selectedUser?.iban || ""}
+                    className="form-input-modern bg-white text-gray-900"
+                    placeholder="PK36MEZN0000001234567890"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* 🟢 Active Toggle */}
@@ -1470,29 +1547,51 @@ export default function Users() {
             </div>
 
             {/* Upload New File */}
-            <div className="border-t border-gray-200 pt-4 space-y-2">
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
               <input
                 type="text"
                 placeholder="Title"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                className="
+      w-full rounded-lg px-3 py-2 text-sm 
+      border border-gray-300 
+      bg-white               /* ALWAYS WHITE */
+      text-gray-800         
+      placeholder-gray-500  
+      focus:ring-2 focus:ring-indigo-400 focus:outline-none
+    "
               />
+
               <textarea
                 placeholder="Description"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                className="w-full border border-white rounded-lg px-3 py-2 text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                className="
+      w-full rounded-lg px-3 py-2 text-sm 
+      border border-gray-300
+      bg-white               /* ALWAYS WHITE */
+      text-gray-800
+      placeholder-gray-500
+      focus:ring-2 focus:ring-indigo-400 focus:outline-none
+    "
                 rows={2}
               />
+
               <div className="flex flex-col sm:flex-row items-center sm:space-x-2 space-y-2 sm:space-y-0">
                 <input
                   type="file"
                   onChange={(e) => setNewFile(e.target.files[0])}
-                  className="w-full sm:flex-1 border border-white rounded-lg text-sm px-2 py-1 bg-gray-50 focus:outline-none"
+                  className="
+        w-full sm:flex-1 rounded-lg text-sm px-2 py-1 
+        border border-gray-300
+        bg-white               /* ALWAYS WHITE */
+        text-gray-800
+        focus:outline-none
+      "
                 />
 
-                {/* Define who can upload */}
+                {/* Upload Button with Role Check */}
                 {(() => {
                   const canUpload = [
                     "Super Admin",
@@ -1505,11 +1604,14 @@ export default function Users() {
                     <button
                       onClick={handleUpload}
                       disabled={!canUpload}
-                      className={`w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
-                        canUpload
-                          ? "bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                          : "bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed"
-                      }`}
+                      className={`
+            w-full sm:w-auto px-3 py-2 rounded-lg flex items-center justify-center space-x-1 transition
+            ${
+              canUpload
+                ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                : "bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed"
+            }
+          `}
                       title={
                         canUpload
                           ? "Upload File"

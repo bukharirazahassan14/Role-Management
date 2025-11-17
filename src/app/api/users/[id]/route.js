@@ -58,6 +58,10 @@ export async function PUT(req, context) {
       medicalCondition: body.medicalCondition,
       jd: body.jd,
       exp: body.exp,
+      accHolderName: body.accHolderName,
+      accNumber: body.accNumber,
+      bankName: body.bankName,
+      iban: body.iban,
       joiningDate: body.joiningDate,
       isActive: body.isActive,
     };

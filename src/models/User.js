@@ -76,6 +76,26 @@ const UserSchema = new mongoose.Schema({
     maxlength: 500 
   }, // 14: Experience
 
+   accHolderName: {
+    type: String,
+    maxlength: 100,
+  }, // Account Holder Name
+
+  accNumber: {
+    type: String,
+    maxlength: 24,
+  }, // Bank Account Number
+
+  bankName: {
+    type: String,
+    maxlength: 100,
+  }, // Bank Name
+
+  iban: {
+    type: String,
+    maxlength: 34,
+  }, // IBAN
+
   password: { 
     type: String, 
     maxlength: 128 
