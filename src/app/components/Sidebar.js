@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ChevronLeft,
   ChevronRight,
+  Wallet,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 
@@ -18,8 +19,10 @@ export default function Sidebar() {
   const [forms, setForms] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [userID, setUserID] = useState("");
+  // NEW: payroll submenu state
+  const [openPayroll, setOpenPayroll] = useState(false);
 
-  // ✅ Fetch role from localStorage when component mounts
+  // Fetch role from localStorage when component mounts
   useEffect(() => {
     if (typeof window !== "undefined") {
       const role = localStorage.getItem("userRole");
@@ -29,7 +32,7 @@ export default function Sidebar() {
     }
   }, []);
 
-  // ✅ Fetch AccessControlForm data once
+  // Fetch AccessControlForm data once
   useEffect(() => {
     async function fetchForms() {
       try {
@@ -47,7 +50,7 @@ export default function Sidebar() {
     fetchForms();
   }, []);
 
-  // ✅ Build sidebar nav items based on form access rules
+  // Build sidebar nav items based on form access rules
   const navItems = useMemo(() => {
     if (forms.length === 0) return [];
 
@@ -61,17 +64,14 @@ export default function Sidebar() {
         );
         if (!access) return false;
 
-        // ❌ Hide if noAccess = true
         if (access.noAccess) return false;
 
-        // ❌ Hide if partialAccess.enabled = true but all permissions = false
         if (access.partialAccess?.enabled) {
           const perms = access.partialAccess.permissions || {};
           const hasAnyPermission = Object.values(perms).some(Boolean);
           if (!hasAnyPermission) return false;
         }
 
-        // ✅ Show only if fullAccess = true OR valid partialAccess.enabled
         return access.fullAccess || access.partialAccess?.enabled;
       })
       .map((f) => {
@@ -96,12 +96,14 @@ export default function Sidebar() {
               ? Briefcase
               : f.name === "Users"
               ? Users
+              : f.name === "Payroll Setup"
+              ? Wallet
               : ClipboardCheck,
         };
       });
-  }, [forms,userID,currentUserRole]);
+  }, [forms, userID, currentUserRole]);
 
-  const sidebarWidth = isCollapsed ? "w-17" : "w-40";
+  const sidebarWidth = isCollapsed ? "w-17" : "w-65";
   const sidebarPadding = isCollapsed ? "px-2" : "px-3";
   const ToggleIcon = isCollapsed ? ChevronRight : ChevronLeft;
 
@@ -126,7 +128,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* ✅ Navigation Links with activeForm saving */}
+      {/* Navigation */}
       <nav className="flex flex-col space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -134,44 +136,98 @@ export default function Sidebar() {
           const iconSize = isCollapsed ? 28 : 18;
 
           return (
-            <button
-              key={item.name}
-              onClick={() => {
-                // ✅ Save active form ID in localStorage
-                localStorage.setItem("activeForm", item._id);
-                // ✅ Navigate
-                router.replace(item.href);
-              }}
-              className={`
-                w-full flex items-center 
-                ${
-                  isCollapsed
-                    ? "justify-center space-x-0 p-3"
-                    : "space-x-2 px-3 py-2"
-                } 
-                rounded-xl font-semibold transition-all duration-300
-                text-xm
-                ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700 ring-1 ring-white/50"
-                    : "text-gray-200 hover:bg-indigo-700/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                }
-              `}
-            >
-              <Icon
-                size={iconSize}
-                className="flex-shrink-0 transition-all duration-300"
-              />
-              <span className="truncate">
-                {["Super Admin", "Admin", "HR", "Manager"].includes(
-                  currentUserRole
-                )
-                  ? item.name
-                  : item.name === "Users"
-                  ? "My Profile"
-                  : item.name}
-              </span>
-            </button>
+            <div key={item.name} className="w-full">
+              {/* MAIN BUTTON */}
+              <button
+                onClick={() => {
+                  localStorage.setItem("activeForm", item._id);
+
+                  // ➤ Payroll Setup behavior
+                  if (item.name === "Payroll Setup") {
+                    // If sidebar is collapsed → directly open Set Salary page
+                    if (isCollapsed) {
+                      router.replace("/main/setsalary");
+                      return;
+                    }
+
+                    // If expanded → toggle submenu
+                    setOpenPayroll(!openPayroll);
+                    return;
+                  }
+
+                  router.replace(item.href);
+                }}
+                className={`
+                  w-full flex items-center 
+                  ${
+                    isCollapsed
+                      ? "justify-center space-x-0 p-3"
+                      : "space-x-2 px-3 py-2"
+                  } 
+                  rounded-xl font-semibold transition-all duration-300
+                  text-xm
+                  ${
+                    isActive
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700 ring-1 ring-white/50"
+                      : "text-gray-200 hover:bg-indigo-700/40 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  }
+                `}
+              >
+                <Icon
+                  size={iconSize}
+                  className="flex-shrink-0 transition-all duration-300"
+                />
+
+                {!isCollapsed && (
+                  <span className="truncate">
+                    {["Super Admin", "Admin", "HR", "Manager"].includes(
+                      currentUserRole
+                    )
+                      ? item.name
+                      : item.name === "Users"
+                      ? "My Profile"
+                      : item.name}
+                  </span>
+                )}
+
+                {/* ARROW FOR PAYROLL */}
+                {!isCollapsed && item.name === "Payroll Setup" && (
+                  <ChevronRight
+                    size={18}
+                    className={`ml-auto transform transition-transform duration-300 ${
+                      openPayroll ? "rotate-90 text-white" : ""
+                    }`}
+                  />
+                )}
+              </button>
+
+              {/* SUBMENU */}
+              {item.name === "Payroll Setup" && openPayroll && !isCollapsed && (
+                <div className="ml-7 mt-2 space-y-2 border-l border-white/20 pl-4 transition-all">
+                  {/* Modern Set Salary Button */}
+                  <button
+                    onClick={() => router.replace("/main/setsalary")}
+                    className="w-full flex items-center justify-between text-left text-sm text-gray-300 hover:text-white hover:bg-indigo-600/30 px-3 py-2 rounded-lg shadow-sm transition duration-200"
+                  >
+                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                    <span>Set Salary (Master Data)</span>
+                  </button>
+
+                  {/* Modern Payslip Button */}
+                  <button
+                    onClick={() => router.replace("/main/payslip")}
+                    // Removed justify-between from here, as it forces maximum space
+                    className="w-full flex items-center text-left text-sm text-gray-300 hover:text-white hover:bg-indigo-600/30 px-3 py-2 rounded-lg shadow-sm transition duration-200"
+                  >
+                    {/* 👇 Group the icon and text together in a new flex container */}
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                      <span>Payslip</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

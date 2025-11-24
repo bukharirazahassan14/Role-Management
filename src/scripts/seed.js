@@ -97,6 +97,7 @@ async function seed() {
     { name: "Roles", description: "Manage and assign system roles." },
     { name: "Users", description: "View and update user profile info." },
     { name: "PMS", description: "Generate and view detailed reports." },
+    { name: "Payroll Setup", description: "Generate and view detailed Payroll." },
   ]);
 
   // ✅ Create default access for Super Admin (full access to all forms)
