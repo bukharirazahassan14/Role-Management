@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Mail,
   Phone,
@@ -16,8 +17,8 @@ import {
   X, // Close/Delete icon
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Label } from "recharts";
+import { useToast } from "@/app/components/Toast";
 
-const DEMO_USER_ID = "691b4881a120c2e9314568af";
 
 // --- Configuration Options ---
 const EMPLOYMENT_OPTIONS = [
@@ -700,6 +701,7 @@ DeductionInput.displayName = "DeductionInput";
 
 // Payroll Config Section - Updated to pass onDelete handlers
 function PayrollConfig({
+  userId,
   compensationData,
   employmentType,
   setEmploymentType,
@@ -714,15 +716,16 @@ function PayrollConfig({
   onAddDeductionClick,
   onDeleteAllowance,
   onDeleteDeduction,
+  addToast,
 }) {
   const data = compensationData;
 
   // States for collapsible sections (Unchanged)
-  const [openEmployment, setOpenEmployment] = useState(true);
+  const [openEmployment, setOpenEmployment] = useState(false);
   const [openPayroll, setOpenPayroll] = useState(false);
-  const [openBasicSalary, setOpenBasicSalary] = useState(true);
-  const [openAllowances, setOpenAllowances] = useState(true);
-  const [openDeductions, setOpenDeductions] = useState(true);
+  const [openBasicSalary, setOpenBasicSalary] = useState(false);
+  const [openAllowances, setOpenAllowances] = useState(false);
+  const [openDeductions, setOpenDeductions] = useState(false);
 
   // --- Dynamic Title Calculation --- (Unchanged)
 
@@ -741,6 +744,9 @@ function PayrollConfig({
   const [isLoading, setIsLoading] = useState(false);
 
 const handleSubmitPayroll = async () => {
+
+ 
+
   try {
     setIsLoading(true);
 
@@ -764,7 +770,7 @@ const deductions = compensationData
   }));
   
     const payload = {
-      userId: DEMO_USER_ID,
+      userId,
       employmentType,
       payrollFrequency,
       basicSalary,
@@ -782,13 +788,13 @@ const deductions = compensationData
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.error || "Failed to save payroll setup");
+       addToast(data.error || "Failed to save payroll setup", "error");
     } else {
-      alert(data.message || "Payroll setup saved successfully!");
+      addToast(data.message || "Payroll setup saved successfully!", "success");
     }
   } catch (err) {
     console.error("Submit Payroll Error:", err);
-    alert("Something went wrong. Please try again.");
+    addToast("Something went wrong. Please try again.", "error");
   } finally {
     setIsLoading(false);
   }
@@ -1133,12 +1139,16 @@ PayrollConfig.displayName = "PayrollConfig";
 
 // Main Application Component
 export default function PayrollDetail() {
+  const { addToast } = useToast();
+  const searchParams = useSearchParams();
+  const userId = searchParams.get("userId");
+
   
   const {
     profile,
     loading: profileLoading,
     error: profileError,
-  } = useUserProfile(DEMO_USER_ID);
+  } = useUserProfile(userId);
 
   // Main state: an array holding all compensation components (salary, allowances, deductions)
   const [compensationData, setCompensationData] = useState(
@@ -1189,7 +1199,7 @@ export default function PayrollDetail() {
       try {
         console.log("📌 Calling payroll API...");
 
-        const res = await fetch(`/api/payroll?userID=${DEMO_USER_ID}`, {
+        const res = await fetch(`/api/payroll?userID=${userId}`, {
           method: "GET",
           cache: "no-store",
         });
@@ -1251,7 +1261,7 @@ export default function PayrollDetail() {
     };
 
     fetchPayroll();
-  }, []);
+  }, [userId]);
 
   // --- CRUD Handlers ---
 
@@ -1336,6 +1346,7 @@ export default function PayrollDetail() {
 
         {/* Payroll Configuration and Visualization */}
         <PayrollConfig
+          userId={userId}
           compensationData={compensationData}
           employmentType={employmentType}
           setEmploymentType={setEmploymentType}
@@ -1350,6 +1361,7 @@ export default function PayrollDetail() {
           onAddDeductionClick={() => setIsAddDeductionModalOpen(true)}
           onDeleteAllowance={handleDeleteItem}
           onDeleteDeduction={handleDeleteItem}
+          addToast={addToast}
         />
 
         {/* Modals */}

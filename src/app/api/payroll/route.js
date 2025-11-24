@@ -174,3 +174,36 @@ export async function GET(req) {
     });
   }
 }
+
+export async function DELETE(req) {
+  try {
+    await connectToDB();
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: "id is required" }), { status: 400 });
+    }
+
+    let docId;
+    try {
+      docId = new mongoose.Types.ObjectId(id);
+    } catch (err) {
+      return new Response(JSON.stringify({ error: "Invalid ObjectId" }), { status: 400 });
+    }
+
+    const deleteResult = await mongoose.connection
+      .collection("payrollsetup")
+      .deleteOne({ userId: docId });
+
+    if (deleteResult.deletedCount === 0) {
+      return new Response(JSON.stringify({ message: "No payroll record found to delete" }), { status: 404 });
+    }
+
+    return new Response(JSON.stringify({ message: "Payroll setup deleted successfully" }), { status: 200 });
+  } catch (err) {
+    console.error("❌ Error deleting payroll:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+  }
+}
