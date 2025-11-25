@@ -5,10 +5,13 @@ const nextConfig = {
   images: {
     localPatterns: [
       {
-        pathname: '/uploads/profiles/**', // ✅ Allow uploaded user images
+        pathname: '/**',               // ✅ Allow ALL images inside /public
       },
       {
-        pathname: '/avatar.png', // ✅ Allow default avatar image
+        pathname: '/uploads/profiles/**', // (Optional) Still included if needed
+      },
+      {
+        pathname: '/avatar.png', // (Optional) Still included if needed
       },
     ],
   },

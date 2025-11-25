@@ -1,35 +1,97 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// Imported 11 icons: Lock + 10 evaluation icons
-import {
-  Lock,
-  Lightbulb,
-  Users,
-  Clock,
-  MessageSquare,
-  TrendingUp,
-  Target,
-  Settings,
-  Zap,
-  Shield,
-  Trophy,
-  Diamond,
-  BarChart3,
-  Star,
-  CheckCircle,
-  ShieldCheck,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
+
+const CustomStyles = () => (
+  <style jsx global>{`
+    /* Custom styles for the geometric shapes */
+    .geometric-bg {
+      width: 100%;
+      height: 100vh;
+      background-color: #1a237e;
+      position: relative;
+      overflow: visible;
+    }
+
+    @media (min-width: 768px) {
+      .geometric-bg {
+        width: 40%;
+      }
+    }
+
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.9;
+    }
+
+    .shape-1 {
+      width: 400px;
+      height: 400px;
+      top: -100px;
+      left: -100px;
+      background-color: #4a148c;
+      z-index: 10;
+    }
+
+    .shape-2 {
+      width: 150px;
+      height: 150px;
+      top: 200px;
+      right: -75px;
+      left: auto;
+      background-color: #6a1b9a;
+      z-index: 20;
+    }
+
+    .shape-3 {
+      width: 350px;
+      height: 350px;
+      bottom: 50px;
+      right: -100px;
+      background-color: #f48fb1;
+      z-index: 10;
+    }
+
+    .shape-4 {
+      width: 200px;
+      height: 200px;
+      bottom: -0px;
+      left: 30%;
+      background-color: #3f51b5;
+      z-index: 5;
+    }
+
+    .content-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  `}</style>
+);
+
+// Shim for Next.js router functions to use standard browser redirection
+const router = {
+  // Replaces the current history state, similar to router.replace
+  replace: (path) => {
+    window.location.replace(path);
+  },
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
-  const router = useRouter();
-
   const [forms, setForms] = useState([]);
 
+  // Fetch Forms Logic
   useEffect(() => {
     async function fetchForms() {
       try {
@@ -47,8 +109,10 @@ export default function LoginPage() {
     fetchForms();
   }, []);
 
+  // Login Submission Logic
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("Logging in...");
 
     try {
       const res = await fetch("/api/login", {
@@ -150,436 +214,178 @@ export default function LoginPage() {
   };
 
   return (
-    // Outer container: Full screen, relative for absolute children positioning.
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-50 relative overflow-hidden p-8">
-      {/* ==================================== */}
-      {/* 34 DECORATIVE EVALUATION FRAMES (Full Page Fill) */}
-      {/* ------------------------------------ */}
+    // Outer container matching HTML layout
+    <div className="flex flex-col md:flex-row min-h-screen font-sans bg-white">
+      {/* Include the custom styles */}
+      <CustomStyles />
 
-      {/* --- Group 1: TOP Section --- */}
-      <Frame
-        className="top-12 left-1/2 -translate-x-1/2"
-        icon={TrendingUp}
-        color="green"
-        title="Performance Focus"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-8 left-8"
-        icon={Lightbulb}
-        color="yellow"
-        title="Initiative"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-4 left-40 transform rotate-5"
-        icon={Target}
-        color="red"
-        title="Goal Alignment"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-24 left-80 transform -rotate-5"
-        icon={Star}
-        color="orange"
-        title="Recognition"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="top-16 right-16 transform -rotate-3"
-        icon={Users}
-        color="indigo"
-        title="Collaboration"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-4 right-40 transform rotate-2"
-        icon={Trophy}
-        color="blue"
-        title="Achievements"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-32 right-64"
-        icon={CheckCircle}
-        color="red"
-        title="Quality Assurance"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="top-4 left-80 transform rotate-4"
-        icon={Diamond}
-        color="purple"
-        title="High Potential"
-        screen="lg:block hidden"
-        extraLight
-      />
+      {/* 1. Left Section: Geometric Background (Hidden on Mobile, Visible MD+) */}
+      <div className="geometric-bg flex-shrink-0 relative hidden md:block">
+        <div className="shape shape-1"></div>
+        <div className="shape shape-2"></div>
+        <div className="shape shape-3"></div>
+        <div className="shape shape-4"></div>
 
-      {/* --- Group 2: BOTTOM Section --- */}
-      <Frame
-        className="bottom-12 left-1/2 -translate-x-1/2"
-        icon={Settings}
-        color="gray"
-        title="Process Adherence"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="bottom-8 left-8 transform -rotate-1"
-        icon={Clock}
-        color="green"
-        title="Dependability"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="bottom-4 left-40 transform -rotate-5"
-        icon={MessageSquare}
-        color="pink"
-        title="Feedback Clarity"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="bottom-24 left-80 transform rotate-5"
-        icon={Shield}
-        color="purple"
-        title="Data Security"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="bottom-16 right-16 transform rotate-4"
-        icon={Zap}
-        color="orange"
-        title="Efficiency"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="bottom-4 right-40 transform -rotate-2"
-        icon={BarChart3}
-        color="blue"
-        title="Data Analysis"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="bottom-32 right-64"
-        icon={Target}
-        color="red"
-        title="Metrics Tracking"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="bottom-4 left-60 transform -rotate-3"
-        icon={Diamond}
-        color="yellow"
-        title="Value Creation"
-        screen="lg:block hidden"
-        extraLight
-      />
+        <div className="content-overlay p-2">
+          
+        <div
+  className="text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+             md:top-auto md:p-12 md:text-left"
+  style={{ marginTop: "10rem" }} // Add this to push it down
+>
+  {/* Worksphere Logo (Desktop Left Panel) */}
+  <div className="text-center">
+    <Image
+      src="/GreyLoop_Logo-01.png"
+      alt="GreyLoop logo"
+      width={290}
+      height={290}
+     
+      priority
+    />
+  </div>
 
-      <Frame
-        className="top-1/4 left-4 transform rotate-1"
-        icon={Shield}
-        color="purple"
-        title="Compliance"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-1/2 left-4 -translate-y-1/2 transform -rotate-2"
-        icon={Zap}
-        color="orange"
-        title="Speed"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="bottom-1/4 left-4 transform -rotate-4"
-        icon={Target}
-        color="red"
-        title="Focus"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-1/3 left-48 transform -rotate-1"
-        icon={Clock}
-        color="green"
-        title="Timeliness"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="bottom-1/3 left-48 transform rotate-3"
-        icon={Users}
-        color="indigo"
-        title="Team Spirit"
-        screen="lg:block hidden"
-        extraLight
-      />
+  {/* Worksphere Text */}
+  <p
+    className="text-lg font-light opacity-80"
+    style={{ marginTop: "-0.9rem", marginLeft: "5.9rem" }}
+  >
+    Worksphere
+  </p>
+</div>
 
-      {/* --- Group 4: RIGHT Side --- */}
-      <Frame
-        className="top-1/4 right-4 transform -rotate-1"
-        icon={MessageSquare}
-        color="pink"
-        title="Communication"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-1/2 right-4 -translate-y-1/2 transform rotate-2"
-        icon={Users}
-        color="indigo"
-        title="Mentorship"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="bottom-1/4 right-4 transform rotate-4"
-        icon={Shield}
-        color="purple"
-        title="Reliability"
-        screen="md:block"
-        extraLight
-      />
-      <Frame
-        className="top-1/3 right-48 transform rotate-1"
-        icon={Lightbulb}
-        color="yellow"
-        title="Creativity"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="bottom-1/3 right-48 transform -rotate-3"
-        icon={TrendingUp}
-        color="green"
-        title="Growth Rate"
-        screen="lg:block hidden"
-        extraLight
-      />
 
-      {/* --- Group 5: Center Fills --- */}
-      <Frame
-        className="top-80 left-1/4 transform rotate-6"
-        icon={Star}
-        color="blue"
-        title="Ambition"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="top-80 right-1/4 transform -rotate-6"
-        icon={BarChart3}
-        color="pink"
-        title="Data Insights"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="bottom-80 left-1/4 transform -rotate-4"
-        icon={Diamond}
-        color="green"
-        title="Competency"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="bottom-80 right-1/4 transform rotate-4"
-        icon={CheckCircle}
-        color="indigo"
-        title="Verification"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="top-16 left-1/4"
-        icon={Target}
-        color="red"
-        title="Focus Areas"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="bottom-16 right-1/4"
-        icon={Zap}
-        color="orange"
-        title="Agility"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="top-1/2 left-1/4 transform rotate-3"
-        icon={Trophy}
-        color="yellow"
-        title="Impact"
-        screen="lg:block hidden"
-        extraLight
-      />
-      <Frame
-        className="top-1/2 right-1/4 transform -rotate-3"
-        icon={Settings}
-        color="gray"
-        title="Optimization"
-        screen="lg:block hidden"
-        extraLight
-      />
 
-      {/* ==================================== */}
-
-      {/* --- Main Login Card Container --- */}
-      <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 relative z-20">
-        {/* --- Evaluation Management Circle (Reduced Size, Professional Colors) --- */}
-        <div className="absolute -top-6 -right-6 w-32 h-32 z-30 pointer-events-none transform rotate-3">
-          {/* 💡 PROFESSIONAL GRADIENT: Deep Indigo (Authoritative) to Gold/Orange (Achievement) */}
-          <div className="w-full h-full rounded-full bg-gradient-to-br from-indigo-700 to-amber-500 p-0.5 shadow-xl">
-            {/* Center Content */}
-            <div className="w-full h-full rounded-full bg-white flex flex-col items-center justify-center p-2 text-center">
-              <Trophy className="w-7 h-7 text-amber-500" />
-              <span className="font-bold text-[15px] text-indigo-700 leading-snug p-2">
-                WorkSphere
-              </span>
-            </div>
-          </div>
         </div>
-        {/* ----------------------------------------------------- */}
+      </div>
 
-        {/* Lock Icon */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-indigo-100 p-4 rounded-full shadow-md">
-            <ShieldCheck className="h-10 w-10 text-indigo-600" />
-          </div>
-        </div>
+      {/* 2. Right Section: Login Form */}
+      <div className="flex-grow flex items-center justify-center p-6 sm:p-12 md:p-20">
+        <div className="w-full max-w-sm">
+          {/* Welcome Text */}
+          <h2 className="text-3xl font-bold text-gray-800">Hello!</h2>
+          <p className="text-gray-500 mt-1 mb-3">Sign In to Continue</p>
 
-        {/* Title (ORIGINAL) */}
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          Secure Login
-        </h2>
-
-        {/* Message */}
-        {message && (
-          <div className="mb-4 text-center text-sm text-gray-700">
-            {message}
-          </div>
-        )}
-
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none bg-white text-gray-900"
-              placeholder="you@example.com"
-            />
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none bg-white text-gray-900"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md"
+          {/* Mobile-Only Logo (Visible BLOCK on Mobile, Hidden SM+) */}
+          <div
+            className="block sm:hidden text-center"
+            style={{
+              marginTop: "-6.1rem",
+              marginLeft: "-11.9rem",
+              marginBottom: "-2.9rem",
+            }}
           >
-            Login
-          </button>
+            {/* RESTORING <img> tag for GreyLoop_Logo.png */}
+            <Image
+              src="/GreyLoop_Logo.png"
+              alt="GreyLoop logo"
+              width={500}
+              height={500}
+              className="h-[14.5rem] w-auto mx-auto"
+            />
+          </div>
+
+          {/* Message Area */}
+          {message && (
+            <div className="mt-4 mb-4 text-center text-sm font-medium text-gray-700">
+              {message}
+            </div>
+          )}
+
+          {/* Login Form with Logic */}
+          <form onSubmit={handleSubmit}>
+            {/* Email Input */}
+            <div className="mb-5">
+              <div className="relative">
+                <input
+                  type="email"
+                  id="email-address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full py-3 px-4 pl-12 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                  placeholder="Email Address"
+                />
+                {/* Icon Wrapper (Email) */}
+                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-2 4v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div className="mb-8">
+              <div className="relative">
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full py-3 px-4 pl-12 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                  placeholder="Password"
+                />
+                {/* Icon Wrapper (Password) */}
+                <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+                    ></path>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M10 11V7a2 2 0 114 0v4"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200 ease-in-out"
+            >
+              Log In
+            </button>
+          </form>
 
           {/* Forgot Password */}
-          <div className="text-center mt-4">
+          <div className="mt-4 text-center">
             <button
               type="button"
-              onClick={() => router.push("/forgot-password")}
-              className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+              // FIX: Use standard window location change for navigation
+              onClick={() => (window.location.href = "/forgot-password")}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium transition duration-150 ease-in-out"
             >
               Forgot your password?
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
 }
-
-// Helper component for the frames (Updated to handle extraLight styling)
-const Frame = ({
-  className,
-  icon: Icon,
-  color,
-  title,
-  screen = "sm:block",
-  extraLight = false,
-}) => {
-  const iconColorMap = {
-    yellow: "text-yellow-600",
-    red: "text-red-600",
-    green: "text-green-600",
-    indigo: "text-indigo-600",
-    pink: "text-pink-600",
-    blue: "text-blue-600",
-    gray: "text-gray-600",
-    purple: "text-purple-600",
-    orange: "text-orange-600",
-  };
-
-  // Set highly transparent, soft styling for the full-page fill effect
-  let finalBg = "bg-white/50";
-  let finalBorder = "border-gray-200";
-  let finalOpacity = "opacity-50";
-
-  if (extraLight) {
-    finalBg = "bg-white/40"; // High transparency
-    finalOpacity = "opacity-40"; // Subtle appearance
-    finalBorder = "border-gray-100";
-  }
-
-  // Combine responsive visibility class with others
-  const visibilityClass = screen.split(" ")[0];
-
-  return (
-    <div
-      className={`absolute ${className} z-10 p-3 ${finalBg} border ${finalBorder} rounded-xl shadow-sm ${visibilityClass} hidden ${finalOpacity}`}
-    >
-      <div className="flex items-center space-x-2">
-        <Icon
-          className={`h-6 w-6 ${
-            iconColorMap[color] || "text-gray-600"
-          } flex-shrink-0`}
-        />
-        <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-          {title}
-        </p>
-      </div>
-    </div>
-  );
-};
