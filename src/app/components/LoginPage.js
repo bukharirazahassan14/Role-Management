@@ -227,44 +227,40 @@ export default function LoginPage() {
         <div className="shape shape-4"></div>
 
         <div className="content-overlay p-2">
-          
-        <div
-  className="text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+          <div
+            className="text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
              md:top-auto md:p-12 md:text-left"
-  style={{ marginTop: "10rem" }} // Add this to push it down
->
-  {/* Worksphere Logo (Desktop Left Panel) */}
-  <div className="text-center">
-    <Image
-      src="/GreyLoop_Logo-01.png"
-      alt="GreyLoop logo"
-      width={290}
-      height={290}
-     
-      priority
-    />
-  </div>
+            style={{ marginTop: "10rem" }} // Add this to push it down
+          >
+            {/* Worksphere Logo (Desktop Left Panel) */}
+            <div className="text-center">
+              <Image
+                src="/GreyLoop_Logo-01.png"
+                alt="GreyLoop logo"
+                
+                width={500}
+                height={500}
+                priority
+              />
+            </div>
 
-  {/* Worksphere Text */}
-  <p
-    className="text-lg font-light opacity-80"
-    style={{ marginTop: "-0.9rem", marginLeft: "5.9rem" }}
-  >
-    Worksphere
-  </p>
-</div>
-
-
-
+            {/* Worksphere Text */}
+            <p
+              className="text-lg font-light opacity-80"
+              style={{ marginTop: "-0.9rem", marginLeft: "5.9rem" }}
+            >
+              Worksphere
+            </p>
+          </div>
         </div>
+
       </div>
 
       {/* 2. Right Section: Login Form */}
       <div className="flex-grow flex items-center justify-center p-6 sm:p-12 md:p-20">
         <div className="w-full max-w-sm">
           {/* Welcome Text */}
-          <h2 className="text-3xl font-bold text-gray-800">Hello!</h2>
-          <p className="text-gray-500 mt-1 mb-3">Sign In to Continue</p>
+          <h2 className="text-3xl font-bold text-gray-800 mb-6">Sign In</h2>
 
           {/* Mobile-Only Logo (Visible BLOCK on Mobile, Hidden SM+) */}
           <div
@@ -303,7 +299,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full py-3 px-4 pl-12 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                  className="w-full py-3 px-4 pl-12 border border-gray-400 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
                   placeholder="Email Address"
                 />
                 {/* Icon Wrapper (Email) */}
@@ -335,7 +331,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full py-3 px-4 pl-12 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                  className="w-full py-3 px-4 pl-12 border border-gray-400 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
                   placeholder="Password"
                 />
                 {/* Icon Wrapper (Password) */}
@@ -364,6 +360,18 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Forgot Password */}
+            <div className="mt-[-1.5rem] mb-6 text-center">
+              <button
+                type="button"
+                // FIX: Use standard window location change for navigation
+                onClick={() => (window.location.href = "/forgot-password")}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium transition duration-150 ease-in-out"
+              >
+                Forget password?
+              </button>
+            </div>
+
             {/* Login Button */}
             <button
               type="submit"
@@ -372,18 +380,6 @@ export default function LoginPage() {
               Log In
             </button>
           </form>
-
-          {/* Forgot Password */}
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              // FIX: Use standard window location change for navigation
-              onClick={() => (window.location.href = "/forgot-password")}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium transition duration-150 ease-in-out"
-            >
-              Forgot your password?
-            </button>
-          </div>
         </div>
       </div>
     </div>
