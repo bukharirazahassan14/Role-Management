@@ -19,6 +19,8 @@ export default function Sidebar() {
   const [forms, setForms] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [userID, setUserID] = useState("");
+  const [openPerformance, setOpenPerformance] = useState(false);
+
   // NEW: payroll submenu state
   const [openPayroll, setOpenPayroll] = useState(false);
 
@@ -103,7 +105,7 @@ export default function Sidebar() {
       });
   }, [forms, userID, currentUserRole]);
 
-  const sidebarWidth = isCollapsed ? "w-17" : "w-65";
+  const sidebarWidth = isCollapsed ? "w-17" : "w-68";
   const sidebarPadding = isCollapsed ? "px-2" : "px-3";
   const ToggleIcon = isCollapsed ? ChevronRight : ChevronLeft;
 
@@ -155,23 +157,30 @@ export default function Sidebar() {
                     return;
                   }
 
+                  // ➤ Performance Management behavior
+                  if (item.name === "PMS") {
+                    if (isCollapsed) {
+                      router.replace("/main/weeklyevaluation");
+                      return;
+                    }
+
+                    setOpenPerformance(!openPerformance);
+                    return;
+                  }
+
                   router.replace(item.href);
                 }}
                 className={`
-                  w-full flex items-center 
-                  ${
-                    isCollapsed
-                      ? "justify-center space-x-0 p-3"
-                      : "space-x-2 px-3 py-2"
-                  } 
-                  rounded-xl font-semibold transition-all duration-300
-                  text-xm
-                  ${
-                    isActive
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700 ring-1 ring-white/50"
-                      : "text-gray-200 hover:bg-indigo-700/40 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  }
-                `}
+  w-full flex items-center 
+  ${isCollapsed ? "justify-center space-x-0 p-2.5" : "space-x-2 px-2.5 py-1.5"} 
+  rounded-xl font-medium transition-all duration-300
+  text-sm
+  ${
+    isActive
+      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700 ring-1 ring-white/50"
+      : "text-gray-200 hover:bg-indigo-700/40 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  }
+`}
               >
                 <Icon
                   size={iconSize}
@@ -190,15 +199,19 @@ export default function Sidebar() {
                   </span>
                 )}
 
-                {/* ARROW FOR PAYROLL */}
-                {!isCollapsed && item.name === "Payroll Setup" && (
-                  <ChevronRight
-                    size={18}
-                    className={`ml-auto transform transition-transform duration-300 ${
-                      openPayroll ? "rotate-90 text-white" : ""
-                    }`}
-                  />
-                )}
+                {/* ARROW FOR PAYROLL & PERFORMANCE MANAGEMENT */}
+                {!isCollapsed &&
+                  (item.name === "Payroll Setup" || item.name === "PMS") && (
+                    <ChevronRight
+                      size={18}
+                      className={`ml-auto transform transition-transform duration-300 ${
+                        (item.name === "Payroll Setup" && openPayroll) ||
+                        (item.name === "PMS" && openPerformance)
+                          ? "rotate-90 text-white"
+                          : ""
+                      }`}
+                    />
+                  )}
               </button>
 
               {/* SUBMENU */}
@@ -223,6 +236,65 @@ export default function Sidebar() {
                     <div className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
                       <span>Payslip</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* PERFORMANCE MANAGEMENT SUBMENU */}
+              {item.name === "PMS" && openPerformance && !isCollapsed && (
+                <div className="ml-7 mt-2 space-y-2 border-l border-white/20 pl-4 transition-all">
+                  {/* Performance Evaluation */}
+                  <button
+                    onClick={() => router.replace("/main/weeklyevaluation")}
+                    className={`
+        w-full flex items-center justify-between text-left text-sm px-3 py-2 rounded-lg shadow-sm transition duration-200
+        ${
+          pathname === "/main/weeklyevaluation"
+            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700"
+            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+        }
+      `}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                      <span>Performance Evaluation</span>
+                    </div>
+                  </button>
+
+                  {/* Goal Setting */}
+                  <button
+                    onClick={() => router.replace("/main/EvaluationPrograms")}
+                    className={`
+        w-full flex items-center justify-between text-left text-sm px-3 py-2 rounded-lg shadow-sm transition duration-200
+        ${
+          pathname === "/main/EvaluationPrograms"
+            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700"
+            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+        }
+      `}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                      <span>Goal Setting</span>
+                    </div>
+                  </button>
+
+                  {/* Report */}
+                  <button
+                    onClick={() => router.replace("/main/performancereports")}
+                    className={`
+        w-full flex items-center justify-between text-left text-sm px-3 py-2 rounded-lg shadow-sm transition duration-200
+        ${
+          pathname === "/main/performancereports"
+            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-700"
+            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+        }
+      `}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                      <span>Report</span>
                     </div>
                   </button>
                 </div>

@@ -103,3 +103,28 @@ body {
     border-radius: 10px;
   }
 }
+
+/* Hide scrollbar for modern UI */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media print {
+  /* Ensure page breaks inside large content */
+  .report-container {
+    page-break-inside: avoid;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  /* Remove scrollbars in print */
+  .no-print-scroll {
+    overflow: visible !important;
+  }
+}

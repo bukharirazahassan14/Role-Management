@@ -771,7 +771,7 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <TrendingUp className="h-5 w-5 text-indigo-600" />
               <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
-                Team Performance Metrics
+               Team Performance Metrics
               </h2>
             </div>
 

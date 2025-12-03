@@ -1148,23 +1148,7 @@ export default function EmployeeWeeklyEvaluation() {
             </>
           )}
 
-          {/* ✅ Always visible on mobile & desktop, with left margin */}
-          {(currentUserRole === "Super Admin" ||
-            currentUserRole === "Management" ||
-            currentUserRole === "HR" ||
-            currentUserRole === "Admin") && (
-            <button
-              onClick={() => router.push(`/main/EvaluationPrograms`)}
-              className={`p-2 rounded-lg border transition ml-3 ${
-                viewMode === "programs"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-              title="Evaluation Programs"
-            >
-              <BarChart3 className="w-5 h-5" />
-            </button>
-          )}
+          
         </div>
       </div>
 
