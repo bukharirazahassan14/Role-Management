@@ -18,7 +18,7 @@ export async function PUT(req) {
 
     const resetPermissions = {
       enabled: false,
-      permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false },
+      permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false, applyGAP: false, applyRPT: false },
     };
 
     let updateFields = {};

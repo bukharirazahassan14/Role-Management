@@ -181,7 +181,7 @@ export default function UserAccessControl() {
                 add: true,
                 delete: true,
               };
-            if (formName === "PMS")
+            if (formName === "Performance Management")
               reportAccess[user.userId] = {
                 view: true,
                 edit: true,
@@ -189,6 +189,8 @@ export default function UserAccessControl() {
                 delete: true,
                 applyKpi: false,
                 applyIncrement: false,
+                applyGAP: false,
+                applyRPT: false,
               };
           }
 
@@ -201,7 +203,8 @@ export default function UserAccessControl() {
               initialAccess[user.userId] = hasAllAccess;
             if (formName === "Roles") roleAccess[user.userId] = { ...perms };
             if (formName === "Users") profileAccess[user.userId] = { ...perms };
-            if (formName === "PMS") reportAccess[user.userId] = { ...perms };
+            if (formName === "Performance Management")
+              reportAccess[user.userId] = { ...perms };
           }
 
           // No Access
@@ -220,12 +223,15 @@ export default function UserAccessControl() {
               add: false,
               delete: false,
               applyKpi: false,
-              applyIncrement:false,
+              applyIncrement: false,
+              applyGAP: false,
+              applyRPT: false,
             };
 
             if (formName === "Roles") roleAccess[user.userId] = noPerms;
             if (formName === "Users") profileAccess[user.userId] = noPerms;
-            if (formName === "PMS") reportAccess[user.userId] = noPerms_report;
+            if (formName === "Performance Management")
+              reportAccess[user.userId] = noPerms_report;
           }
         });
       });
@@ -302,7 +308,8 @@ export default function UserAccessControl() {
   const shouldShowProfileCheck =
     activeTabName === "Users" && selectedAccessLevel === "Full Access";
   const shouldShowReportCheck =
-    activeTabName === "PMS" && selectedAccessLevel === "Full Access";
+    activeTabName === "Performance Management" &&
+    selectedAccessLevel === "Full Access";
 
   const shouldShowCheckboxes =
     activeTabName === "Dashboard" && selectedAccessLevel === "Partial Access";
@@ -311,7 +318,8 @@ export default function UserAccessControl() {
   const shouldShowProfilePermissions =
     activeTabName === "Users" && selectedAccessLevel === "Partial Access";
   const shouldShowReportPermissions =
-    activeTabName === "PMS" && selectedAccessLevel === "Partial Access";
+    activeTabName === "Performance Management" &&
+    selectedAccessLevel === "Partial Access";
 
   const shouldShowRedX =
     activeTabName === "Dashboard" && selectedAccessLevel === "No Access";
@@ -320,7 +328,8 @@ export default function UserAccessControl() {
   const shouldShowRedX_Profile =
     activeTabName === "Users" && selectedAccessLevel === "No Access";
   const shouldShowRedX_Report =
-    activeTabName === "PMS" && selectedAccessLevel === "No Access";
+    activeTabName === "Performance Management" &&
+    selectedAccessLevel === "No Access";
 
   const toggleCheckbox = (userId) => {
     setUserAccess((prev) => ({ ...prev, [userId]: !prev[userId] }));
@@ -476,7 +485,7 @@ export default function UserAccessControl() {
       );
     }
 
-    // ✅ PMS + Partial Access (Unified and Aligned Card Design)
+    // ✅ Performance Management + Partial Access (Unified and Aligned Card Design)
     if (shouldShowReportPermissions) {
       const perms = reportPermissionAccess[user.userId] || {};
 
@@ -497,7 +506,7 @@ export default function UserAccessControl() {
             {/* --- 1. Core Permissions Row --- */}
             <div className="flex justify-between items-center w-full">
               <span className="text-sm font-semibold text-gray-700">
-                CRUD Access:
+                Performance Evaluation:
               </span>
               <div className="flex gap-2">
                 {permissionsData.map(({ key, Icon, label }) => {
@@ -523,95 +532,177 @@ export default function UserAccessControl() {
                 })}
               </div>
             </div>
-
-            {/* --- 2. Divider --- */}
-            {activeTabName === "PMS" &&
-              selectedAccessLevel === "Partial Access" && (
-                <div className="w-full h-px bg-indigo-100"></div>
-              )}
-
-            {/* --- 3. Apply KPI Scoring Row --- */}
-            {activeTabName === "PMS" &&
-              selectedAccessLevel === "Partial Access" && (
-                <div
-                  className="flex items-center justify-between cursor-pointer group w-full"
-                  onClick={(e) => {
-                    // Prevent double trigger if user clicks checkbox
-                    if (e.target.type !== "checkbox") {
-                      toggleReportPermission(user.userId, "applyKpi");
-                    }
-                  }}
-                >
-                  <label
-                    htmlFor={`applyKpiScoring-${user.userId}`}
-                    className="text-sm font-bold text-indigo-700 select-none flex items-center gap-2"
-                  >
-                    <span className="inline-block bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full text-[12px] font-extrabold">
-                      KPI
-                    </span>
-                    Enable KPI Scoring
-                  </label>
-
-                  <input
-                    type="checkbox"
-                    id={`applyKpiScoring-${user.userId}`}
-                    className="
-                  appearance-none w-5 h-5 border-2 border-indigo-400 rounded-md 
-                  checked:bg-indigo-600 checked:border-indigo-600 
-                  hover:border-indigo-500 transition-all duration-200 
-                  cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-300
-                "
-                    checked={
-                      reportPermissionAccess[user.userId]?.applyKpi || false
-                    }
-                    onChange={() =>
-                      toggleReportPermission(user.userId, "applyKpi")
-                    }
-                  />
-                </div>
-              )}
-
-            {/* --- 3. Apply increment Row --- */}
-            {activeTabName === "PMS" &&
-              selectedAccessLevel === "Partial Access" && (
-                <div
-                  className="flex items-center justify-between cursor-pointer group w-full"
-                  onClick={(e) => {
-                    // Prevent double trigger if user clicks checkbox
-                    if (e.target.type !== "checkbox") {
-                      toggleReportPermission(user.userId, "applyIncrement");
-                    }
-                  }}
-                >
-                  <label
-                    htmlFor={`applyIncrement-${user.userId}`}
-                    className="text-sm font-bold text-indigo-700 select-none flex items-center gap-2"
-                  >
-                    <span className="inline-block bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full text-[12px] font-extrabold">
-                      INC
-                    </span>
-                    Enable Increment
-                  </label>
-
-                  <input
-                    type="checkbox"
-                    id={`applyIncrement-${user.userId}`}
-                    className="
-                  appearance-none w-5 h-5 border-2 border-indigo-400 rounded-md 
-                  checked:bg-indigo-600 checked:border-indigo-600 
-                  hover:border-indigo-500 transition-all duration-200 
-                  cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-300
-                "
-                    checked={
-                      reportPermissionAccess[user.userId]?.applyIncrement || false
-                    }
-                    onChange={() =>
-                      toggleReportPermission(user.userId, "applyIncrement")
-                    }
-                  />
-                </div>
-              )}
           </div>
+
+          {/* --- 2. Divider --- */}
+          {activeTabName === "Performance Management" &&
+            selectedAccessLevel === "Partial Access" && (
+              <div className="w-full h-px bg-indigo-100 mt-5 mb-5"></div>
+            )}
+
+          {/* --- 3. Apply KPI Scoring Row --- */}
+          {activeTabName === "Performance Management" &&
+            selectedAccessLevel === "Partial Access" && (
+              <div
+                className="flex items-center justify-between cursor-pointer group w-full mb-2"
+                onClick={(e) => {
+                  // Prevent double trigger if user clicks checkbox
+                  if (e.target.type !== "checkbox") {
+                    toggleReportPermission(user.userId, "applyKpi");
+                  }
+                }}
+              >
+                <label
+                  htmlFor={`applyKpiScoring-${user.userId}`}
+                  className="text-sm font-bold text-indigo-700 select-none flex items-center gap-2"
+                >
+                  <span className="inline-block bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[12px] font-extrabold">
+                    KPI
+                  </span>
+                  Enable PMS
+                </label>
+
+                <input
+                  type="checkbox"
+                  id={`applyKpiScoring-${user.userId}`}
+                  className="
+                  appearance-none w-5 h-5 border-2 border-indigo-400 rounded-md 
+                  checked:bg-indigo-600 checked:border-indigo-600 
+                  hover:border-indigo-500 transition-all duration-200 
+                  cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-300
+                "
+                  checked={
+                    reportPermissionAccess[user.userId]?.applyKpi || false
+                  }
+                  onChange={() =>
+                    toggleReportPermission(user.userId, "applyKpi")
+                  }
+                />
+              </div>
+            )}
+
+          {/* --- 3. Apply increment Row --- */}
+          {activeTabName === "Performance Management" &&
+            selectedAccessLevel === "Partial Access" && (
+              <div
+                className="flex items-center justify-between cursor-pointer group w-full"
+                onClick={(e) => {
+                  // Prevent double trigger if user clicks checkbox
+                  if (e.target.type !== "checkbox") {
+                    toggleReportPermission(user.userId, "applyIncrement");
+                  }
+                }}
+              >
+                <label
+                  htmlFor={`applyIncrement-${user.userId}`}
+                  className="text-sm font-bold text-indigo-700 select-none flex items-center gap-2"
+                >
+                  <span className="inline-block bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[12px] font-extrabold">
+                    INC
+                  </span>
+                  Enable Increment
+                </label>
+
+                <input
+                  type="checkbox"
+                  id={`applyIncrement-${user.userId}`}
+                  className="
+                  appearance-none w-5 h-5 border-2 border-indigo-400 rounded-md 
+                  checked:bg-indigo-600 checked:border-indigo-600 
+                  hover:border-indigo-500 transition-all duration-200 
+                  cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-300
+                "
+                  checked={
+                    reportPermissionAccess[user.userId]?.applyIncrement || false
+                  }
+                  onChange={() =>
+                    toggleReportPermission(user.userId, "applyIncrement")
+                  }
+                />
+              </div>
+            )}
+
+          {/* --- 3. Apply Goal Setting --- */}
+          {activeTabName === "Performance Management" &&
+            selectedAccessLevel === "Partial Access" && (
+              <div
+                className="flex items-center justify-between cursor-pointer group w-full mt-2"
+                onClick={(e) => {
+                  // Prevent double trigger if user clicks checkbox
+                  if (e.target.type !== "checkbox") {
+                    toggleReportPermission(user.userId, "applyGAP");
+                  }
+                }}
+              >
+                <label
+                  htmlFor={`applyGAP-${user.userId}`}
+                  className="text-sm font-bold text-indigo-700 select-none flex items-center gap-2"
+                >
+                  <span className="inline-block bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full text-[12px] font-extrabold">
+                    GAP
+                  </span>
+                  Enable Goal Setting
+                </label>
+
+                <input
+                  type="checkbox"
+                  id={`applyGAP-${user.userId}`}
+                  className="
+                  appearance-none w-5 h-5 border-2 border-indigo-400 rounded-md 
+                  checked:bg-indigo-600 checked:border-indigo-600 
+                  hover:border-indigo-500 transition-all duration-200 
+                  cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-300
+                "
+                  checked={
+                    reportPermissionAccess[user.userId]?.applyGAP || false
+                  }
+                  onChange={() =>
+                    toggleReportPermission(user.userId, "applyGAP")
+                  }
+                />
+              </div>
+            )}
+
+          {/* --- 3. Apply Performance Management Report --- */}
+          {activeTabName === "Performance Management" &&
+            selectedAccessLevel === "Partial Access" && (
+              <div
+                className="flex items-center justify-between cursor-pointer group w-full mt-2"
+                onClick={(e) => {
+                  // Prevent double trigger if user clicks checkbox
+                  if (e.target.type !== "checkbox") {
+                    toggleReportPermission(user.userId, "applyRPT");
+                  }
+                }}
+              >
+                <label
+                  htmlFor={`applyRPT-${user.userId}`}
+                  className="text-sm font-bold text-indigo-700 select-none flex items-center gap-2"
+                >
+                  <span className="inline-block bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full text-[12px] font-extrabold">
+                    RPT
+                  </span>
+                  Enable Report
+                </label>
+
+                <input
+                  type="checkbox"
+                  id={`applyRPT-${user.userId}`}
+                  className="
+                  appearance-none w-5 h-5 border-2 border-indigo-400 rounded-md 
+                  checked:bg-indigo-600 checked:border-indigo-600 
+                  hover:border-indigo-500 transition-all duration-200 
+                  cursor-pointer shadow-sm focus:ring-2 focus:ring-indigo-300
+                "
+                  checked={
+                    reportPermissionAccess[user.userId]?.applyRPT || false
+                  }
+                  onChange={() =>
+                    toggleReportPermission(user.userId, "applyRPT")
+                  }
+                />
+              </div>
+            )}
         </div>
       );
     }
@@ -629,11 +720,12 @@ export default function UserAccessControl() {
       if (activeTabName === "Dashboard") accessMap = userAccess;
       else if (activeTabName === "Roles") accessMap = rolePermissionAccess;
       else if (activeTabName === "Users") accessMap = profilePermissionAccess;
-      else if (activeTabName === "PMS") accessMap = reportPermissionAccess;
+      else if (activeTabName === "Performance Management")
+        accessMap = reportPermissionAccess;
 
       const userAccessValue = accessMap[userId];
       console.log("🔍 Sending userAccess:", userAccessValue);
-      
+
       const res = await fetch("/api/UserAccessControl/updatesingleaccess", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -712,8 +804,8 @@ export default function UserAccessControl() {
           </div>
         </div>
       )}
-      <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-indigo-50 to-gray-100 p-4 sm:p-6 md:p-10 font-sans">
-        <div className="w-full max-w-4xl mt-2">
+      <div className="w-full min-h-screen flex flex-col items-center bg-gradient-to-br from-indigo-50 to-gray-100 p-4 sm:p-6 md:p-10 font-sans">
+        <div className="w-full max-w-6xl mt-2">
           {/* Header */}
           <header className="flex justify-center mb-6">
             <div className="flex items-center space-x-3 px-6 py-3 bg-white/90 backdrop-blur-lg border border-indigo-200 rounded-full shadow-lg hover:shadow-indigo-300/50 transition">
@@ -760,7 +852,7 @@ export default function UserAccessControl() {
           </header>
 
           {/* Main Card */}
-          <div className="bg-white/95 rounded-3xl shadow-xl p-8 sm:p-10 border border-gray-100">
+          <div className="bg-white/95 rounded-3xl shadow-xl p-8 sm:p-10 border border-gray-100 w-full ">
             {loading ? (
               <NoDataState
                 text="Loading access modules..."
@@ -899,7 +991,15 @@ export default function UserAccessControl() {
                                   </div>
 
                                   {/* 🔒 Access Controls + Update button only for Partial Access */}
-                                  <div className="flex flex-wrap justify-center sm:justify-end items-center gap-4 w-full sm:w-2/3 mt-3 sm:mt-0">
+                                  <div
+                                    className={`${
+                                      activeTabName ===
+                                        "Performance Management" &&
+                                      selectedAccessLevel === "Partial Access"
+                                        ? "flex flex-col justify-center sm:justify-end items-center sm:items-end"
+                                        : "flex flex-wrap justify-center sm:justify-end items-center"
+                                    } gap-4 w-full sm:w-2/3 mt-3 sm:mt-0`}
+                                  >
                                     {renderUserAccess(user)}
 
                                     {selectedAccessLevel ===
@@ -909,7 +1009,7 @@ export default function UserAccessControl() {
                                           handleUpdateAccess(user.userId)
                                         }
                                         className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md 
-                        hover:from-indigo-700 hover:to-purple-700 transition duration-200 transform hover:scale-[1.03] active:scale-[0.97]"
+        hover:from-indigo-700 hover:to-purple-700 transition duration-200 transform hover:scale-[1.03] active:scale-[0.97]"
                                       >
                                         Update
                                       </button>

@@ -40,7 +40,7 @@ export async function POST(req) {
           noAccess: false,
           partialAccess: {
             enabled: false,
-            permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false },
+            permissions: { view: false, edit: false, add: false, delete: false, applyKpi: false, applyIncrement: false, applyGAP: false, applyRPT: false },
           },
         };
       } else if (index === 1) {
@@ -51,7 +51,7 @@ export async function POST(req) {
           noAccess: false,
           partialAccess: {
             enabled: true,
-            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: false , applyIncrement: false },
+            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: false , applyIncrement: false, applyGAP: false, applyRPT: false },
           },
         };
       } else if (index === 2) {
@@ -62,7 +62,7 @@ export async function POST(req) {
           noAccess: false,
           partialAccess: {
             enabled: true,
-            permissions: { view: true, edit: true, add: false, delete: false, applyKpi: false , applyIncrement: false },
+            permissions: { view: true, edit: true, add: false, delete: false, applyKpi: false , applyIncrement: false, applyGAP: false, applyRPT: false },
           },
         };
       } else {
@@ -73,7 +73,7 @@ export async function POST(req) {
           noAccess: false,
           partialAccess: {
             enabled: true,
-            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: true, applyIncrement: false },
+            permissions: { view: true, edit: false, add: false, delete: false, applyKpi: true, applyIncrement: false, applyGAP: false, applyRPT: false },
           },
         };
       }

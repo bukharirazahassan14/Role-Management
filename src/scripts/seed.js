@@ -96,7 +96,7 @@ async function seed() {
     { name: "Dashboard", description: "Access to analytics and performance dashboards." },
     { name: "Roles", description: "Manage and assign system roles." },
     { name: "Users", description: "View and update user profile info." },
-    { name: "PMS", description: "Generate and view detailed reports." },
+    { name: "Performance Management", description: "Generate and view detailed reports." },
     { name: "Payroll Setup", description: "Generate and view detailed Payroll." },
   ]);
 
