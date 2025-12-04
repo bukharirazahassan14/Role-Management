@@ -43,12 +43,11 @@ export default function MainLayout({ children }) {
     ? "Salary Configuration"
     : pathname.includes("/payrollsetupdetail")
     ? "Compensation Setup"
-
     : pathname.includes("/performancereports")
     ? "Team Performance Reports"
-
-
-     : pathname.includes("/UserProfile")
+    : pathname.includes("/Assets")
+    ? "Asset Dashboard"
+    : pathname.includes("/UserProfile")
     ? isStaff
       ? "User Profile"
       : "My Profile"

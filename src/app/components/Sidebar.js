@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Wallet,
+  Wrench,
+  Package,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 
@@ -58,19 +60,25 @@ export default function Sidebar() {
   useEffect(() => {
     async function fetchForms() {
       try {
-        const res = await fetch("/api/UserAccessControl", { cache: "no-store" });
+        const res = await fetch("/api/UserAccessControl", {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error("Failed to fetch forms");
         const data = await res.json();
         setForms(data);
 
-        const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+        const accessData = JSON.parse(
+          localStorage.getItem("userAccess") || "{}"
+        );
         const formAccess = accessData.formAccess || [];
 
         // PERFORMANCE PERMISSIONS
-        const performanceForm = data.find(f => f.name === "Performance Management");
+        const performanceForm = data.find(
+          (f) => f.name === "Performance Management"
+        );
         if (performanceForm) {
           const access = formAccess.find(
-            fa => String(fa.formId) === String(performanceForm._id)
+            (fa) => String(fa.formId) === String(performanceForm._id)
           );
 
           if (access) {
@@ -83,7 +91,8 @@ export default function Sidebar() {
               });
             } else {
               const perms = access.partialAccess?.permissions || {};
-              const evalAllowed = perms.view || perms.edit || perms.add || perms.delete;
+              const evalAllowed =
+                perms.view || perms.edit || perms.add || perms.delete;
               const gapAllowed = perms.applyGAP;
               const rptAllowed = perms.applyRPT;
               const hasAnyPermission = evalAllowed || gapAllowed || rptAllowed;
@@ -99,10 +108,10 @@ export default function Sidebar() {
         }
 
         // PAYROLL PERMISSIONS
-        const payrollForm = data.find(f => f.name === "Payroll Setup");
+        const payrollForm = data.find((f) => f.name === "Payroll Setup");
         if (payrollForm) {
           const access = formAccess.find(
-            fa => String(fa.formId) === String(payrollForm._id)
+            (fa) => String(fa.formId) === String(payrollForm._id)
           );
 
           if (access) {
@@ -117,12 +126,13 @@ export default function Sidebar() {
               setPayrollButtonPermissions({
                 setSalary: perms.applyKpi || false,
                 viewSalary: perms.view || false,
-                showMenuIcon: access.partialAccess?.enabled && (perms.applyKpi || perms.view),
+                showMenuIcon:
+                  access.partialAccess?.enabled &&
+                  (perms.applyKpi || perms.view),
               });
             }
           }
         }
-
       } catch (error) {
         console.error("❌ Error loading forms:", error);
       }
@@ -156,6 +166,14 @@ export default function Sidebar() {
       return;
     }
 
+    // ⭐ Assets click
+    if (item.name === "Assets") {
+      router.replace("/main/Assets");
+      setActiveItem(item._id);
+      localStorage.setItem("activeForm", item._id);
+      return;
+    }
+
     router.replace(path);
   };
 
@@ -167,8 +185,10 @@ export default function Sidebar() {
     const formAccess = accessData.formAccess || [];
 
     return forms
-      .filter(form => {
-        const access = formAccess.find(a => String(a.formId) === String(form._id));
+      .filter((form) => {
+        const access = formAccess.find(
+          (a) => String(a.formId) === String(form._id)
+        );
         if (!access || access.noAccess) return false;
 
         if (form.name === "Performance Management") {
@@ -187,10 +207,14 @@ export default function Sidebar() {
 
         return access.fullAccess || access.partialAccess?.enabled;
       })
-      .map(f => {
+      .map((f) => {
         let path = f.name.toLowerCase().replace(/\s+/g, "");
         if (f.name === "Performance Management") path = "weeklyevaluation";
-        if (f.name === "Users" && !["Super Admin","Admin","HR","Manager"].includes(currentUserRole)) {
+        if (f.name === "Assets") path = "Assets";
+        if (
+          f.name === "Users" &&
+          !["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
+        ) {
           path = `UserProfile?userID=${userID}`;
         }
 
@@ -207,10 +231,18 @@ export default function Sidebar() {
               ? Users
               : f.name === "Payroll Setup"
               ? Wallet
+              : f.name === "Assets"
+              ? Package
               : ClipboardCheck,
         };
       });
-  }, [forms, userID, currentUserRole, performanceButtonPermissions, payrollButtonPermissions]);
+  }, [
+    forms,
+    userID,
+    currentUserRole,
+    performanceButtonPermissions,
+    payrollButtonPermissions,
+  ]);
 
   const sidebarWidth = isCollapsed ? "w-17" : "w-68";
   const sidebarPadding = isCollapsed ? "px-2" : "px-3";
@@ -223,7 +255,11 @@ export default function Sidebar() {
         transition-all duration-300 ease-in-out`}
     >
       {/* Toggle Button */}
-      <div className={`flex ${isCollapsed ? "justify-center" : "justify-end"} mb-4`}>
+      <div
+        className={`flex ${
+          isCollapsed ? "justify-center" : "justify-end"
+        } mb-4`}
+      >
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-1.5 rounded-full text-indigo-300 bg-gray-900/50 hover:text-white hover:bg-indigo-600 border border-transparent hover:border-white/20 transition duration-300"
@@ -234,7 +270,7 @@ export default function Sidebar() {
 
       {/* NAVIGATION */}
       <nav className="flex flex-col space-y-1">
-        {navItems.map(item => {
+        {navItems.map((item) => {
           const isActive = activeItem === item._id || pathname === item.href;
           const Icon = item.icon;
           const iconSize = isCollapsed ? 28 : 18;
@@ -246,16 +282,26 @@ export default function Sidebar() {
                 onClick={() => handleItemClick(item)}
                 className={`
                   w-full flex items-center 
-                  ${isCollapsed ? "justify-center p-2.5" : "space-x-2 px-2.5 py-1.5"}
+                  ${
+                    isCollapsed
+                      ? "justify-center p-2.5"
+                      : "space-x-2 px-2.5 py-1.5"
+                  }
                   rounded-xl font-medium text-sm transition-all
-                  ${isActive ? "bg-indigo-600 text-white shadow-lg" : "text-gray-200 hover:bg-indigo-700/40 hover:text-white"}
+                  ${
+                    isActive
+                      ? "bg-indigo-600 text-white shadow-lg"
+                      : "text-gray-200 hover:bg-indigo-700/40 hover:text-white"
+                  }
                 `}
               >
                 <Icon size={iconSize} />
 
                 {!isCollapsed && (
                   <span className="truncate">
-                    {["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
+                    {["Super Admin", "Admin", "HR", "Manager"].includes(
+                      currentUserRole
+                    )
                       ? item.name
                       : item.name === "Users"
                       ? "My Profile"
@@ -264,12 +310,14 @@ export default function Sidebar() {
                 )}
 
                 {!isCollapsed &&
-                  (item.name === "Payroll Setup" || item.name === "Performance Management") && (
+                  (item.name === "Payroll Setup" ||
+                    item.name === "Performance Management") && (
                     <ChevronRight
                       size={18}
                       className={`ml-auto transition-transform ${
                         (item.name === "Payroll Setup" && openPayroll) ||
-                        (item.name === "Performance Management" && openPerformance)
+                        (item.name === "Performance Management" &&
+                          openPerformance)
                           ? "rotate-90 text-white"
                           : ""
                       }`}
@@ -278,45 +326,59 @@ export default function Sidebar() {
               </button>
 
               {/* PERFORMANCE MANAGEMENT SUBMENU */}
-              {item.name === "Performance Management" && openPerformance && !isCollapsed && (
-                <div className="ml-7 mt-2 space-y-2 border-l border-white/20 pl-4">
-                  {performanceButtonPermissions.evaluation && (
-                    <button
-                      onClick={() => handleItemClick(item, "weeklyevaluation")}
-                      className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
-                        activeItem === "weeklyevaluation" ? "bg-indigo-600 text-white" : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
-                      }`}
-                    >
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                      <span className="ml-2">Performance Evaluation</span>
-                    </button>
-                  )}
+              {item.name === "Performance Management" &&
+                openPerformance &&
+                !isCollapsed && (
+                  <div className="ml-7 mt-2 space-y-2 border-l border-white/20 pl-4">
+                    {performanceButtonPermissions.evaluation && (
+                      <button
+                        onClick={() =>
+                          handleItemClick(item, "weeklyevaluation")
+                        }
+                        className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
+                          activeItem === "weeklyevaluation"
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+                        }`}
+                      >
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                        <span className="ml-2">Performance Evaluation</span>
+                      </button>
+                    )}
 
-                  {performanceButtonPermissions.goal && (
-                    <button
-                      onClick={() => handleItemClick(item, "EvaluationPrograms")}
-                      className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
-                        activeItem === "EvaluationPrograms" ? "bg-indigo-600 text-white" : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
-                      }`}
-                    >
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                      <span className="ml-2">Goal Setting</span>
-                    </button>
-                  )}
+                    {performanceButtonPermissions.goal && (
+                      <button
+                        onClick={() =>
+                          handleItemClick(item, "EvaluationPrograms")
+                        }
+                        className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
+                          activeItem === "EvaluationPrograms"
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+                        }`}
+                      >
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                        <span className="ml-2">Goal Setting</span>
+                      </button>
+                    )}
 
-                  {performanceButtonPermissions.report && (
-                    <button
-                      onClick={() => handleItemClick(item, "performancereports")}
-                      className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
-                        activeItem === "performancereports" ? "bg-indigo-600 text-white" : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
-                      }`}
-                    >
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                      <span className="ml-2">Report</span>
-                    </button>
-                  )}
-                </div>
-              )}
+                    {performanceButtonPermissions.report && (
+                      <button
+                        onClick={() =>
+                          handleItemClick(item, "performancereports")
+                        }
+                        className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
+                          activeItem === "performancereports"
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+                        }`}
+                      >
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                        <span className="ml-2">Report</span>
+                      </button>
+                    )}
+                  </div>
+                )}
 
               {/* PAYROLL SUBMENU */}
               {item.name === "Payroll Setup" && openPayroll && !isCollapsed && (
@@ -325,7 +387,9 @@ export default function Sidebar() {
                     <button
                       onClick={() => handleItemClick(item, "setsalary")}
                       className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
-                        activeItem === "setsalary" ? "bg-indigo-600 text-white" : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+                        activeItem === "setsalary"
+                          ? "bg-indigo-600 text-white"
+                          : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
                       }`}
                     >
                       <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
@@ -337,7 +401,9 @@ export default function Sidebar() {
                     <button
                       onClick={() => handleItemClick(item, "viewsalary")}
                       className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
-                        activeItem === "viewsalary" ? "bg-indigo-600 text-white" : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+                        activeItem === "viewsalary"
+                          ? "bg-indigo-600 text-white"
+                          : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
                       }`}
                     >
                       <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>

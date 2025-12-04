@@ -127,4 +127,64 @@ async function seedOther() {
   }
 }
 
-seedOther();
+// Function to add "Assets" form to all users
+// ================================
+export async function updateAssets() {
+  const db = await connectToDB();
+  const database = db.connection.db;
+
+  try {
+    // 1️⃣ Insert "Assets" form (without checking for existence)
+    const insertResult = await database.collection("accesscontrolform").insertOne({
+      name: "Assets",
+      description: "Manage and track company assets.",
+    });
+
+    const assetsFormId = insertResult.insertedId;
+    console.log("✅ 'Assets' form inserted into accesscontrolform!");
+
+    // 2️⃣ Update all users in useraccesscontrol
+    await database.collection("useraccesscontrol").updateMany(
+      {
+        "formAccess.formId": { $ne: assetsFormId },
+      },
+      {
+        $push: {
+          formAccess: {
+            formId: assetsFormId,
+            fullAccess: true,
+            noAccess: false,
+            partialAccess: {
+              enabled: false,
+              permissions: {
+                view: false,
+                edit: false,
+                add: false,
+                delete: false,
+                applyKpi: false,
+                applyIncrement: false,
+                applyGAP: false,
+                applyRPT: false,
+              },
+            },
+          },
+        },
+      }
+    );
+
+    console.log("✅ All useraccesscontrol records updated with 'Assets'!");
+  } catch (err) {
+    console.error("❌ updateAssets error:", err);
+  } finally {
+    await db.connection.close();
+    console.log("🔒 MongoDB connection closed");
+  }
+}
+
+
+//seedOther();
+
+updateAssets();
+
+//npm install react-icons
+//npm install framer-motion@^12.23.24
