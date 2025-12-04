@@ -805,7 +805,7 @@ export default function UserAccessControl() {
         </div>
       )}
       <div className="w-full min-h-screen flex flex-col items-center bg-gradient-to-br from-indigo-50 to-gray-100 p-4 sm:p-6 md:p-10 font-sans">
-        <div className="w-full max-w-6xl mt-2">
+        <div className="w-full max-w-7xl mt-2">
           {/* Header */}
           <header className="flex justify-center mb-6">
             <div className="flex items-center space-x-3 px-6 py-3 bg-white/90 backdrop-blur-lg border border-indigo-200 rounded-full shadow-lg hover:shadow-indigo-300/50 transition">

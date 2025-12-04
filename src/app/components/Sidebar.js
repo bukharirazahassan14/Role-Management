@@ -18,7 +18,7 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [forms, setForms] = useState([]);
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [userID, setUserID] = useState("");
@@ -167,7 +167,7 @@ export default function Sidebar() {
     }
 
     // ⭐ Assets click
-    if (item.name === "Assets") {
+    if (item.name === "Assets Management") {
       router.replace("/main/Assets");
       setActiveItem(item._id);
       localStorage.setItem("activeForm", item._id);
@@ -178,71 +178,83 @@ export default function Sidebar() {
   };
 
   // Build nav items
-  const navItems = useMemo(() => {
-    if (forms.length === 0) return [];
+const navItems = useMemo(() => {
+  if (forms.length === 0) return [];
 
-    const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
-    const formAccess = accessData.formAccess || [];
+  const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+  const formAccess = accessData.formAccess || [];
 
-    return forms
-      .filter((form) => {
-        const access = formAccess.find(
-          (a) => String(a.formId) === String(form._id)
-        );
-        if (!access || access.noAccess) return false;
+  return forms
+    .filter((form) => {
+      const access = formAccess.find(
+        (a) => String(a.formId) === String(form._id)
+      );
 
-        if (form.name === "Performance Management") {
-          if (!performanceButtonPermissions.showMenuIcon) return false;
-        }
+      if (!access) return false;
+      if (access.noAccess) return false;
 
-        if (form.name === "Payroll Setup") {
-          if (!payrollButtonPermissions.showMenuIcon) return false;
-        }
+      // ⭐ If FULL_ACCESS → Always allow
+      if (access.fullAccess) return true;
 
-        if (access.partialAccess?.enabled) {
-          const perms = access.partialAccess.permissions || {};
-          const hasAnyPermission = Object.values(perms).some(Boolean);
-          if (!hasAnyPermission) return false;
-        }
+      // ⭐ Check all permissions even if partialAccess.enabled = false
+      const perms = access.partialAccess?.permissions || {};
 
-        return access.fullAccess || access.partialAccess?.enabled;
-      })
-      .map((f) => {
-        let path = f.name.toLowerCase().replace(/\s+/g, "");
-        if (f.name === "Performance Management") path = "weeklyevaluation";
-        if (f.name === "Assets") path = "Assets";
-        if (
-          f.name === "Users" &&
-          !["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
-        ) {
-          path = `UserProfile?userID=${userID}`;
-        }
+      const hasAnyPermission = Object.values(perms).some(Boolean);
 
-        return {
-          _id: f._id,
-          name: f.name,
-          href: `/main/${path}`,
-          icon:
-            f.name === "Dashboard"
-              ? LayoutDashboard
-              : f.name === "Roles"
-              ? Briefcase
-              : f.name === "Users"
-              ? Users
-              : f.name === "Payroll Setup"
-              ? Wallet
-              : f.name === "Assets"
-              ? Package
-              : ClipboardCheck,
-        };
-      });
-  }, [
-    forms,
-    userID,
-    currentUserRole,
-    performanceButtonPermissions,
-    payrollButtonPermissions,
-  ]);
+      if (!hasAnyPermission) return false;
+
+      // ⭐ Performance menu visibility
+      if (form.name === "Performance Management") {
+        if (!performanceButtonPermissions.showMenuIcon) return false;
+      }
+
+      // ⭐ Payroll menu visibility
+      if (form.name === "Payroll Setup") {
+        if (!payrollButtonPermissions.showMenuIcon) return false;
+      }
+
+      return true;
+    })
+    .map((f) => {
+      let path = f.name.toLowerCase().replace(/\s+/g, "");
+
+      if (f.name === "Performance Management") path = "weeklyevaluation";
+      if (f.name === "Assets Management") path = "Assets";
+
+      // Restrict Users to UserProfile (non-admins)
+      if (
+        f.name === "Users" &&
+        !["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
+      ) {
+        path = `UserProfile?userID=${userID}`;
+      }
+
+      return {
+        _id: f._id,
+        name: f.name,
+        href: `/main/${path}`,
+        icon:
+          f.name === "Dashboard"
+            ? LayoutDashboard
+            : f.name === "Roles"
+            ? Briefcase
+            : f.name === "Users"
+            ? Users
+            : f.name === "Payroll Setup"
+            ? Wallet
+            : f.name === "Assets Management"
+            ? Package
+            : ClipboardCheck,
+      };
+    });
+}, [
+  forms,
+  userID,
+  currentUserRole,
+  performanceButtonPermissions,
+  payrollButtonPermissions,
+]);
+
 
   const sidebarWidth = isCollapsed ? "w-17" : "w-68";
   const sidebarPadding = isCollapsed ? "px-2" : "px-3";
@@ -277,53 +289,45 @@ export default function Sidebar() {
 
           return (
             <div key={item.name} className="w-full">
-              {/* MAIN BUTTON */}
-              <button
-                onClick={() => handleItemClick(item)}
-                className={`
-                  w-full flex items-center 
-                  ${
-                    isCollapsed
-                      ? "justify-center p-2.5"
-                      : "space-x-2 px-2.5 py-1.5"
-                  }
-                  rounded-xl font-medium text-sm transition-all
-                  ${
-                    isActive
-                      ? "bg-indigo-600 text-white shadow-lg"
-                      : "text-gray-200 hover:bg-indigo-700/40 hover:text-white"
-                  }
-                `}
-              >
-                <Icon size={iconSize} />
+              <div className="relative group">
+  <button
+    onClick={() => handleItemClick(item)}
+    className={`
+      w-full flex items-center 
+      ${isCollapsed ? "justify-center p-2.5" : "space-x-2 px-2.5 py-1.5"}
+      rounded-xl font-medium text-sm transition-all
+      ${isActive ? "bg-indigo-600 text-white shadow-lg" : "text-gray-200 hover:bg-indigo-700/40 hover:text-white"}
+    `}
+  >
+    <Icon size={iconSize} />
 
-                {!isCollapsed && (
-                  <span className="truncate">
-                    {["Super Admin", "Admin", "HR", "Manager"].includes(
-                      currentUserRole
-                    )
-                      ? item.name
-                      : item.name === "Users"
-                      ? "My Profile"
-                      : item.name}
-                  </span>
-                )}
+    {!isCollapsed && (
+      <span className="truncate">
+        {["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
+          ? item.name
+          : item.name === "Users"
+          ? "My Profile"
+          : item.name}
+      </span>
+    )}
+  </button>
 
-                {!isCollapsed &&
-                  (item.name === "Payroll Setup" ||
-                    item.name === "Performance Management") && (
-                    <ChevronRight
-                      size={18}
-                      className={`ml-auto transition-transform ${
-                        (item.name === "Payroll Setup" && openPayroll) ||
-                        (item.name === "Performance Management" &&
-                          openPerformance)
-                          ? "rotate-90 text-white"
-                          : ""
-                      }`}
-                    />
-                  )}
-              </button>
+  {/* ⭐ TOOLTIP WHEN COLLAPSED */}
+  {isCollapsed && (
+    <span
+      className="
+        absolute left-14 top-1/2 -translate-y-1/2 
+        whitespace-nowrap bg-black text-white text-xs 
+        py-1 px-3 rounded-lg shadow-lg opacity-0 
+        group-hover:opacity-100 group-hover:translate-x-1 
+        transition-all duration-200 pointer-events-none
+      "
+    >
+      {item.name}
+    </span>
+  )}
+</div>
+
 
               {/* PERFORMANCE MANAGEMENT SUBMENU */}
               {item.name === "Performance Management" &&

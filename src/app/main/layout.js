@@ -46,7 +46,7 @@ export default function MainLayout({ children }) {
     : pathname.includes("/performancereports")
     ? "Team Performance Reports"
     : pathname.includes("/Assets")
-    ? "Asset Dashboard"
+    ? "Assets"
     : pathname.includes("/UserProfile")
     ? isStaff
       ? "User Profile"
