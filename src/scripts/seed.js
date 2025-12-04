@@ -98,6 +98,7 @@ async function seed() {
     { name: "Users", description: "View and update user profile info." },
     { name: "Performance Management", description: "Generate and view detailed reports." },
     { name: "Payroll Setup", description: "Generate and view detailed Payroll." },
+    { name: "Assets Management", description: "Manage and track company assets." },
   ]);
 
   // ✅ Create default access for Super Admin (full access to all forms)

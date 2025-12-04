@@ -9,8 +9,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Wallet,
-  Wrench,
   Package,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 
@@ -25,7 +26,6 @@ export default function Sidebar() {
   const [openPerformance, setOpenPerformance] = useState(false);
   const [openPayroll, setOpenPayroll] = useState(false);
 
-  // PERFORMANCE BUTTON PERMISSIONS
   const [performanceButtonPermissions, setPerformanceButtonPermissions] =
     useState({
       evaluation: false,
@@ -34,19 +34,16 @@ export default function Sidebar() {
       showMenuIcon: false,
     });
 
-  // PAYROLL BUTTON PERMISSIONS
   const [payrollButtonPermissions, setPayrollButtonPermissions] = useState({
     setSalary: false,
     viewSalary: false,
     showMenuIcon: false,
   });
 
-  // ACTIVE ITEM (main or sub-button)
   const [activeItem, setActiveItem] = useState(
     typeof window !== "undefined" ? localStorage.getItem("activeForm") : null
   );
 
-  // Load user info
   useEffect(() => {
     if (typeof window !== "undefined") {
       const role = localStorage.getItem("userRole");
@@ -56,7 +53,7 @@ export default function Sidebar() {
     }
   }, []);
 
-  // Fetch forms and permissions
+  // Fetch forms and access control
   useEffect(() => {
     async function fetchForms() {
       try {
@@ -95,13 +92,16 @@ export default function Sidebar() {
                 perms.view || perms.edit || perms.add || perms.delete;
               const gapAllowed = perms.applyGAP;
               const rptAllowed = perms.applyRPT;
-              const hasAnyPermission = evalAllowed || gapAllowed || rptAllowed;
+
+              const hasAnyPermission =
+                evalAllowed || gapAllowed || rptAllowed;
 
               setPerformanceButtonPermissions({
                 evaluation: evalAllowed,
                 goal: gapAllowed,
                 report: rptAllowed,
-                showMenuIcon: access.partialAccess?.enabled && hasAnyPermission,
+                showMenuIcon:
+                  access.partialAccess?.enabled && hasAnyPermission,
               });
             }
           }
@@ -123,6 +123,7 @@ export default function Sidebar() {
               });
             } else {
               const perms = access.partialAccess?.permissions || {};
+
               setPayrollButtonPermissions({
                 setSalary: perms.applyKpi || false,
                 viewSalary: perms.view || false,
@@ -141,7 +142,7 @@ export default function Sidebar() {
     fetchForms();
   }, []);
 
-  // Handle item click (main or sub-button)
+  // Handle main or submenu click
   const handleItemClick = (item, subPath = null) => {
     const path = subPath ? `/main/${subPath}` : item.href;
 
@@ -166,95 +167,88 @@ export default function Sidebar() {
       return;
     }
 
-    // ⭐ Assets click
-    if (item.name === "Assets Management") {
-      router.replace("/main/Assets");
-      setActiveItem(item._id);
-      localStorage.setItem("activeForm", item._id);
-      return;
-    }
-
     router.replace(path);
   };
 
-  // Build nav items
-const navItems = useMemo(() => {
-  if (forms.length === 0) return [];
+  // BUILD NAV ITEMS + SUBMENU FLAGS
+  const navItems = useMemo(() => {
+    if (forms.length === 0) return [];
 
-  const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
-  const formAccess = accessData.formAccess || [];
+    const accessData = JSON.parse(localStorage.getItem("userAccess") || "{}");
+    const formAccess = accessData.formAccess || [];
 
-  return forms
-    .filter((form) => {
-      const access = formAccess.find(
-        (a) => String(a.formId) === String(form._id)
-      );
+    return forms
+      .filter((form) => {
+        const access = formAccess.find(
+          (a) => String(a.formId) === String(form._id)
+        );
 
-      if (!access) return false;
-      if (access.noAccess) return false;
+        if (!access) return false;
+        if (access.noAccess) return false;
+        if (access.fullAccess) return true;
 
-      // ⭐ If FULL_ACCESS → Always allow
-      if (access.fullAccess) return true;
+        const perms = access.partialAccess?.permissions || {};
+        const hasAnyPermission = Object.values(perms).some(Boolean);
+        if (!hasAnyPermission) return false;
 
-      // ⭐ Check all permissions even if partialAccess.enabled = false
-      const perms = access.partialAccess?.permissions || {};
+        if (
+          form.name === "Performance Management" &&
+          !performanceButtonPermissions.showMenuIcon
+        )
+          return false;
 
-      const hasAnyPermission = Object.values(perms).some(Boolean);
+        if (
+          form.name === "Payroll Setup" &&
+          !payrollButtonPermissions.showMenuIcon
+        )
+          return false;
 
-      if (!hasAnyPermission) return false;
+        return true;
+      })
+      .map((f) => {
+        let path = f.name.toLowerCase().replace(/\s+/g, "");
 
-      // ⭐ Performance menu visibility
-      if (form.name === "Performance Management") {
-        if (!performanceButtonPermissions.showMenuIcon) return false;
-      }
+        if (f.name === "Performance Management") path = "weeklyevaluation";
+        if (f.name === "Assets Management") path = "Assets";
 
-      // ⭐ Payroll menu visibility
-      if (form.name === "Payroll Setup") {
-        if (!payrollButtonPermissions.showMenuIcon) return false;
-      }
+        if (
+          f.name === "Users" &&
+          !["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
+        ) {
+          path = `UserProfile?userID=${userID}`;
+        }
 
-      return true;
-    })
-    .map((f) => {
-      let path = f.name.toLowerCase().replace(/\s+/g, "");
+        return {
+          _id: f._id,
+          name: f.name,
+          href: `/main/${path}`,
 
-      if (f.name === "Performance Management") path = "weeklyevaluation";
-      if (f.name === "Assets Management") path = "Assets";
+          // ⭐ SUBMENU FLAG FIX (IMPORTANT)
+          submenu:
+            f.name === "Performance Management" ||
+            f.name === "Payroll Setup",
 
-      // Restrict Users to UserProfile (non-admins)
-      if (
-        f.name === "Users" &&
-        !["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
-      ) {
-        path = `UserProfile?userID=${userID}`;
-      }
-
-      return {
-        _id: f._id,
-        name: f.name,
-        href: `/main/${path}`,
-        icon:
-          f.name === "Dashboard"
-            ? LayoutDashboard
-            : f.name === "Roles"
-            ? Briefcase
-            : f.name === "Users"
-            ? Users
-            : f.name === "Payroll Setup"
-            ? Wallet
-            : f.name === "Assets Management"
-            ? Package
-            : ClipboardCheck,
-      };
-    });
-}, [
-  forms,
-  userID,
-  currentUserRole,
-  performanceButtonPermissions,
-  payrollButtonPermissions,
-]);
-
+          icon:
+            f.name === "Dashboard"
+              ? LayoutDashboard
+              : f.name === "Roles"
+              ? Briefcase
+              : f.name === "Users"
+              ? Users
+              : f.name === "Payroll Setup"
+              ? Wallet
+              : f.name === "Assets Management"
+              ? Package
+              : ClipboardCheck,
+        };
+      });
+  }, [
+    forms,
+    userID,
+    currentUserRole,
+    performanceButtonPermissions,
+    payrollButtonPermissions,
+  ]);
 
   const sidebarWidth = isCollapsed ? "w-17" : "w-68";
   const sidebarPadding = isCollapsed ? "px-2" : "px-3";
@@ -287,49 +281,90 @@ const navItems = useMemo(() => {
           const Icon = item.icon;
           const iconSize = isCollapsed ? 28 : 18;
 
+          const showArrow =
+            !isCollapsed &&
+            item.submenu &&
+            (item.name === "Performance Management" ||
+              item.name === "Payroll Setup");
+
           return (
             <div key={item.name} className="w-full">
-              <div className="relative group">
-  <button
-    onClick={() => handleItemClick(item)}
-    className={`
-      w-full flex items-center 
-      ${isCollapsed ? "justify-center p-2.5" : "space-x-2 px-2.5 py-1.5"}
-      rounded-xl font-medium text-sm transition-all
-      ${isActive ? "bg-indigo-600 text-white shadow-lg" : "text-gray-200 hover:bg-indigo-700/40 hover:text-white"}
-    `}
-  >
-    <Icon size={iconSize} />
+              {/* MAIN BUTTON */}
+              <div className="relative group w-full">
+                <button
+                  onClick={() => handleItemClick(item)}
+                  className={`
+                    w-full flex items-center 
+                    ${
+                      isCollapsed
+                        ? "justify-center p-2.5"
+                        : "justify-between px-2.5 py-1.5"
+                    }
+                    rounded-xl font-medium text-sm transition-all
+                    ${
+                      isActive
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : "text-gray-200 hover:bg-indigo-700/40 hover:text-white"
+                    }
+                  `}
+                >
+                  <div
+                    className={`flex items-center ${
+                      isCollapsed ? "justify-center" : "space-x-2"
+                    }`}
+                  >
+                    <Icon size={iconSize} />
 
-    {!isCollapsed && (
-      <span className="truncate">
-        {["Super Admin", "Admin", "HR", "Manager"].includes(currentUserRole)
-          ? item.name
-          : item.name === "Users"
-          ? "My Profile"
-          : item.name}
-      </span>
-    )}
-  </button>
+                    {!isCollapsed && (
+                      <span className="truncate">
+                        {["Super Admin", "Admin", "HR", "Manager"].includes(
+                          currentUserRole
+                        )
+                          ? item.name
+                          : item.name === "Users"
+                          ? "My Profile"
+                          : item.name}
+                      </span>
+                    )}
+                  </div>
 
-  {/* ⭐ TOOLTIP WHEN COLLAPSED */}
-  {isCollapsed && (
-    <span
-      className="
-        absolute left-14 top-1/2 -translate-y-1/2 
-        whitespace-nowrap bg-black text-white text-xs 
-        py-1 px-3 rounded-lg shadow-lg opacity-0 
-        group-hover:opacity-100 group-hover:translate-x-1 
-        transition-all duration-200 pointer-events-none
-      "
-    >
-      {item.name}
-    </span>
-  )}
-</div>
+                  {/* ⭐ FIXED ARROW */}
+                  {showArrow && (
+                    <span>
+                      {item.name === "Performance Management" ? (
+                        openPerformance ? (
+                          <ChevronUp size={18} />
+                        ) : (
+                          <ChevronDown size={18} />
+                        )
+                      ) : item.name === "Payroll Setup" ? (
+                        openPayroll ? (
+                          <ChevronUp size={18} />
+                        ) : (
+                          <ChevronDown size={18} />
+                        )
+                      ) : null}
+                    </span>
+                  )}
+                </button>
 
+                {/* Tooltip when collapsed */}
+                {isCollapsed && (
+                  <span
+                    className="
+                      absolute left-14 top-1/2 -translate-y-1/2 
+                      whitespace-nowrap bg-black text-white text-xs 
+                      py-1 px-3 rounded-lg shadow-lg opacity-0 
+                      group-hover:opacity-100 group-hover:translate-x-1 
+                      transition-all duration-200 pointer-events-none
+                    "
+                  >
+                    {item.name}
+                  </span>
+                )}
+              </div>
 
-              {/* PERFORMANCE MANAGEMENT SUBMENU */}
+              {/* PERFORMANCE SUBMENU */}
               {item.name === "Performance Management" &&
                 openPerformance &&
                 !isCollapsed && (
@@ -385,37 +420,39 @@ const navItems = useMemo(() => {
                 )}
 
               {/* PAYROLL SUBMENU */}
-              {item.name === "Payroll Setup" && openPayroll && !isCollapsed && (
-                <div className="ml-7 mt-2 space-y-2 border-l border-white/20 pl-4">
-                  {payrollButtonPermissions.setSalary && (
-                    <button
-                      onClick={() => handleItemClick(item, "setsalary")}
-                      className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
-                        activeItem === "setsalary"
-                          ? "bg-indigo-600 text-white"
-                          : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
-                      }`}
-                    >
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                      <span className="ml-2">Set Salary</span>
-                    </button>
-                  )}
+              {item.name === "Payroll Setup" &&
+                openPayroll &&
+                !isCollapsed && (
+                  <div className="ml-7 mt-2 space-y-2 border-l border-white/20 pl-4">
+                    {payrollButtonPermissions.setSalary && (
+                      <button
+                        onClick={() => handleItemClick(item, "setsalary")}
+                        className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
+                          activeItem === "setsalary"
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+                        }`}
+                      >
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                        <span className="ml-2">Set Salary</span>
+                      </button>
+                    )}
 
-                  {payrollButtonPermissions.viewSalary && (
-                    <button
-                      onClick={() => handleItemClick(item, "viewsalary")}
-                      className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
-                        activeItem === "viewsalary"
-                          ? "bg-indigo-600 text-white"
-                          : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
-                      }`}
-                    >
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                      <span className="ml-2">View Salary</span>
-                    </button>
-                  )}
-                </div>
-              )}
+                    {payrollButtonPermissions.viewSalary && (
+                      <button
+                        onClick={() => handleItemClick(item, "viewsalary")}
+                        className={`w-full flex items-center text-left text-sm px-3 py-2 rounded-lg ${
+                          activeItem === "viewsalary"
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-300 hover:text-white hover:bg-indigo-600/30"
+                        }`}
+                      >
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                        <span className="ml-2">View Salary</span>
+                      </button>
+                    )}
+                  </div>
+                )}
             </div>
           );
         })}
